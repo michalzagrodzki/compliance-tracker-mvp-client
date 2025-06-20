@@ -197,7 +197,6 @@ export default function Welcome() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="border-t mt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
@@ -208,7 +207,7 @@ export default function Welcome() {
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
               <Link to="/login" className="hover:text-foreground transition-colors">Login</Link>
               <Link to="/signup" className="hover:text-foreground transition-colors">Sign Up</Link>
-              <span>© 2024 Compliance Tracker. All rights reserved.</span>
+              <span>© 2025 Compliance Tracker. All rights reserved.</span>
             </div>
           </div>
         </div>

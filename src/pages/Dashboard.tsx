@@ -4,24 +4,13 @@ import { useAuthStore } from '@/modules/auth/store/authStore'
 import { 
   Search, 
   Clock, 
-  User,
-  LogOut
 } from 'lucide-react'
 
 export default function Dashboard() {
-  const { user, logout } = useAuthStore()
-
-  const handleLogout = async () => {
-    try {
-      await logout()
-    } catch (error) {
-      console.error('Logout failed:', error)
-    }
-  }
+  const { user } = useAuthStore()
 
   return (
     <div className="space-y-8">
-      {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -31,19 +20,8 @@ export default function Dashboard() {
             Here's what's happening with your documents today
           </p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <User className="h-4 w-4" />
-            <span>{user?.email}</span>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
-        </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -59,7 +37,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <CardHeader>
