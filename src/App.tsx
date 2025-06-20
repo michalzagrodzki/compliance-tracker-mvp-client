@@ -7,6 +7,12 @@ import SignupForm from './modules/auth/components/SignupForm'
 import AuthGuard from './modules/auth/components/AuthGuard'
 import ProtectedRoute from './modules/auth/components/ProtectedRoute'
 
+// Audit components
+import AuditSessionsList from './modules/audit/components/AuditSessionsList'
+import AuditSessionDetail from './modules/audit/components/AuditSessionDetail'
+import NewAuditSessionForm from './modules/audit/components/NewAuditSessionForm'
+
+
 // Pages
 import Welcome from './pages/Welcome'
 import Dashboard from './pages/Dashboard'
@@ -56,6 +62,52 @@ function App() {
       >
       {isAuthenticated && <Route index element={<Dashboard />} />}
       </Route>
+      
+      {isAuthenticated && (
+        <>
+          <Route
+            path="/audit-sessions"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AuditSessionsList />} />
+          </Route>
+          
+          <Route
+            path="/audit-sessions/new"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<NewAuditSessionForm />} />
+          </Route>
+          <Route
+            path="/audit-sessions/:sessionId"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AuditSessionDetail />} />
+          </Route>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+          </Route>
+        </>
+      )}
       <Route
         path="*"
         element={

@@ -1,9 +1,12 @@
+import { Link } from 'react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/modules/auth/store/authStore'
 import { 
-  Search, 
   Clock, 
+  Plus,
+  Shield,
+  ArrowRight
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -37,24 +40,46 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <CardHeader>
             <div className="flex items-center space-x-2">
-              <Search className="h-6 w-6 text-primary" />
-              <CardTitle>Search Documents</CardTitle>
+              <Plus className="h-6 w-6 text-primary" />
+              <CardTitle>Create Audit Session</CardTitle>
             </div>
             <CardDescription>
-              Find information across all your documents using natural language
+              Start a new compliance audit session to track regulatory review
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full">
-              Start Searching
+            <Button asChild className="w-full">
+              <Link to="/audit-sessions/new" className="flex items-center space-x-2">
+                <span>New Session</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
           </CardContent>
         </Card>
-      </div>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Shield className="h-6 w-6 text-primary" />
+              <CardTitle>View Audit Sessions</CardTitle>
+            </div>
+            <CardDescription>
+              Review and manage your existing compliance audit sessions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/audit-sessions" className="flex items-center space-x-2">
+                <span>Browse Sessions</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -78,6 +103,7 @@ export default function Dashboard() {
         <CardContent>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }
