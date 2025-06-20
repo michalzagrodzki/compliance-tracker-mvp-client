@@ -1,34 +1,74 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route } from 'react-router'
+import { useAuthStore } from './modules/auth/store/authStore'
+
+// Auth components
+import LoginForm from './modules/auth/components/LoginForm'
+import SignupForm from './modules/auth/components/SignupForm'
+import AuthGuard from './modules/auth/components/AuthGuard'
+import ProtectedRoute from './modules/auth/components/ProtectedRoute'
+
+// Pages
+import Welcome from './pages/Welcome'
+import Dashboard from './pages/Dashboard'
+import Layout from './components/Layout'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { isAuthenticated, isLoading } = useAuthStore()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <AuthGuard>
+            <LoginForm />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <AuthGuard>
+            <SignupForm />
+          </AuthGuard>
+        }
+      />
+
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          ) : (
+            <Welcome />
+          )
+        }
+      >
+      {isAuthenticated && <Route index element={<Dashboard />} />}
+      </Route>
+      <Route
+        path="*"
+        element={
+          isAuthenticated ? (
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          ) : (
+            <Welcome />
+          )
+        }
+      />
+    </Routes>
   )
 }
 
