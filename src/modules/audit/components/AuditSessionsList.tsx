@@ -1,11 +1,10 @@
-// src/modules/audit/components/AuditSessionsList.tsx
-
 import { useEffect } from 'react'
 import { Link } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuditSessionStore } from '../store/auditSessionStore'
 import { useAuthStore } from '@/modules/auth/store/authStore'
+import Loading from './../../../components/Loading'
 import { 
   Plus, 
   Clock, 
@@ -79,7 +78,7 @@ export default function AuditSessionsList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Loading />
       </div>
     )
   }

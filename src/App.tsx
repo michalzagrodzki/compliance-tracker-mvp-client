@@ -12,11 +12,12 @@ import AuditSessionsList from './modules/audit/components/AuditSessionsList'
 import AuditSessionDetail from './modules/audit/components/AuditSessionDetail'
 import NewAuditSessionForm from './modules/audit/components/NewAuditSessionForm'
 
-
 // Pages
 import Welcome from './pages/Welcome'
 import Dashboard from './pages/Dashboard'
 import Layout from './components/Layout'
+
+import Loading from './components/Loading'
 
 function App() {
   const { isAuthenticated, isLoading } = useAuthStore()
@@ -24,7 +25,7 @@ function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <Loading />
       </div>
     )
   }

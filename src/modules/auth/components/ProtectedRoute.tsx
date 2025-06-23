@@ -1,7 +1,6 @@
-// src/modules/auth/components/ProtectedRoute.tsx
-
 import { Navigate, useLocation } from 'react-router'
 import { useAuthStore } from '../store/authStore'
+import Loading from './../../../components/Loading'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -14,7 +13,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <Loading />
       </div>
     )
   }
