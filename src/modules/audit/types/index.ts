@@ -18,8 +18,6 @@ export interface AuditSession {
 export interface AuditSessionCreate {
   session_name: string;
   compliance_domain: string;
-  ip_address?: string;
-  user_agent?: string;
 }
 
 export interface AuditSessionSearchRequest {

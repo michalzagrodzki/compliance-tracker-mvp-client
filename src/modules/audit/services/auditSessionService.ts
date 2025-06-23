@@ -89,16 +89,10 @@ class AuditSessionService {
   }
 
   async createSession(sessionData: AuditSessionCreate): Promise<AuditSession> {
-    const browserData = {
-      ip_address: sessionData.ip_address || "unknown",
-      user_agent: sessionData.user_agent || navigator.userAgent,
-    };
-
     const response = await http.post<AuditSession>(
       AUDIT_SESSION_ENDPOINTS.CREATE,
       {
         ...sessionData,
-        ...browserData,
       }
     );
     return response.data;
