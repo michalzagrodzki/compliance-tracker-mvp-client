@@ -12,6 +12,11 @@ import AuditSessionsList from './modules/audit/components/AuditSessionsList'
 import AuditSessionDetail from './modules/audit/components/AuditSessionDetail'
 import NewAuditSessionForm from './modules/audit/components/NewAuditSessionForm'
 
+// Document components
+import DocumentsList from './modules/documents/components/DocumentsList'
+import DocumentUploadForm from './modules/documents/components/DocumentUploadForm'
+import DocumentDetail from './modules/documents/components/DocumentDetail'
+
 // Pages
 import Welcome from './pages/Welcome'
 import Dashboard from './pages/Dashboard'
@@ -96,6 +101,38 @@ function App() {
             }
           >
             <Route index element={<AuditSessionDetail />} />
+          </Route>
+          <Route
+            path="/documents"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DocumentsList />} />
+          </Route>
+
+          <Route
+            path="/documents/upload"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DocumentUploadForm />} />
+          </Route>
+
+          <Route
+            path="/documents/:filename"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DocumentDetail />} />
           </Route>
           <Route
             path="/dashboard"

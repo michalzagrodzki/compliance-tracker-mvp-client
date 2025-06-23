@@ -6,7 +6,9 @@ import {
   Clock, 
   Plus,
   Shield,
-  ArrowRight
+  ArrowRight,
+  Upload,
+  FileText
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -80,29 +82,46 @@ export default function Dashboard() {
             </Button>
           </CardContent>
         </Card>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <CardHeader>
-            <CardTitle>Recent Searches</CardTitle>
+            <div className="flex items-center space-x-2">
+              <Upload className="h-6 w-6 text-primary" />
+              <CardTitle>Upload Document</CardTitle>
+            </div>
             <CardDescription>
-              Your latest document queries and results
+              Add new documents to the knowledge base for compliance analysis
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link to="/documents/upload" className="flex items-center space-x-2">
+                <span>Upload PDF</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>System Status</CardTitle>
-          <CardDescription>
-            Current status of your RAG system components
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-        </CardContent>
-      </Card>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <FileText className="h-6 w-6 text-primary" />
+              <CardTitle>Browse Documents</CardTitle>
+            </div>
+            <CardDescription>
+              View and manage all documents in the knowledge base
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/documents" className="flex items-center space-x-2">
+                <span>View Documents</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
