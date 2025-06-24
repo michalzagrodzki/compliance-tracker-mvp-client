@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// src/modules/documents/components/IngestionDetail.tsx
 
 import { useEffect, type Key } from 'react'
 import { useParams, Link } from 'react-router'
