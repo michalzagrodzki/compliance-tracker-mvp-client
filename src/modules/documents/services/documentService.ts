@@ -7,6 +7,8 @@ import type {
   DocumentUploadResponse,
   ComplianceDomain,
   DocumentTagConstants,
+  ExtractedDocumentInfo,
+  PdfMetadata,
 } from "../types";
 
 const ENDPOINTS = {
@@ -132,6 +134,14 @@ class DocumentService {
       formData.append("document_tags", uploadData.document_tags.join(","));
     }
 
+    if (uploadData.document_title) {
+      formData.append("document_title", uploadData.document_title);
+    }
+
+    if (uploadData.document_author) {
+      formData.append("document_author", uploadData.document_author);
+    }
+
     const response = await http.post<DocumentUploadResponse>(
       ENDPOINTS.INGESTIONS_UPLOAD,
       formData,
@@ -150,6 +160,96 @@ class DocumentService {
       }
     );
     return response.data;
+  }
+
+  async extractPdfMetadata(file: File): Promise<ExtractedDocumentInfo> {
+    try {
+      // Use a lightweight PDF metadata extraction library
+      // For now, we'll simulate metadata extraction
+      const metadata = await this.extractMetadataFromPdf(file);
+
+      return {
+        title: metadata.title || this.generateTitleFromFilename(file.name),
+        author: metadata.author,
+        hasMetadata: !!(metadata.title || metadata.author),
+        filename: file.name,
+      };
+    } catch (error) {
+      console.warn("Failed to extract PDF metadata:", error);
+
+      // Fallback to filename-based title
+      return {
+        title: this.generateTitleFromFilename(file.name),
+        author: undefined,
+        hasMetadata: false,
+        filename: file.name,
+      };
+    }
+  }
+
+  private async extractMetadataFromPdf(file: File): Promise<PdfMetadata> {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+
+      fileReader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const uint8Array = new Uint8Array(arrayBuffer);
+
+          // Simple PDF metadata extraction
+          // Look for common PDF metadata patterns
+          const text = new TextDecoder("latin1").decode(uint8Array);
+
+          const metadata: PdfMetadata = {};
+
+          // Extract title
+          const titleMatch = text.match(/\/Title\s*\(([^)]+)\)/);
+          if (titleMatch) {
+            metadata.title = this.cleanPdfString(titleMatch[1]);
+          }
+
+          const authorMatch = text.match(/\/Author\s*\(([^)]+)\)/);
+          if (authorMatch) {
+            metadata.author = this.cleanPdfString(authorMatch[1]);
+          }
+
+          const creatorMatch = text.match(/\/Creator\s*\(([^)]+)\)/);
+          if (creatorMatch && !metadata.author) {
+            metadata.author = this.cleanPdfString(creatorMatch[1]);
+          }
+
+          const subjectMatch = text.match(/\/Subject\s*\(([^)]+)\)/);
+          if (subjectMatch) {
+            metadata.subject = this.cleanPdfString(subjectMatch[1]);
+          }
+
+          resolve(metadata);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      fileReader.onerror = () => reject(new Error("Failed to read file"));
+      fileReader.readAsArrayBuffer(file.slice(0, 10000));
+    });
+  }
+
+  private cleanPdfString(str: string): string {
+    return str
+      .replace(/\\[0-7]{3}/g, "")
+      .replace(/\\./g, "")
+      .replace(/^\xFE\xFF/, "")
+      .replace(/[^\x20-\x7E]/g, "")
+      .trim();
+  }
+
+  private generateTitleFromFilename(filename: string): string {
+    const name = filename.replace(/\.[^/.]+$/, "");
+    let title = name.replace(/[_-]/g, " ");
+    title = title.replace(/\b\w/g, (l) => l.toUpperCase());
+    title = title.replace(/\s+/g, " ").trim();
+
+    return title;
   }
 
   async getComplianceDomains(): Promise<ComplianceDomain[]> {

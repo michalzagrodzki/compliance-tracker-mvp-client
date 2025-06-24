@@ -17,6 +17,10 @@ export interface PdfIngestion {
   total_chunks?: number;
   document_tags?: string[]; // TEXT[] in DB
 
+  // Document metadata fields
+  document_title?: string;
+  document_author?: string;
+
   // File integrity fields
   file_hash?: string; // SHA-256 hash
   original_path?: string;
@@ -43,6 +47,8 @@ export interface DocumentMetadata {
   compliance_domain?: string;
   document_version?: string;
   document_tags?: string[];
+  document_title?: string;
+  document_author?: string;
   uploaded_by?: string;
   approved_by?: string;
   approval_status?: "approved" | "pending" | "rejected";
@@ -79,6 +85,8 @@ export interface DocumentUploadRequest {
   compliance_domain?: string;
   document_version?: string;
   document_tags?: string[];
+  document_title?: string;
+  document_author?: string;
 }
 
 export interface DocumentUploadResponse {
@@ -88,6 +96,26 @@ export interface DocumentUploadResponse {
   compliance_domain?: string;
   document_version?: string;
   document_tags?: string[];
+  document_title?: string;
+  document_author?: string;
+}
+
+export interface PdfMetadata {
+  title?: string;
+  author?: string;
+  subject?: string;
+  creator?: string;
+  producer?: string;
+  creationDate?: string;
+  modificationDate?: string;
+  keywords?: string;
+}
+
+export interface ExtractedDocumentInfo {
+  title?: string;
+  author?: string;
+  hasMetadata: boolean;
+  filename: string;
 }
 
 // Store interfaces
@@ -111,6 +139,7 @@ export interface DocumentsActions {
   ) => Promise<DocumentUploadResponse>;
   fetchComplianceDomains: () => Promise<void>;
   fetchTagConstants: () => Promise<void>;
+  extractPdfMetadata: (file: File) => Promise<ExtractedDocumentInfo>;
 }
 
 // Search and filter interfaces

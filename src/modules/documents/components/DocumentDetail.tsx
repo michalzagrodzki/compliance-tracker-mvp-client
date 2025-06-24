@@ -1,4 +1,3 @@
-
 import { useEffect, type Key } from 'react'
 import { useParams, Link } from 'react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,7 +19,7 @@ import {
   Database,
   Hash,
   Activity,
-  Search
+  Search,
 } from 'lucide-react'
 
 const formatDate = (dateString: string) => {
@@ -71,10 +70,6 @@ const getProcessingStatusInfo = (status?: string) => {
 
 const DOMAIN_COLORS = {
   'ISO27001': 'bg-green-100 text-green-700 border-green-200',
-  'GDPR': 'bg-blue-100 text-blue-700 border-blue-200',
-  'SOX': 'bg-purple-100 text-purple-700 border-purple-200',
-  'HIPAA': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  'PCI_DSS': 'bg-orange-100 text-orange-700 border-orange-200',
   'DEFAULT': 'bg-gray-100 text-gray-700 border-gray-200'
 }
 
@@ -163,7 +158,7 @@ export default function IngestionDetail() {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center space-x-2">
               <FileText className="h-6 w-6" />
-              <span>{currentIngestion.filename}</span>
+              <span>{currentIngestion.document_title || currentIngestion.filename}</span>
             </h1>
             <p className="text-muted-foreground">Ingestion Details</p>
           </div>
@@ -182,11 +177,12 @@ export default function IngestionDetail() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="h-5 w-5" />
-                <span>File Information</span>
+                <span>Document Information</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm text-muted-foreground">File Name</h4>
                   <p className="font-medium break-all">{currentIngestion.filename}</p>

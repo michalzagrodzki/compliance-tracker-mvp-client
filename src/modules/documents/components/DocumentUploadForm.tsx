@@ -5,26 +5,49 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useIngestionStore } from '../store/documentStore'
-import { Upload, AlertCircle, CheckCircle, X, FileText, Info, ChevronUp, ChevronDown } from 'lucide-react'
+import { 
+  Upload, 
+  AlertCircle, 
+  CheckCircle, 
+  X, 
+  FileText, 
+  Info, 
+  ChevronUp, 
+  ChevronDown,
+  Sparkles,
+  User,
+  FileEdit,
+  Eye,
+  EyeOff
+} from 'lucide-react'
 
 export default function DocumentUploadForm() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [complianceDomain, setComplianceDomain] = useState('')
   const [documentVersion, setDocumentVersion] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [documentTitle, setDocumentTitle] = useState('')
+  const [documentAuthor, setDocumentAuthor] = useState('')
+  const [titleOverride, setTitleOverride] = useState(false)
+  const [authorOverride, setAuthorOverride] = useState(false)
   const [formError, setFormError] = useState('')
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [showIngestionInfo, setShowIngestionInfo] = useState(false)
+  const [showMetadataDetails, setShowMetadataDetails] = useState(false)
   
   const {
     uploadDocument,
     fetchComplianceDomains,
     fetchTagConstants,
+    extractPdfMetadata,
+    clearExtractedMetadata,
     complianceDomains,
     tagConstants,
     isLoading,
     error,
-    uploadProgress
+    uploadProgress,
+    extractedMetadata,
+    isExtractingMetadata
   } = useIngestionStore()
   
   const navigate = useNavigate()
@@ -34,7 +57,19 @@ export default function DocumentUploadForm() {
     fetchTagConstants()
   }, [fetchComplianceDomains, fetchTagConstants])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    // Update title and author when metadata is extracted
+    if (extractedMetadata && !titleOverride && !authorOverride) {
+      if (extractedMetadata.title) {
+        setDocumentTitle(extractedMetadata.title)
+      }
+      if (extractedMetadata.author) {
+        setDocumentAuthor(extractedMetadata.author)
+      }
+    }
+  }, [extractedMetadata, titleOverride, authorOverride])
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (file.type !== 'application/pdf') {
@@ -45,8 +80,26 @@ export default function DocumentUploadForm() {
         setFormError('File size must be less than 50MB')
         return
       }
+      
       setSelectedFile(file)
       setFormError('')
+      
+      // Clear previous metadata and reset overrides
+      clearExtractedMetadata()
+      setTitleOverride(false)
+      setAuthorOverride(false)
+      setDocumentTitle('')
+      setDocumentAuthor('')
+      
+      // Extract metadata from the PDF
+      try {
+        await extractPdfMetadata(file)
+      } catch (error) {
+        console.warn('Failed to extract metadata:', error)
+        // Fallback title from filename
+        const fallbackTitle = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ")
+        setDocumentTitle(fallbackTitle)
+      }
     }
   }
 
@@ -56,6 +109,30 @@ export default function DocumentUploadForm() {
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     )
+  }
+
+  const handleTitleChange = (value: string) => {
+    setDocumentTitle(value)
+    setTitleOverride(true)
+  }
+
+  const handleAuthorChange = (value: string) => {
+    setDocumentAuthor(value)
+    setAuthorOverride(true)
+  }
+
+  const resetToExtractedTitle = () => {
+    if (extractedMetadata?.title) {
+      setDocumentTitle(extractedMetadata.title)
+      setTitleOverride(false)
+    }
+  }
+
+  const resetToExtractedAuthor = () => {
+    if (extractedMetadata?.author) {
+      setDocumentAuthor(extractedMetadata.author)
+      setAuthorOverride(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,21 +145,34 @@ export default function DocumentUploadForm() {
       return
     }
 
+    if (!documentTitle.trim()) {
+      setFormError('Document title is required')
+      return
+    }
+
     try {
       const uploadData = {
         file: selectedFile,
         compliance_domain: complianceDomain || undefined,
         document_version: documentVersion || undefined,
         document_tags: selectedTags.length > 0 ? selectedTags : undefined,
+        document_title: documentTitle.trim(),
+        document_author: documentAuthor.trim() || undefined,
       }
 
       await uploadDocument(uploadData)
       setUploadSuccess(true)
       
+      // Reset form
       setSelectedFile(null)
       setComplianceDomain('')
       setDocumentVersion('')
       setSelectedTags([])
+      setDocumentTitle('')
+      setDocumentAuthor('')
+      setTitleOverride(false)
+      setAuthorOverride(false)
+      clearExtractedMetadata()
       
       const fileInput = document.getElementById('file-upload') as HTMLInputElement
       if (fileInput) {
@@ -257,6 +347,124 @@ export default function DocumentUploadForm() {
                     Maximum file size: 50MB. Only PDF files are supported for ingestion.
                   </p>
                 </div>
+                {selectedFile && (
+                  <Card className="bg-muted/30">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Sparkles className="h-4 w-4 text-purple-600" />
+                          <CardTitle className="text-lg">Document Metadata</CardTitle>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowMetadataDetails(!showMetadataDetails)}
+                        >
+                          {showMetadataDetails ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      {showMetadataDetails && (
+                        <CardDescription>
+                          {isExtractingMetadata ? (
+                            <span className="flex items-center space-x-2">
+                              <div className="animate-spin h-3 w-3 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                              <span>Extracting metadata from PDF...</span>
+                            </span>
+                          ) : extractedMetadata ? (
+                            extractedMetadata.hasMetadata ? (
+                              <span className="text-green-600">✓ Metadata extracted successfully from PDF</span>
+                            ) : (
+                              <span className="text-amber-600">⚠ No metadata found in PDF, using filename as title</span>
+                            )
+                          ) : null}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label htmlFor="document-title" className="text-sm font-medium flex items-center space-x-2">
+                            <FileEdit className="h-4 w-4" />
+                            <span>Document Title *</span>
+                          </label>
+                          {extractedMetadata?.title && titleOverride && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={resetToExtractedTitle}
+                              className="text-xs"
+                            >
+                              Reset to extracted
+                            </Button>
+                          )}
+                        </div>
+                        <Input
+                          id="document-title"
+                          type="text"
+                          placeholder="Enter document title"
+                          value={documentTitle}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                          disabled={isLoading}
+                          required
+                          className={titleOverride ? "border-amber-300 bg-amber-50" : ""}
+                        />
+                        {extractedMetadata?.title && (
+                          <p className="text-xs text-muted-foreground">
+                            {titleOverride ? (
+                              <span className="text-amber-600">Modified from extracted: "{extractedMetadata.title}"</span>
+                            ) : (
+                              <span className="text-green-600">Extracted from PDF metadata</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label htmlFor="document-author" className="text-sm font-medium flex items-center space-x-2">
+                            <User className="h-4 w-4" />
+                            <span>Document Author</span>
+                          </label>
+                          {extractedMetadata?.author && authorOverride && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={resetToExtractedAuthor}
+                              className="text-xs"
+                            >
+                              Reset to extracted
+                            </Button>
+                          )}
+                        </div>
+                        <Input
+                          id="document-author"
+                          type="text"
+                          placeholder="Enter document author (optional)"
+                          value={documentAuthor}
+                          onChange={(e) => handleAuthorChange(e.target.value)}
+                          disabled={isLoading}
+                          className={authorOverride ? "border-amber-300 bg-amber-50" : ""}
+                        />
+                        {extractedMetadata?.author && (
+                          <p className="text-xs text-muted-foreground">
+                            {authorOverride ? (
+                              <span className="text-amber-600">Modified from extracted: "{extractedMetadata.author}"</span>
+                            ) : (
+                              <span className="text-green-600">Extracted from PDF metadata</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {isLoading && uploadProgress > 0 && (
                   <div className="space-y-2">
@@ -328,7 +536,6 @@ export default function DocumentUploadForm() {
                       Auto-generate version based on current quarter
                     </span>
                   </div>
-                  
                 </div>
               </div>
 
@@ -379,7 +586,7 @@ export default function DocumentUploadForm() {
               <Button
                 type="submit"
                 className="px-8"
-                disabled={isLoading || !selectedFile || uploadSuccess}
+                disabled={isLoading || !selectedFile || uploadSuccess || !documentTitle.trim()}
               >
                 {isLoading ? 'Processing...' : 'Start Uploading Document'}
               </Button>
@@ -401,6 +608,10 @@ export default function DocumentUploadForm() {
           <div className="space-y-3 text-sm">
             <h4 className="font-medium">Ingestion Process Tips</h4>
             <ul className="space-y-2 text-muted-foreground">
+              <li className="flex items-start space-x-2">
+                <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
+                <span>Document title and author are automatically extracted from PDF metadata when available</span>
+              </li>
               <li className="flex items-start space-x-2">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                 <span>Documents are automatically chunked into searchable segments for optimal retrieval</span>

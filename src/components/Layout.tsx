@@ -22,12 +22,12 @@ export default function Layout() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
+              <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
                   <Shield className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <h1 className="text-2xl font-bold text-foreground">Compliance Tracker</h1>
-              </div>
+              </Link>
             </div>
             
             <div className="relative">

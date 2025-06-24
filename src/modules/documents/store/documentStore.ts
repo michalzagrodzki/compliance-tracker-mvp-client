@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { documentService } from "../services/documentService";
@@ -7,6 +8,7 @@ import type {
   PdfIngestion,
   ComplianceDomain,
   DocumentTagConstants,
+  ExtractedDocumentInfo,
 } from "../types";
 
 interface IngestionState {
@@ -17,6 +19,8 @@ interface IngestionState {
   isLoading: boolean;
   error: string | null;
   uploadProgress: number;
+  extractedMetadata: ExtractedDocumentInfo | null;
+  isExtractingMetadata: boolean;
 }
 
 interface IngestionActions {
@@ -30,6 +34,8 @@ interface IngestionActions {
   fetchComplianceDomains: () => Promise<void>;
   fetchTagConstants: () => Promise<void>;
   searchIngestions: (searchParams: any) => Promise<void>;
+  extractPdfMetadata: (file: File) => Promise<ExtractedDocumentInfo>;
+  clearExtractedMetadata: () => void;
 }
 
 interface IngestionStore extends IngestionState, IngestionActions {}
@@ -42,6 +48,8 @@ export const useIngestionStore = create<IngestionStore>((set, get) => ({
   isLoading: false,
   error: null,
   uploadProgress: 0,
+  extractedMetadata: null,
+  isExtractingMetadata: false,
 
   setLoading: (loading: boolean) => {
     set({ isLoading: loading });
@@ -49,6 +57,10 @@ export const useIngestionStore = create<IngestionStore>((set, get) => ({
 
   clearError: () => {
     set({ error: null });
+  },
+
+  clearExtractedMetadata: () => {
+    set({ extractedMetadata: null });
   },
 
   fetchIngestions: async (params = {}) => {
@@ -111,6 +123,33 @@ export const useIngestionStore = create<IngestionStore>((set, get) => ({
         uploadProgress: 0,
       });
       throw error;
+    }
+  },
+
+  extractPdfMetadata: async (file: File): Promise<ExtractedDocumentInfo> => {
+    set({ isExtractingMetadata: true, error: null });
+
+    try {
+      const extractedInfo = await documentService.extractPdfMetadata(file);
+      set({
+        extractedMetadata: extractedInfo,
+        isExtractingMetadata: false,
+      });
+      return extractedInfo;
+    } catch (error: any) {
+      set({
+        error: "Failed to extract PDF metadata",
+        isExtractingMetadata: false,
+      });
+      // Return fallback metadata
+      const fallbackInfo: ExtractedDocumentInfo = {
+        title: file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " "),
+        author: undefined,
+        hasMetadata: false,
+        filename: file.name,
+      };
+      set({ extractedMetadata: fallbackInfo });
+      return fallbackInfo;
     }
   },
 
