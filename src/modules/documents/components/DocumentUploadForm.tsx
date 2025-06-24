@@ -96,8 +96,16 @@ export default function DocumentUploadForm() {
     }
   }
 
-  const renderTagSection = (categoryName: string, tags: string[]) => {
-    if (!tags.length) return null
+  const renderTagSection = (categoryName: string, tagsData: string[]) => {
+    let tags: string[] = [];
+    
+    if (Array.isArray(tagsData)) {
+      tags = tagsData;
+    } else if (tagsData && typeof tagsData === 'object') {
+      tags = Object.keys(tagsData);
+    }
+    
+    if (!tags.length) return null;
 
     return (
       <div key={categoryName} className="space-y-2">
@@ -115,6 +123,7 @@ export default function DocumentUploadForm() {
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background hover:bg-muted border-border'
               }`}
+              title={typeof tagsData === 'object' && !Array.isArray(tagsData) ? tagsData[tag] : undefined}
             >
               {tag.replace('_', ' ')}
             </button>
