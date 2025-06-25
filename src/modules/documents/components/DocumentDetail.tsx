@@ -20,6 +20,8 @@ import {
   Hash,
   Activity,
   Search,
+  FileEdit,
+  UserCheck
 } from 'lucide-react'
 
 const formatDate = (dateString: string) => {
@@ -74,7 +76,7 @@ const DOMAIN_COLORS = {
 }
 
 export default function IngestionDetail() {
-  const { id } = useParams<{ id: string }>()
+  const { documentId } = useParams<{ documentId: string }>()
   const {
     currentIngestion,
     isLoading,
@@ -84,11 +86,15 @@ export default function IngestionDetail() {
   } = useIngestionStore()
 
   useEffect(() => {
-    if (id) {
+    if (documentId) {
       clearError()
-      fetchIngestionById(id)
+      fetchIngestionById(documentId).catch((err) => {
+        console.error('Error fetching ingestion:', err)
+      })
+    } else {
+      console.warn('No ID provided to DocumentDetail component')
     }
-  }, [id, fetchIngestionById, clearError])
+  }, [documentId, fetchIngestionById, clearError])
 
   if (isLoading) {
     return (
@@ -103,9 +109,9 @@ export default function IngestionDetail() {
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/ingestions" className="flex items-center space-x-2">
+            <Link to="/documents" className="flex items-center space-x-2">
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to Ingestions</span>
+              <span>Back to Documents</span>
             </Link>
           </Button>
         </div>
@@ -124,17 +130,17 @@ export default function IngestionDetail() {
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/ingestions" className="flex items-center space-x-2">
+            <Link to="/documents" className="flex items-center space-x-2">
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to Ingestions</span>
+              <span>Back to Documents</span>
             </Link>
           </Button>
         </div>
         <Card>
           <CardContent className="text-center py-12">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold">Ingestion not found</h3>
-            <p className="text-muted-foreground">The ingestion you're looking for doesn't exist.</p>
+            <h3 className="text-lg font-semibold">Document not found</h3>
+            <p className="text-muted-foreground">The document you're looking for doesn't exist.</p>
           </CardContent>
         </Card>
       </div>
@@ -150,9 +156,9 @@ export default function IngestionDetail() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/ingestions" className="flex items-center space-x-2">
+            <Link to="/documents" className="flex items-center space-x-2">
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to Ingestions</span>
+              <span>Back to Documents</span>
             </Link>
           </Button>
           <div>
@@ -160,7 +166,7 @@ export default function IngestionDetail() {
               <FileText className="h-6 w-6" />
               <span>{currentIngestion.document_title || currentIngestion.filename}</span>
             </h1>
-            <p className="text-muted-foreground">Ingestion Details</p>
+            <p className="text-muted-foreground">Document Details</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -182,6 +188,28 @@ export default function IngestionDetail() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <h4 className="font-medium text-sm text-muted-foreground">Document Title</h4>
+                  <div className="flex items-center space-x-2">
+                    <FileEdit className="h-4 w-4 text-muted-foreground" />
+                    <p className="font-medium">{currentIngestion.document_title || 'No title provided'}</p>
+                  </div>
+                  {currentIngestion.document_title && currentIngestion.document_title !== currentIngestion.filename && (
+                    <p className="text-xs text-muted-foreground">
+                      Filename: {currentIngestion.filename}
+                    </p>
+                  )}
+                </div>
+
+                {currentIngestion.document_author && (
+                  <div className="space-y-2 md:col-span-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Document Author</h4>
+                    <div className="flex items-center space-x-2">
+                      <UserCheck className="h-4 w-4 text-muted-foreground" />
+                      <p className="font-medium">{currentIngestion.document_author}</p>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm text-muted-foreground">File Name</h4>
@@ -287,17 +315,6 @@ export default function IngestionDetail() {
                 </div>
               )}
 
-              {currentIngestion.processing_status === 'completed' && (
-                <div className="p-3 border border-green-200 bg-green-50 rounded-md">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <p className="text-sm text-green-700">
-                      Document has been successfully processed and indexed
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {currentIngestion.processing_status === 'processing' && (
                 <div className="p-3 border border-blue-200 bg-blue-50 rounded-md">
                   <div className="flex items-center space-x-2">
@@ -313,6 +330,32 @@ export default function IngestionDetail() {
         </div>
 
         <div className="space-y-6">
+
+        {currentIngestion.processing_status === 'completed' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to={`/documents/search?source=${encodeURIComponent(currentIngestion.filename)}`}>
+                    <Search className="h-4 w-4 mr-2" />
+                    Search Document Chunks
+                  </Link>
+                </Button>
+                
+                {currentIngestion.compliance_domain && (
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to={`/chat?domain=${currentIngestion.compliance_domain}`}>
+                      <Hash className="h-4 w-4 mr-2" />
+                      Query in Domain
+                    </Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Upload Information</CardTitle>
@@ -418,30 +461,7 @@ export default function IngestionDetail() {
             </CardContent>
           </Card>
 
-          {currentIngestion.processing_status === 'completed' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full" asChild>
-                  <Link to={`/documents/search?source=${encodeURIComponent(currentIngestion.filename)}`}>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search Document Chunks
-                  </Link>
-                </Button>
-                
-                {currentIngestion.compliance_domain && (
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link to={`/chat?domain=${currentIngestion.compliance_domain}`}>
-                      <Hash className="h-4 w-4 mr-2" />
-                      Query in Domain
-                    </Link>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          
         </div>
       </div>
     </div>

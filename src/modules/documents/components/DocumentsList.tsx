@@ -133,9 +133,9 @@ export default function IngestionsList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Document Ingestions</h1>
+          <h1 className="text-3xl font-bold text-foreground">Documents</h1>
           <p className="text-muted-foreground mt-1">
-            Manage and monitor PDF document ingestions into the knowledge base
+            Manage and monitor uploaded PDF documents in the knowledge base
           </p>
         </div>
         <Button asChild>
@@ -360,7 +360,7 @@ export default function IngestionsList() {
                       )}
                     </div>
                     <Button variant="outline" size="sm" asChild>
-                      <Link to={`/ingestions/${ingestion.id}`}>
+                      <Link to={`/documents/${ingestion.id}`}>
                         View Details
                       </Link>
                     </Button>

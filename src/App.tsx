@@ -125,7 +125,7 @@ function App() {
           </Route>
 
           <Route
-            path="/documents/:filename"
+            path="/documents/:documentId"
             element={
               <ProtectedRoute>
                 <Layout />
