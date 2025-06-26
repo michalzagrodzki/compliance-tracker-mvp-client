@@ -17,6 +17,9 @@ import DocumentsList from './modules/documents/components/DocumentsList'
 import DocumentUploadForm from './modules/documents/components/DocumentUploadForm'
 import DocumentDetail from './modules/documents/components/DocumentDetail'
 
+// Chat components
+import ChatSession from './modules/chat/components/ChatSession'
+
 // Pages
 import Welcome from './pages/Welcome'
 import Dashboard from './pages/Dashboard'
@@ -101,6 +104,16 @@ function App() {
             }
           >
             <Route index element={<AuditSessionDetail />} />
+          </Route>
+          <Route
+            path="/audit-sessions/:sessionId/chat/:chatId"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+            >
+            <Route index element={<ChatSession />} />
           </Route>
           <Route
             path="/documents"
