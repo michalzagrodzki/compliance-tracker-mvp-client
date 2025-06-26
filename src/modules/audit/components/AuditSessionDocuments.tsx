@@ -12,7 +12,8 @@ import {
   Download,
   ExternalLink,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Check
 } from 'lucide-react'
 import { useAuditSessionStore, auditSessionStoreUtils } from '../store/auditSessionStore'
 import { auditSessionService } from '../services/auditSessionService'
@@ -103,6 +104,90 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
     setLocalError(null)
     auditSessionStoreUtils.setState({ error: null })
   }, [])
+
+  const getDocumentStatus = (tags: string[]) => {
+    if (!tags || tags.length === 0) return null
+    
+    const lowerCaseTags = tags.map(tag => tag.toLowerCase())
+    
+    if (lowerCaseTags.includes('current')) {
+      return {
+        label: 'Document is in use',
+        icon: Check,
+        bgColor: 'bg-green-100',
+        textColor: 'text-green-800',
+        iconColor: 'text-green-600'
+      }
+    }
+    
+    // You can add more status conditions here based on other tags
+    // For example:
+    // if (lowerCaseTags.includes('draft')) {
+    //   return {
+    //     label: 'Draft version',
+    //     icon: Edit,
+    //     bgColor: 'bg-yellow-100',
+    //     textColor: 'text-yellow-800',
+    //     iconColor: 'text-yellow-600'
+    //   }
+    // }
+    
+    return null
+  }
+
+  const getDocumentType = (tags: string[]) => {
+    if (!tags || tags.length === 0) return 'other'
+    
+    const lowerCaseTags = tags.map(tag => tag.toLowerCase())
+    
+    if (lowerCaseTags.includes('reference_document')) return 'reference'
+    if (lowerCaseTags.includes('implementation_document')) return 'implementation'
+    if (lowerCaseTags.includes('assessment_document')) return 'assessment'
+    
+    return 'other'
+  }
+
+  const groupDocuments = (documents: any[]) => {
+    const groups = {
+      reference: [] as any[],
+      implementation: [] as any[],
+      assessment: [] as any[],
+      other: [] as any[]
+    }
+
+    documents.forEach(doc => {
+      const type = getDocumentType(doc.document_tags)
+      groups[type].push(doc)
+    })
+
+    return groups
+  }
+
+  const getGroupTitle = (groupType: string) => {
+    switch (groupType) {
+      case 'reference':
+        return 'Reference Documents'
+      case 'implementation':
+        return 'Implementation Documents'
+      case 'assessment':
+        return 'Assessment Documents'
+      default:
+        return 'Documents'
+    }
+  }
+
+  const getGroupIcon = (groupType: string) => {
+    switch (groupType) {
+      case 'reference':
+        return <FileText className="h-4 w-4 text-blue-600" />
+      case 'implementation':
+        return <Shield className="h-4 w-4 text-green-600" />
+      case 'assessment':
+        return <AlertCircle className="h-4 w-4 text-orange-600" />
+      default:
+        return <FileText className="h-4 w-4 text-gray-600" />
+    }
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -214,124 +299,159 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
             />
           </div>
         ) : (
-          <div className="space-y-4">
-            {sessionDocuments.map((document: any) => (
-              <Card key={document.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0 mt-1">
-                      {getDocumentIcon(document.filename || '')}
+          <div className="space-y-8">
+            {(() => {
+              const groupedDocuments = groupDocuments(sessionDocuments)
+              
+              return Object.entries(groupedDocuments).map(([groupType, documents]) => {
+                if (documents.length === 0) return null
+                
+                return (
+                  <div key={groupType} className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2 border-b border-border">
+                      {getGroupIcon(groupType)}
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {getGroupTitle(groupType)}
+                      </h3>
+                      <span className="text-sm text-muted-foreground">
+                        ({documents.length})
+                      </span>
                     </div>
-
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <h4 className="font-semibold text-foreground text-lg">
-                          {document.document_title || document.source_filename || document.filename}
-                        </h4>
-                        {document.document_title && (
-                          <p className="text-sm text-muted-foreground font-mono">
-                            {document.source_filename || document.filename}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                        {document.document_author && (
-                          <div className="flex items-center space-x-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span>{document.document_author}</span>
-                          </div>
-                        )}
+                    
+                    <div className="space-y-4">
+                      {documents.map((document: any) => {
+                        const documentStatus = getDocumentStatus(document.document_tags)
                         
-                        {document.compliance_domain && (
-                          <div className="flex items-center space-x-2">
-                            <Shield className="h-4 w-4 text-muted-foreground" />
-                            <span>{document.compliance_domain}</span>
-                          </div>
-                        )}
-
-                        {document.document_version && (
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>Version {document.document_version}</span>
-                          </div>
-                        )}
-
-                        {document.ingested_at && (
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>Ingested {formatDate(document.ingested_at)}</span>
-                          </div>
-                        )}
-
-                        {document.total_chunks && (
-                          <div className="flex items-center space-x-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span>{document.total_chunks} chunks</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {document.document_tags && document.document_tags.length > 0 && (
-                        <div className="flex items-start space-x-2">
-                          <Tag className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div className="flex flex-wrap gap-1">
-                            {document.document_tags.map((tag: string, index: number) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-md"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          {document.file_size_bytes && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatFileSize(document.file_size_bytes)}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Button size="sm" variant="outline" className="h-8">
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-8">
-                            <Download className="h-3 w-3 mr-1" />
-                            Download
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="h-8 text-destructive hover:text-destructive"
-                            onClick={() => handleRemoveDocument(document.id)}
-                            disabled={isRemovingDocument === document.id}
-                          >
-                            {isRemovingDocument === document.id ? (
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive" />
-                            ) : (
-                              <Trash2 className="h-3 w-3" />
+                        return (
+                          <Card key={document.id} className="hover:shadow-md transition-shadow relative">
+                            {documentStatus && (
+                              <div className={`absolute top-3 right-3 flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${documentStatus.bgColor} ${documentStatus.textColor}`}>
+                                <documentStatus.icon className={`h-3 w-3 ${documentStatus.iconColor}`} />
+                                <span>{documentStatus.label}</span>
+                              </div>
                             )}
-                          </Button>
-                        </div>
-                      </div>
+                            
+                            <CardContent className="p-4">
+                              <div className="flex items-start space-x-4">
+                                <div className="flex-shrink-0 mt-1">
+                                  {getDocumentIcon(document.filename || '')}
+                                </div>
 
-                      {document.notes && (
-                        <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                          <strong>Notes:</strong> {document.notes}
-                        </div>
-                      )}
+                                <div className="flex-1 space-y-3 pr-24">
+                                  <div>
+                                    <h4 className="font-semibold text-foreground text-lg">
+                                      {document.document_title || document.source_filename || document.filename}
+                                    </h4>
+                                    {document.document_title && (
+                                      <p className="text-sm text-muted-foreground font-mono">
+                                        {document.source_filename || document.filename}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                                    {document.document_author && (
+                                      <div className="flex items-center space-x-2">
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                        <span>{document.document_author}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {document.compliance_domain && (
+                                      <div className="flex items-center space-x-2">
+                                        <Shield className="h-4 w-4 text-muted-foreground" />
+                                        <span>{document.compliance_domain}</span>
+                                      </div>
+                                    )}
+
+                                    {document.document_version && (
+                                      <div className="flex items-center space-x-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        <span>Version {document.document_version}</span>
+                                      </div>
+                                    )}
+
+                                    {document.ingested_at && (
+                                      <div className="flex items-center space-x-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        <span>Ingested {formatDate(document.ingested_at)}</span>
+                                      </div>
+                                    )}
+
+                                    {document.total_chunks && (
+                                      <div className="flex items-center space-x-2">
+                                        <FileText className="h-4 w-4 text-muted-foreground" />
+                                        <span>{document.total_chunks} chunks</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {document.document_tags && document.document_tags.length > 0 && (
+                                    <div className="flex items-start space-x-2">
+                                      <Tag className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                      <div className="flex flex-wrap gap-1">
+                                        {document.document_tags.map((tag: string, index: number) => (
+                                          <span
+                                            key={index}
+                                            className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-md"
+                                          >
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                      {document.file_size_bytes && (
+                                        <span className="text-xs text-muted-foreground">
+                                          {formatFileSize(document.file_size_bytes)}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                      <Button size="sm" variant="outline" className="h-8">
+                                        <ExternalLink className="h-3 w-3 mr-1" />
+                                        View
+                                      </Button>
+                                      <Button size="sm" variant="outline" className="h-8">
+                                        <Download className="h-3 w-3 mr-1" />
+                                        Download
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        className="h-8 text-destructive hover:text-destructive"
+                                        onClick={() => handleRemoveDocument(document.id)}
+                                        disabled={isRemovingDocument === document.id}
+                                      >
+                                        {isRemovingDocument === document.id ? (
+                                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive" />
+                                        ) : (
+                                          <Trash2 className="h-3 w-3" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {document.notes && (
+                                    <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                                      <strong>Notes:</strong> {document.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                )
+              }).filter(Boolean)
+            })()}
           </div>
         )}
       </CardContent>
