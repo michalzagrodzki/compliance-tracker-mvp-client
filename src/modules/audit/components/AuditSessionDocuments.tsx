@@ -9,7 +9,6 @@ import {
   Shield, 
   Calendar, 
   AlertCircle, 
-  Plus,
   Download,
   ExternalLink,
   Trash2,
@@ -24,19 +23,15 @@ interface AuditSessionDocumentsProps {
 }
 
 export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumentsProps) {
-  // Local state for component control
   const [localLoading, setLocalLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [hasInitialLoad, setHasInitialLoad] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
 
-  // Store state (only subscribe to what we need)
   const sessionDocuments = useAuditSessionStore(state => state.sessionDocuments)
   const isRemovingDocument = useAuditSessionStore(state => state.isRemovingDocument)
   
-  // Stable function to load documents
   const loadDocuments = useCallback(async (sessionIdToLoad: string, force = false) => {
-    // Prevent duplicate loads
     if (!force && hasInitialLoad && currentSessionId === sessionIdToLoad) {
       return
     }
@@ -47,7 +42,6 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
     try {
       const documents = await auditSessionService.getSessionDocuments(sessionIdToLoad)
       
-      // Update store directly
       auditSessionStoreUtils.setState({ 
         sessionDocuments: documents,
         error: null 
@@ -69,19 +63,16 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
     }
   }, [hasInitialLoad, currentSessionId])
 
-  // Effect to load documents when sessionId changes
   useEffect(() => {
     if (sessionId && sessionId !== currentSessionId) {
       loadDocuments(sessionId)
     }
   }, [sessionId, currentSessionId, loadDocuments])
 
-  // Handle document removal
   const handleRemoveDocument = useCallback(async (documentId: string) => {
     try {
       await auditSessionService.removeDocumentFromSession(sessionId, documentId)
       
-      // Update local state by filtering out removed document
       const currentDocs = auditSessionStoreUtils.getState().sessionDocuments
       const updatedDocs = currentDocs.filter((doc: any) => doc.id !== documentId)
       
@@ -100,24 +91,19 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
     }
   }, [sessionId])
 
-  // Handle document addition callback
   const handleDocumentAdded = useCallback(() => {
-    // Force reload documents after addition
     loadDocuments(sessionId, true)
   }, [sessionId, loadDocuments])
 
-  // Handle manual refresh
   const handleRefresh = useCallback(() => {
     loadDocuments(sessionId, true)
   }, [sessionId, loadDocuments])
 
-  // Clear error
   const clearError = useCallback(() => {
     setLocalError(null)
     auditSessionStoreUtils.setState({ error: null })
   }, [])
 
-  // Utility functions
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -148,20 +134,6 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
     }
   }
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-700 bg-green-50'
-      case 'processing':
-        return 'text-blue-700 bg-blue-50'
-      case 'failed':
-        return 'text-red-700 bg-red-50'
-      default:
-        return 'text-gray-700 bg-gray-50'
-    }
-  }
-
-  // Show loading state
   if (localLoading) {
     return (
       <Card>
@@ -180,7 +152,7 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
       </Card>
     )
   }
-
+  console.log(sessionDocuments)
   return (
     <Card>
       <CardHeader>
@@ -248,7 +220,7 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0 mt-1">
-                      {getDocumentIcon(document.source_filename || document.filename || '')}
+                      {getDocumentIcon(document.filename || '')}
                     </div>
 
                     <div className="flex-1 space-y-3">
@@ -292,13 +264,6 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
                           </div>
                         )}
 
-                        {document.added_at && (
-                          <div className="flex items-center space-x-2">
-                            <Plus className="h-4 w-4 text-muted-foreground" />
-                            <span>Added {formatDate(document.added_at)}</span>
-                          </div>
-                        )}
-
                         {document.total_chunks && (
                           <div className="flex items-center space-x-2">
                             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -325,11 +290,6 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(document.processing_status)}`}
-                          >
-                            {document.processing_status || 'unknown'}
-                          </span>
                           {document.file_size_bytes && (
                             <span className="text-xs text-muted-foreground">
                               {formatFileSize(document.file_size_bytes)}

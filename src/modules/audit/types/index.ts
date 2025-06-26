@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+import type { PdfIngestion } from "../../documents/types";
 export interface AuditSession {
   id: string;
   user_id: string;
@@ -67,9 +69,7 @@ export interface AuditSessionActions {
   ) => Promise<void>;
 }
 
-export interface DocumentWithRelationship extends Document {
-  added_at: string;
-  added_by: string;
+export interface DocumentWithRelationship extends PdfIngestion {
   notes?: string;
 }
 
