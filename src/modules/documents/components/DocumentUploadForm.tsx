@@ -593,7 +593,7 @@ export default function DocumentUploadForm() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/ingestions')}
+                onClick={() => navigate('/documents')}
                 disabled={isLoading}
               >
                 Cancel
