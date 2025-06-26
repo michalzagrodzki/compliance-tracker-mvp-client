@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { useAuditSessionStore } from '../store/auditSessionStore'
 import Loading from './../../../components/Loading'
+import AuditSessionDocuments from './AuditSessionDocuments'
 import { 
   ArrowLeft,
   Calendar,
@@ -143,8 +144,9 @@ export default function AuditSessionDetail() {
           )}
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -220,6 +222,7 @@ export default function AuditSessionDetail() {
               </div>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader>
               <CardTitle>Session Actions</CardTitle>
@@ -246,7 +249,9 @@ export default function AuditSessionDetail() {
               </div>
             </CardContent>
           </Card>
+          <AuditSessionDocuments sessionId={currentSession.id} />
         </div>
+        
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -293,6 +298,7 @@ export default function AuditSessionDetail() {
               </div>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Compliance Framework</CardTitle>

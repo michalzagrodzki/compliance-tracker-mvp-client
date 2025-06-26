@@ -3,9 +3,9 @@ export interface PdfIngestion {
   processing_duration_seconds: any;
   processing_completed_at: any;
   id: string;
-  filename: string; // Changed from source_filename to match DB schema
+  filename: string;
   ingested_at: string;
-  metadata: Record<string, any>; // JSON field from DB
+  metadata: Record<string, any>;
 
   // Compliance-specific fields
   compliance_domain?: string;
@@ -140,6 +140,7 @@ export interface DocumentsActions {
   fetchComplianceDomains: () => Promise<void>;
   fetchTagConstants: () => Promise<void>;
   extractPdfMetadata: (file: File) => Promise<ExtractedDocumentInfo>;
+  filterDocuments: (searchTerm: string) => Document[];
 }
 
 // Search and filter interfaces

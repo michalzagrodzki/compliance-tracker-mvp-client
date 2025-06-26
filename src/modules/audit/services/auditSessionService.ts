@@ -1,8 +1,10 @@
 import { http } from "@/modules/api/http";
 import type {
+  AddDocumentRequest,
   AuditSession,
   AuditSessionCreate,
   AuditSessionSearchRequest,
+  DocumentWithRelationship,
 } from "../types";
 
 const AUDIT_SESSION_ENDPOINTS = {
@@ -13,6 +15,12 @@ const AUDIT_SESSION_ENDPOINTS = {
   BY_DOMAIN: (domain: string) => `/v1/audit-sessions/domain/${domain}`,
   SEARCH: "/v1/audit-sessions/search",
   CREATE: "/v1/audit-sessions",
+  SESSION_DOCUMENTS: (sessionId: string) =>
+    `/v1/audit-sessions/${sessionId}/pdf-ingestions`,
+  ADD_TO_SESSION: (sessionId: string) =>
+    `/v1/audit-sessions/${sessionId}/pdf-ingestions`,
+  REMOVE_FROM_SESSION: (sessionId: string, documentId: string) =>
+    `/v1/audit-sessions/${sessionId}/pdf-ingestions/${documentId}`,
 } as const;
 
 class AuditSessionService {
@@ -96,6 +104,42 @@ class AuditSessionService {
       }
     );
     return response.data;
+  }
+
+  async getSessionDocuments(
+    sessionId: string
+  ): Promise<DocumentWithRelationship[]> {
+    const response = await http.get<DocumentWithRelationship[]>(
+      AUDIT_SESSION_ENDPOINTS.SESSION_DOCUMENTS(sessionId)
+    );
+    return response.data;
+  }
+
+  async addDocumentToSession(
+    sessionId: string,
+    documentId: string,
+    notes?: string
+  ): Promise<void> {
+    const requestData: AddDocumentRequest = {
+      pdf_ingestion_id: documentId,
+      notes:
+        notes ||
+        `Document added to audit session on ${new Date().toLocaleDateString()}`,
+    };
+
+    await http.post(
+      AUDIT_SESSION_ENDPOINTS.ADD_TO_SESSION(sessionId),
+      requestData
+    );
+  }
+
+  async removeDocumentFromSession(
+    sessionId: string,
+    documentId: string
+  ): Promise<void> {
+    await http.delete(
+      AUDIT_SESSION_ENDPOINTS.REMOVE_FROM_SESSION(sessionId, documentId)
+    );
   }
 }
 

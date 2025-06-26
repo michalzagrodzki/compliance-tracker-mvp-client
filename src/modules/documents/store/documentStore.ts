@@ -36,6 +36,7 @@ interface IngestionActions {
   searchIngestions: (searchParams: any) => Promise<void>;
   extractPdfMetadata: (file: File) => Promise<ExtractedDocumentInfo>;
   clearExtractedMetadata: () => void;
+  filterIngestions: (searchTerm: string) => PdfIngestion[];
 }
 
 interface IngestionStore extends IngestionState, IngestionActions {}
@@ -183,5 +184,22 @@ export const useIngestionStore = create<IngestionStore>((set, get) => ({
         isLoading: false,
       });
     }
+  },
+  filterIngestions: (searchTerm: string): PdfIngestion[] => {
+    const { ingestions } = get();
+
+    if (!searchTerm) {
+      return ingestions;
+    }
+
+    return ingestions.filter(
+      (doc) =>
+        doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.document_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.document_author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.document_tags?.some((tag) =>
+          tag.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    );
   },
 }));

@@ -1,5 +1,3 @@
-// src/modules/documents/index.ts
-
 // Components
 export { default as DocumentsList } from "./components/DocumentsList";
 export { default as DocumentDetail } from "./components/DocumentDetail";
