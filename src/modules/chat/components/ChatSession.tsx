@@ -118,7 +118,7 @@ export const ChatSession: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-[82dvh] bg-gray-50 relative overflow-hidden">
+    <div className="flex flex-col h-[82dvh] bg-gray-50 relative">
       <ChatNavbar
         sessionName={currentSession?.session_name || 'Chat Session'}
         onBack={handleBack}
@@ -129,7 +129,7 @@ export const ChatSession: React.FC = () => {
       />
 
       {error && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2 relative z-30">
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2 relative z-30 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-4 w-4 text-red-500" />
@@ -142,23 +142,24 @@ export const ChatSession: React.FC = () => {
         </div>
       )}
 
-      {/* Messages container - adjusts based on whether input is centered or fixed */}
-      <div className={`transition-all duration-700 ease-in-out ${
-        hasInteracted ? 'flex-1 pb-20' : 'flex-1'
-      } overflow-hidden`}>
+      {/* Messages container with proper height calculation */}
+      <div className={`transition-all duration-700 ease-in-out flex-1 min-h-0 ${
+        hasInteracted ? 'mb-0' : ''
+      }`}>
         <ChatMessages
           messages={messages}
           isLoading={isLoading}
           isStreaming={isStreaming}
           onIdentifyGap={handleIdentifyGap}
+          hasInteracted={hasInteracted}
         />
       </div>
 
       {/* Chat Input - starts centered, moves to bottom after first interaction */}
-      <div className={`transition-all duration-700 ease-in-out ${
+      <div className={`transition-all duration-700 ease-in-out flex-shrink-0 ${
         hasInteracted 
-          ? 'fixed bottom-0 left-0 right-0 z-20' 
-          : ''
+          ? 'relative z-20' 
+          : 'absolute inset-0 z-10 pointer-events-none'
       }`}>
         <ChatInput
           onSendMessage={handleSendMessage}

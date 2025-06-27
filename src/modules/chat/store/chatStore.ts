@@ -10,7 +10,6 @@ import type {
   ChatSession,
   QueryRequest,
 } from "../types";
-import { chatUtils } from "./../utils/chatUtils";
 
 interface ChatStore extends ChatState, ChatActions {}
 
