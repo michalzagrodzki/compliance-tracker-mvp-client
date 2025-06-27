@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAuditSessionStore } from '../store/auditSessionStore'
 import Loading from './../../../components/Loading'
 import AuditSessionDocuments from './AuditSessionDocuments'
+import { ChatButton } from '@/modules/chat';
 import { 
   ArrowLeft,
   Calendar,
@@ -232,10 +233,11 @@ export default function AuditSessionDetail() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                <Button className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Start Compliance Search</span>
-                </Button>
+                <ChatButton
+                  sessionId={currentSession.id}
+                  sessionName={currentSession.session_name}
+                  complianceDomain={currentSession.compliance_domain}
+                />
                 <Button variant="outline" className="flex items-center space-x-2">
                   <Download className="h-4 w-4" />
                   <span>Export Audit Report</span>
