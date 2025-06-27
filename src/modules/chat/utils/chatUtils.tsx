@@ -71,26 +71,6 @@ export const chatUtils = {
         name: 'ISO/IEC 27001',
         description: 'Information security management systems',
         color: 'blue'
-      },
-      'GDPR': {
-        name: 'GDPR',
-        description: 'General Data Protection Regulation',
-        color: 'green'
-      },
-      'SOX': {
-        name: 'Sarbanes-Oxley',
-        description: 'Financial reporting compliance',
-        color: 'purple'
-      },
-      'HIPAA': {
-        name: 'HIPAA',
-        description: 'Health Insurance Portability and Accountability Act',
-        color: 'red'
-      },
-      'PCI_DSS': {
-        name: 'PCI DSS',
-        description: 'Payment Card Industry Data Security Standard',
-        color: 'orange'
       }
     };
 

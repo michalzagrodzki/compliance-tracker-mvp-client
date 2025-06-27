@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router';
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { chatService } from '../services/chatService';
+import { chatUtils } from "./../utils/chatUtils";
 
 interface ChatButtonProps {
   sessionId: string;
@@ -24,7 +24,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
 
   const handleStartChat = () => {
     // Generate a new chat ID
-    const chatId = chatService.generateChatId();
+    const chatId = chatUtils.generateChatId();
     
     // Navigate to the chat route
     navigate(`/audit-sessions/${sessionId}/chat/${chatId}`);

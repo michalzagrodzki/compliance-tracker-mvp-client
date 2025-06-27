@@ -11,7 +11,6 @@ import type {
   DocumentsByType,
   DocumentGroup,
 } from "../types";
-import { chatUtils } from "./../utils/chatUtils";
 
 const CHAT_ENDPOINTS = {
   QUERY: "/v1/query",
@@ -284,14 +283,6 @@ class ChatService {
       window.location.href = "/login";
       throw error;
     }
-  }
-
-  generateConversationId(): string {
-    return crypto.randomUUID();
-  }
-
-  generateChatId(): string {
-    return crypto.randomUUID();
   }
 
   // Format message for display

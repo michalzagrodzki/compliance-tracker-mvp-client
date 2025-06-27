@@ -10,6 +10,7 @@ import type {
   ChatSession,
   QueryRequest,
 } from "../types";
+import { chatUtils } from "./../utils/chatUtils";
 
 interface ChatStore extends ChatState, ChatActions {}
 
@@ -35,7 +36,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       // Create or load chat session
       const chatSession: ChatSession = {
         id: chatId,
-        conversation_id: chatService.generateConversationId(),
+        conversation_id: chatUtils.generateConversationId(),
         audit_session_id: sessionId,
         compliance_domain: auditSession.compliance_domain,
         session_name: auditSession.session_name,
