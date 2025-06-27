@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { http } from "@/modules/api/http";
 import type {
   AddDocumentRequest,
@@ -21,6 +22,8 @@ const AUDIT_SESSION_ENDPOINTS = {
     `/v1/audit-sessions/${sessionId}/pdf-ingestions`,
   REMOVE_FROM_SESSION: (sessionId: string, documentId: string) =>
     `/v1/audit-sessions/${sessionId}/pdf-ingestions/${documentId}`,
+  SESSION_HISTORY: (sessionId: string) =>
+    `/v1/audit-sessions/${sessionId}/history`,
 } as const;
 
 class AuditSessionService {
@@ -140,6 +143,13 @@ class AuditSessionService {
     await http.delete(
       AUDIT_SESSION_ENDPOINTS.REMOVE_FROM_SESSION(sessionId, documentId)
     );
+  }
+
+  async getAuditSessionHistory(sessionId: string): Promise<any[]> {
+    const response = await http.get<any[]>(
+      AUDIT_SESSION_ENDPOINTS.SESSION_HISTORY(sessionId)
+    );
+    return response.data;
   }
 }
 

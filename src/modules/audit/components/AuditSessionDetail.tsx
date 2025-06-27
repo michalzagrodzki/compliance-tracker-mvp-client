@@ -20,6 +20,7 @@ import {
   Play,
   Square
 } from 'lucide-react'
+import AuditSessionChats from './AuditSessionChats'
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -251,6 +252,11 @@ export default function AuditSessionDetail() {
               </div>
             </CardContent>
           </Card>
+          <AuditSessionChats 
+            sessionId={currentSession.id}
+            sessionName={currentSession.session_name}
+            complianceDomain={currentSession.compliance_domain}
+          />
           <AuditSessionDocuments sessionId={currentSession.id} />
         </div>
         

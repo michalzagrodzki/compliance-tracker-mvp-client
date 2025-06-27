@@ -1,57 +1,68 @@
-
-import React from 'react';
-import { useNavigate } from 'react-router';
-import { MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { chatUtils } from "./../utils/chatUtils";
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { MessageSquare, ExternalLink } from 'lucide-react'
+import { useNavigate } from 'react-router'
 
 interface ChatButtonProps {
-  sessionId: string;
-  sessionName?: string;
-  complianceDomain?: string;
-  className?: string;
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'sm' | 'default' | 'lg';
+  sessionId: string
+  sessionName: string
+  complianceDomain: string
+  chatId?: string // If provided, continue existing chat
+  children?: React.ReactNode
+  variant?: 'default' | 'outline' | 'ghost' | 'link' | 'destructive' | 'secondary'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
+  className?: string
 }
 
-export const ChatButton: React.FC<ChatButtonProps> = ({
+export function ChatButton({
   sessionId,
-  className = '',
+  sessionName,
+  complianceDomain,
+  chatId,
+  children,
   variant = 'default',
-  size = 'default'
-}) => {
-  const navigate = useNavigate();
+  size = 'default',
+  className = '',
+}: ChatButtonProps) {
+  const navigate = useNavigate()
+  const [isNavigating, setIsNavigating] = useState(false)
 
-  const handleStartChat = () => {
-    // Generate a new chat ID
-    const chatId = chatUtils.generateChatId();
+  const handleChatClick = async () => {
+    setIsNavigating(true)
     
-    // Navigate to the chat route
-    navigate(`/audit-sessions/${sessionId}/chat/${chatId}`);
-  };
+    try {
+      const targetChatId = chatId || `${crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()}`
+      const chatUrl = `/audit-sessions/${sessionId}/chat/${targetChatId}`
+      
+      navigate(chatUrl)
+    } catch (error) {
+      console.error('Error navigating to chat:', error)
+    } finally {
+      setIsNavigating(false)
+    }
+  }
+
+  const defaultContent = chatId ? (
+    <>
+      <ExternalLink className="h-4 w-4 mr-2" />
+      Continue Chat
+    </>
+  ) : (
+    <>
+      <MessageSquare className="h-4 w-4 mr-2" />
+      Start Chat
+    </>
+  )
 
   return (
     <Button
-      onClick={handleStartChat}
       variant={variant}
       size={size}
-      className={`flex items-center space-x-2 ${className}`}
+      className={className}
+      onClick={handleChatClick}
+      disabled={isNavigating}
     >
-      <MessageSquare className="h-4 w-4" />
-      <span>Start Compliance Chat</span>
+      {children || defaultContent}
     </Button>
-  );
-};
-
-// Usage example for AuditSessionDetail component:
-/*
-import { ChatButton } from '@/modules/chat';
-
-// In your AuditSessionDetail component, add this to the actions section:
-<ChatButton 
-  sessionId={currentSession.id}
-  sessionName={currentSession.session_name}
-  complianceDomain={currentSession.compliance_domain}
-  className="flex items-center space-x-2"
-/>
-*/
+  )
+}
