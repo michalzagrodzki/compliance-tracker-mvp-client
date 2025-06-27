@@ -35,7 +35,7 @@ const DocumentDropdown: React.FC<DocumentDropdownProps> = ({
       >
         {icon}
         <span className="hidden sm:inline">{title}</span>
-        <span className="bg-primary text-primary-foreground rounded-full px-2 py-1 text-xs">
+        <span className="border border-gray-400 text-gray-400 rounded-full px-2 py-1 text-xs">
           {count}
         </span>
         <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -90,7 +90,7 @@ export const ChatNavbar: React.FC<ChatNavbarProps> = ({
   onDocumentClick
 }) => {
   return (
-    <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+    <div className="bg-white border-b px-4 py-1 flex items-center justify-between">
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -100,27 +100,33 @@ export const ChatNavbar: React.FC<ChatNavbarProps> = ({
       </div>
       
       <div className="flex items-center space-x-2">
+      {referenceDocuments.length > 0 && (
         <DocumentDropdown
           title="Reference Docs"
           icon={<FileText className="h-4 w-4" />}
           documents={referenceDocuments}
           count={referenceDocuments.length}
           onDocumentClick={onDocumentClick}
-        />
-        <DocumentDropdown
-          title="Implementation"
-          icon={<Shield className="h-4 w-4" />}
-          documents={implementationDocuments}
-          count={implementationDocuments.length}
-          onDocumentClick={onDocumentClick}
-        />
-        <DocumentDropdown
-          title="Assessment"
-          icon={<ClipboardCheck className="h-4 w-4" />}
-          documents={assessmentDocuments}
-          count={assessmentDocuments.length}
-          onDocumentClick={onDocumentClick}
-        />
+          />
+        )}
+        {implementationDocuments.length > 0 && (
+          <DocumentDropdown
+            title="Implementation"
+            icon={<Shield className="h-4 w-4" />}
+            documents={implementationDocuments}
+            count={implementationDocuments.length}
+            onDocumentClick={onDocumentClick}
+          />
+        )}
+        {assessmentDocuments.length > 0 && (
+          <DocumentDropdown
+            title="Assessment"
+            icon={<ClipboardCheck className="h-4 w-4" />}
+            documents={assessmentDocuments}
+            count={assessmentDocuments.length}
+            onDocumentClick={onDocumentClick}
+            />
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AlertCircle } from 'lucide-react';
 import { useChatStore } from '../store/chatStore';
@@ -13,6 +13,7 @@ import Loading from '@/components/Loading';
 export const ChatSession: React.FC = () => {
   const { sessionId, chatId } = useParams<{ sessionId: string; chatId: string }>();
   const navigate = useNavigate();
+  const [hasInteracted, setHasInteracted] = useState(false);
   
   const {
     currentSession,
@@ -32,6 +33,13 @@ export const ChatSession: React.FC = () => {
     }
   }, [sessionId, chatId, initializeChat]);
 
+  // Check if user has already interacted (has messages)
+  useEffect(() => {
+    if (messages.length > 0) {
+      setHasInteracted(true);
+    }
+  }, [messages.length]);
+
   const handleBack = () => {
     if (sessionId) {
       navigate(`/audit-sessions/${sessionId}`);
@@ -42,6 +50,8 @@ export const ChatSession: React.FC = () => {
 
   const handleSendMessage = async (message: string) => {
     try {
+      // Mark as interacted to trigger the transition
+      setHasInteracted(true);
       await sendMessage(message);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -108,7 +118,7 @@ export const ChatSession: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-[82dvh] bg-gray-50 relative overflow-hidden">
       <ChatNavbar
         sessionName={currentSession?.session_name || 'Chat Session'}
         onBack={handleBack}
@@ -119,7 +129,7 @@ export const ChatSession: React.FC = () => {
       />
 
       {error && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2">
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2 relative z-30">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-4 w-4 text-red-500" />
@@ -132,24 +142,37 @@ export const ChatSession: React.FC = () => {
         </div>
       )}
 
-      <ChatMessages
-        messages={messages}
-        isLoading={isLoading}
-        isStreaming={isStreaming}
-        onIdentifyGap={handleIdentifyGap}
-      />
+      {/* Messages container - adjusts based on whether input is centered or fixed */}
+      <div className={`transition-all duration-700 ease-in-out ${
+        hasInteracted ? 'flex-1 pb-20' : 'flex-1'
+      } overflow-hidden`}>
+        <ChatMessages
+          messages={messages}
+          isLoading={isLoading}
+          isStreaming={isStreaming}
+          onIdentifyGap={handleIdentifyGap}
+        />
+      </div>
 
-      <ChatInput
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-        isStreaming={isStreaming}
-        disabled={!currentSession}
-        placeholder={
-          currentSession 
-            ? `Ask about ${currentSession.compliance_domain} compliance...`
-            : "Loading chat session..."
-        }
-      />
+      {/* Chat Input - starts centered, moves to bottom after first interaction */}
+      <div className={`transition-all duration-700 ease-in-out ${
+        hasInteracted 
+          ? 'fixed bottom-0 left-0 right-0 z-20' 
+          : ''
+      }`}>
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+          isStreaming={isStreaming}
+          disabled={!currentSession}
+          placeholder={
+            currentSession 
+              ? `Ask about ${currentSession.compliance_domain} compliance...`
+              : "Loading chat session..."
+          }
+          isCentered={!hasInteracted}
+        />
+      </div>
     </div>
   );
 };
