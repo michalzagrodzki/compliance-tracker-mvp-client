@@ -11,6 +11,7 @@ import type {
   DocumentsByType,
   DocumentGroup,
 } from "../types";
+import { chatUtils } from "./../utils/chatUtils";
 
 const CHAT_ENDPOINTS = {
   QUERY: "/v1/query",
@@ -285,12 +286,10 @@ class ChatService {
     }
   }
 
-  // Generate a new conversation ID
   generateConversationId(): string {
     return crypto.randomUUID();
   }
 
-  // Generate a new chat session ID
   generateChatId(): string {
     return crypto.randomUUID();
   }
