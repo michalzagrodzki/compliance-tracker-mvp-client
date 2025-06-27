@@ -33,34 +33,51 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       // Load audit session details
       const auditSession = await chatService.getAuditSession(sessionId);
 
-      // Create or load chat session
-      const chatSession: ChatSession = {
-        id: chatId,
-        conversation_id: chatUtils.generateConversationId(),
-        audit_session_id: sessionId,
-        compliance_domain: auditSession.compliance_domain,
-        session_name: auditSession.session_name,
-        created_at: new Date(),
-        updated_at: new Date(),
-        messages: [],
-      };
+      // Try to load existing chat history first using the chatId as conversation_id
+      let chatSession: ChatSession;
+      let existingHistory: ChatMessage[] = [];
+
+      try {
+        // Attempt to load existing chat history using the chatId
+        existingHistory = await chatService.getChatHistory(chatId);
+
+        // If we have existing history, use the chatId as the conversation_id
+        chatSession = {
+          id: chatId,
+          conversation_id: chatId, // Use the existing chatId
+          audit_session_id: sessionId,
+          compliance_domain: auditSession.compliance_domain,
+          session_name: auditSession.session_name,
+          created_at: new Date(), // This would ideally come from the first message timestamp
+          updated_at: new Date(),
+          messages: existingHistory,
+        };
+
+        console.log(
+          `Loaded existing chat session with ${existingHistory.length} messages`
+        );
+      } catch (error) {
+        console.log("No existing chat history found, creating new session");
+
+        // No existing history found, create a new chat session
+        chatSession = {
+          id: chatId,
+          conversation_id: chatId, // Use the provided chatId instead of generating new one
+          audit_session_id: sessionId,
+          compliance_domain: auditSession.compliance_domain,
+          session_name: auditSession.session_name,
+          created_at: new Date(),
+          updated_at: new Date(),
+          messages: [],
+        };
+      }
 
       // Load documents
       await get().loadDocuments(sessionId);
 
-      // Try to load existing chat history
-      try {
-        const existingHistory = await chatService.getChatHistory(
-          chatSession.conversation_id
-        );
-        chatSession.messages = existingHistory;
-        set({ messages: existingHistory });
-      } catch (error) {
-        console.log("No existing chat history found, starting fresh");
-      }
-
       set({
         currentSession: chatSession,
+        messages: existingHistory,
         isLoading: false,
       });
     } catch (error: any) {

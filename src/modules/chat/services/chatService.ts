@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/modules/chat/services/chatService.ts
-
 import { http } from "@/modules/api/http";
 import type {
   ChatMessage,
@@ -134,17 +132,96 @@ class ChatService {
     }
   }
 
+  // Helper function to safely parse timestamps
+  private parseTimestamp(timestamp: any): Date {
+    if (!timestamp) {
+      return new Date();
+    }
+
+    // If it's already a Date object, return it
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
+
+    // If it's a string, try to parse it
+    if (typeof timestamp === "string") {
+      const parsed = new Date(timestamp);
+      // Check if the parsed date is valid
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+
+    // If it's a number (timestamp), convert it
+    if (typeof timestamp === "number") {
+      return new Date(timestamp);
+    }
+
+    // Fallback to current date if all else fails
+    console.warn("Invalid timestamp provided:", timestamp);
+    return new Date();
+  }
+
+  // Convert API response to ChatMessage format
+  private formatApiResponseToMessage(item: any): ChatMessage {
+    return {
+      id: item.id?.toString() || Date.now().toString(),
+      type: "user", // First message is user question
+      message: item.question || "",
+      timestamp: this.parseTimestamp(item.created_at),
+      conversation_id: item.conversation_id,
+      audit_session_id: item.audit_session_id,
+      compliance_domain: item.compliance_domain,
+      sources: [],
+      response_time_ms: item.response_time_ms,
+      metadata: item.metadata,
+    };
+  }
+
+  // Convert API response to AI ChatMessage format
+  private formatApiResponseToAiMessage(item: any): ChatMessage {
+    // Extract source filenames from metadata
+    const sources =
+      item.metadata?.source_filenames ||
+      item.metadata?.document_details?.map((doc: any) => doc.source_filename) ||
+      [];
+
+    return {
+      id: (parseInt(item.id) + 0.5).toString(), // Ensure AI message has different ID
+      type: "ai",
+      message: item.answer || "",
+      timestamp: this.parseTimestamp(item.created_at),
+      conversation_id: item.conversation_id,
+      audit_session_id: item.audit_session_id,
+      compliance_domain: item.compliance_domain,
+      sources: sources.filter(Boolean), // Remove any null/undefined values
+      response_time_ms: item.response_time_ms,
+      metadata: item.metadata,
+    };
+  }
+
   // Get chat history for a conversation
   async getChatHistory(conversationId: string): Promise<ChatMessage[]> {
     try {
-      const response = await http.get<ChatMessage[]>(
+      const response = await http.get<any[]>(
         CHAT_ENDPOINTS.HISTORY(conversationId)
       );
 
-      return response.data.map((item) => ({
-        ...item,
-        timestamp: new Date(item.timestamp),
-      }));
+      const messages: ChatMessage[] = [];
+
+      // Convert each API response item to user question + AI answer pair
+      response.data.forEach((item) => {
+        // Add user message (question)
+        messages.push(this.formatApiResponseToMessage(item));
+
+        // Add AI message (answer)
+        messages.push(this.formatApiResponseToAiMessage(item));
+      });
+
+      // Sort messages by timestamp to ensure correct order
+      return messages.sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+      );
     } catch (error: any) {
       throw new Error(
         error.response?.data?.detail || "Failed to get chat history"
@@ -155,14 +232,25 @@ class ChatService {
   // Get chat history for an audit session
   async getAuditSessionHistory(auditSessionId: string): Promise<ChatMessage[]> {
     try {
-      const response = await http.get<ChatMessage[]>(
+      const response = await http.get<any[]>(
         CHAT_ENDPOINTS.AUDIT_SESSION_HISTORY(auditSessionId)
       );
 
-      return response.data.map((item) => ({
-        ...item,
-        timestamp: new Date(item.timestamp),
-      }));
+      const messages: ChatMessage[] = [];
+
+      // Convert each API response item to user question + AI answer pair
+      response.data.forEach((item) => {
+        // Add user message (question)
+        messages.push(this.formatApiResponseToMessage(item));
+
+        // Add AI message (answer)
+        messages.push(this.formatApiResponseToAiMessage(item));
+      });
+
+      // Sort messages by timestamp to ensure correct order
+      return messages.sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+      );
     } catch (error: any) {
       throw new Error(
         error.response?.data?.detail || "Failed to get audit session history"
@@ -291,7 +379,7 @@ class ChatService {
       id: message.id || Date.now().toString(),
       type: message.type || "ai",
       message: message.message || message.answer || "",
-      timestamp: message.timestamp ? new Date(message.timestamp) : new Date(),
+      timestamp: this.parseTimestamp(message.timestamp || message.created_at),
       sources:
         message.sources ||
         message.source_docs
