@@ -237,7 +237,6 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
       </Card>
     )
   }
-  console.log(sessionDocuments)
   return (
     <Card>
       <CardHeader>
