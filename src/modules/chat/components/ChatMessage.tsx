@@ -129,12 +129,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap
                 </div>
               </div>
             )}
-
-            {message.response_time_ms && (
-              <div className="mt-2 text-xs text-gray-400 font-mono">
-                Response time: {message.response_time_ms}ms
-              </div>
-            )}
           </div>
           
           {message.type === 'ai' && showGapIcon && (
