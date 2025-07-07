@@ -118,7 +118,7 @@ export const ChatSession: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-[82dvh] bg-gray-50 relative">
+    <div className="flex flex-col h-full bg-gray-50 relative overflow-hidden">
       <ChatNavbar
         sessionName={currentSession?.session_name || 'Chat Session'}
         onBack={handleBack}
@@ -142,8 +142,7 @@ export const ChatSession: React.FC = () => {
         </div>
       )}
 
-      {/* Messages container with proper height calculation */}
-      <div className={`transition-all duration-700 ease-in-out flex-1 min-h-0 ${
+      <div className={`transition-all duration-700 ease-in-out flex-1 min-h-0 overflow-hidden ${
         hasInteracted ? 'mb-0' : ''
       }`}>
         <ChatMessages
@@ -155,24 +154,31 @@ export const ChatSession: React.FC = () => {
         />
       </div>
 
-      {/* Chat Input - starts centered, moves to bottom after first interaction */}
       <div className={`transition-all duration-700 ease-in-out flex-shrink-0 ${
         hasInteracted 
           ? 'relative z-20' 
           : 'absolute inset-0 z-10 pointer-events-none'
       }`}>
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading}
-          isStreaming={isStreaming}
-          disabled={!currentSession}
-          placeholder={
-            currentSession 
-              ? `Ask about ${currentSession.compliance_domain} compliance...`
-              : "Loading chat session..."
-          }
-          isCentered={!hasInteracted}
-        />
+        <div className={`${
+          hasInteracted 
+            ? 'fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-6xl mx-auto px-4 pb-4' 
+            : 'flex items-center justify-center h-full pointer-events-auto'
+        }`}>
+          <div className={hasInteracted ? 'w-full' : 'w-full max-w-4xl px-4'}>
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              isStreaming={isStreaming}
+              disabled={!currentSession}
+              placeholder={
+                currentSession 
+                  ? `Ask about ${currentSession.compliance_domain} compliance...`
+                  : "Loading chat session..."
+              }
+              isCentered={!hasInteracted}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

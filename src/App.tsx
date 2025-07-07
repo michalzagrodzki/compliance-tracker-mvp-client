@@ -24,6 +24,7 @@ import ChatSession from './modules/chat/components/ChatSession'
 import Welcome from './pages/Welcome'
 import Dashboard from './pages/Dashboard'
 import Layout from './components/Layout'
+import ChatLayout from './components/ChatLayout'
 
 import Loading from './components/Loading'
 
@@ -109,7 +110,7 @@ function App() {
             path="/audit-sessions/:sessionId/chat/:chatId"
             element={
               <ProtectedRoute>
-                <Layout />
+                <ChatLayout />
               </ProtectedRoute>
             }
             >
