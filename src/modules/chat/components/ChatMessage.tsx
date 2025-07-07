@@ -91,7 +91,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap
   return (
     <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} mb-6`}>
       <div 
-        className={`max-w-[85%] rounded-lg shadow-sm ${
+        className={`max-w-[85%] rounded-lg shadow-sm relative ${
           message.type === 'user' 
             ? 'bg-gray-800 text-white p-4' 
             : 'bg-white border border-gray-200 p-5'
@@ -99,48 +99,34 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap
         onMouseEnter={() => message.type === 'ai' && setShowGapIcon(true)}
         onMouseLeave={() => setShowGapIcon(false)}
       >
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <div className={`${message.type === 'user' ? 'text-sm' : 'text-sm'}`}>
-              {message.type === 'user' ? (
-                <div className="whitespace-pre-wrap leading-relaxed">
-                  {message.message}
-                </div>
-              ) : (
-                formatMessageContent(message.message)
-              )}
-            </div>
-            
-            {message.sources && message.sources.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-200">
-                <div className="text-xs font-medium text-gray-600 mb-2">
-                  Sources ({message.sources.length}):
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {message.sources.map((source, index) => (
-                    <span 
-                      key={index} 
-                      className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors cursor-pointer"
-                      title={`Click to view: ${source}`}
-                    >
-                      {source}
-                    </span>
-                  ))}
-                </div>
+        <div className="flex-1 min-w-0">
+          <div className={`${message.type === 'user' ? 'text-sm' : 'text-sm'}`}>
+            {message.type === 'user' ? (
+              <div className="whitespace-pre-wrap leading-relaxed">
+                {message.message}
               </div>
+            ) : (
+              formatMessageContent(message.message)
             )}
           </div>
           
-          {message.type === 'ai' && showGapIcon && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="ml-3 h-8 w-8 p-0 opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
-              title="Identify Compliance Gap"
-              onClick={handleIdentifyGap}
-            >
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-            </Button>
+          {message.sources && message.sources.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-200">
+              <div className="text-xs font-medium text-gray-600 mb-2">
+                Sources ({message.sources.length}):
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {message.sources.map((source, index) => (
+                  <span 
+                    key={index} 
+                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors cursor-pointer"
+                    title={`Click to view: ${source}`}
+                  >
+                    {source}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
         </div>
         
@@ -157,6 +143,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap
             hour12: true
           })}
         </div>
+
+        {message.type === 'ai' && showGapIcon && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="absolute top-2 right-2 h-6 w-6 p-0 opacity-70 hover:opacity-100 transition-opacity bg-white border border-orange-200 shadow-sm hover:shadow-md"
+            title="Mark this message as a compliance gap"
+            onClick={handleIdentifyGap}
+          >
+            <AlertTriangle className="h-3 w-3 text-orange-500" />
+          </Button>
+        )}
       </div>
     </div>
   );
