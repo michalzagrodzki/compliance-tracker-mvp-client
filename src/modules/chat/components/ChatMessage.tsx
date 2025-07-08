@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useComplianceGap } from '@/modules/compliance-gaps';
 import type { ChatMessage as ChatMessageType } from '../types';
 
 interface ChatMessageProps {
@@ -10,8 +11,17 @@ interface ChatMessageProps {
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap }) => {
   const [showGapIcon, setShowGapIcon] = useState(false);
+  const { createGapFromMessage } = useComplianceGap();
   
   const handleIdentifyGap = () => {
+    createGapFromMessage(
+      message.id, // chatHistoryId
+      message.audit_session_id,
+      message.compliance_domain,
+      message.message,
+      message.sources
+    );
+    
     onIdentifyGap?.(message.id);
   };
 

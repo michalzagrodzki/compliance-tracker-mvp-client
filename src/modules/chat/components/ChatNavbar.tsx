@@ -94,7 +94,7 @@ export const ChatNavbar: React.FC<ChatNavbarProps> = ({
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Session
+          Back to Sessions
         </Button>
         <h1 className="text-lg font-semibold">Chat Session</h1>
       </div>

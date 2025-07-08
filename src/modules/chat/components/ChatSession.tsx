@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AlertCircle } from 'lucide-react';
 import { useChatStore } from '../store/chatStore';
+import { useComplianceGap, ComplianceGapModal } from '@/modules/compliance-gaps';
 import { ChatNavbar } from './ChatNavbar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
@@ -26,6 +27,12 @@ export const ChatSession: React.FC = () => {
     sendMessage,
     clearError
   } = useChatStore();
+
+  const {
+    isModalOpen,
+    modalData,
+    cancelModal,
+  } = useComplianceGap();
 
   useEffect(() => {
     if (sessionId && chatId) {
@@ -63,10 +70,6 @@ export const ChatSession: React.FC = () => {
     // TODO: Implement document viewing/referencing functionality
   };
 
-  const handleIdentifyGap = (messageId: string) => {
-    console.log('Identify compliance gap for message:', messageId);
-    // TODO: Implement compliance gap identification functionality
-  };
 
   if (isLoading && !currentSession) {
     return (
@@ -118,69 +121,80 @@ export const ChatSession: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 relative overflow-hidden">
-      <ChatNavbar
-        sessionName={currentSession?.session_name || 'Chat Session'}
-        onBack={handleBack}
-        referenceDocuments={documents.reference}
-        implementationDocuments={documents.implementation}
-        assessmentDocuments={documents.assessment}
-        onDocumentClick={handleDocumentClick}
-      />
-
-      {error && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2 relative z-30 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-              <span className="text-sm text-red-700">{error}</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={clearError}>
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <div className={`transition-all duration-700 ease-in-out flex-1 min-h-0 overflow-hidden ${
-        hasInteracted ? 'mb-0' : ''
-      }`}>
-        <ChatMessages
-          messages={messages}
-          isLoading={isLoading}
-          isStreaming={isStreaming}
-          onIdentifyGap={handleIdentifyGap}
-          hasInteracted={hasInteracted}
+    <>
+      <div className="flex flex-col h-full bg-gray-50 relative overflow-hidden">
+        <ChatNavbar
+          sessionName={currentSession?.session_name || 'Chat Session'}
+          onBack={handleBack}
+          referenceDocuments={documents.reference}
+          implementationDocuments={documents.implementation}
+          assessmentDocuments={documents.assessment}
+          onDocumentClick={handleDocumentClick}
         />
-      </div>
 
-      <div className={`transition-all duration-700 ease-in-out flex-shrink-0 ${
-        hasInteracted 
-          ? 'relative z-20' 
-          : 'absolute inset-0 z-10 pointer-events-none'
-      }`}>
-        <div className={`${
-          hasInteracted 
-            ? 'fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-6xl mx-auto px-4 pb-4' 
-            : 'flex items-center justify-center h-full pointer-events-auto'
+        {error && (
+          <div className="bg-red-50 border-b border-red-200 px-4 py-2 relative z-30 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <span className="text-sm text-red-700">{error}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={clearError}>
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className={`transition-all duration-700 ease-in-out flex-1 min-h-0 overflow-hidden ${
+          hasInteracted ? 'mb-0' : ''
         }`}>
-          <div className={hasInteracted ? 'w-full' : 'w-full max-w-4xl px-4'}>
-            <ChatInput
-              onSendMessage={handleSendMessage}
-              isLoading={isLoading}
-              isStreaming={isStreaming}
-              disabled={!currentSession}
-              placeholder={
-                currentSession 
-                  ? `Ask about ${currentSession.compliance_domain} compliance...`
-                  : "Loading chat session..."
-              }
-              isCentered={!hasInteracted}
-            />
+          <ChatMessages
+            messages={messages}
+            isLoading={isLoading}
+            isStreaming={isStreaming}
+            hasInteracted={hasInteracted}
+          />
+        </div>
+
+        <div className={`transition-all duration-700 ease-in-out flex-shrink-0 ${
+          hasInteracted 
+            ? 'relative z-20' 
+            : 'absolute inset-0 z-10 pointer-events-none'
+        }`}>
+          <div className={`${
+            hasInteracted 
+              ? 'fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-6xl mx-auto px-4 pb-4' 
+              : 'flex items-center justify-center h-full pointer-events-auto'
+          }`}>
+            <div className={hasInteracted ? 'w-full' : 'w-full max-w-4xl px-4'}>
+              <ChatInput
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                isStreaming={isStreaming}
+                disabled={!currentSession}
+                placeholder={
+                  currentSession 
+                    ? `Ask about ${currentSession.compliance_domain} compliance...`
+                    : "Loading chat session..."
+                }
+                isCentered={!hasInteracted}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <ComplianceGapModal
+        isOpen={isModalOpen}
+        onClose={cancelModal}
+        chatHistoryId={modalData?.chatHistoryId || ''}
+        auditSessionId={modalData?.auditSessionId}
+        complianceDomain={modalData?.complianceDomain}
+        initialMessage={modalData?.initialMessage}
+        sources={modalData?.sources}
+      />
+    </>
   );
 };
 
