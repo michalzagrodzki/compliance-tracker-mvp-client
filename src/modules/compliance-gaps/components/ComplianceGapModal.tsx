@@ -1,6 +1,15 @@
 import React from 'react';
-import { X, CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ComplianceGapForm } from './ComplianceGapForm';
 
 interface ComplianceGapModalProps {
@@ -36,67 +45,65 @@ export const ComplianceGapModal: React.FC<ComplianceGapModalProps> = ({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={handleClose}
-      />
-      
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Close button */}
-          <button
-            onClick={handleClose}
-            className="absolute top-4 right-4 z-10 p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100"
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          {showSuccess ? (
-            // Success state
-            <div className="p-8 text-center">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Compliance Gap Created Successfully!
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Your compliance gap has been created and assigned ID: 
-                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded ml-2">
-                  {createdGapId}
-                </span>
-              </p>
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500">
-                  The compliance gap will be reviewed by the compliance team and appropriate actions will be taken.
-                </p>
-                <div className="flex justify-center space-x-4">
-                  <Button
-                    onClick={handleClose}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      // TODO: Navigate to compliance gaps view
-                      console.log('Navigate to compliance gaps');
-                      handleClose();
-                    }}
-                  >
-                    View All Gaps
-                  </Button>
-                </div>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[1300px] w-full max-h-[90vh] flex flex-col">
+        {showSuccess ? (
+          // Success state
+          <>
+            <DialogHeader>
+              <div className="flex flex-col items-center text-center space-y-4">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+                <DialogTitle className="text-2xl font-bold text-gray-900">
+                  Compliance Gap Created Successfully!
+                </DialogTitle>
+                <DialogDescription className="text-gray-600">
+                  Your compliance gap has been created and assigned ID: 
+                  <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded ml-2">
+                    {createdGapId}
+                  </span>
+                </DialogDescription>
               </div>
+            </DialogHeader>
+            
+            <div className="flex-1 flex items-center justify-center py-8">
+              <p className="text-sm text-gray-500 text-center">
+                The compliance gap will be reviewed by the compliance team and appropriate actions will be taken.
+              </p>
             </div>
-          ) : (
-            // Form state
-            <div className="p-6">
+
+            <DialogFooter className="flex justify-center space-x-4">
+              <DialogClose asChild>
+                <Button className="bg-green-600 hover:bg-green-700">
+                  Close
+                </Button>
+              </DialogClose>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // TODO: Navigate to compliance gaps view
+                  console.log('Navigate to compliance gaps');
+                  handleClose();
+                }}
+              >
+                View All Gaps
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          // Form state
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                <span>Create Compliance Gap</span>
+              </DialogTitle>
+              <DialogDescription>
+                Identify and document a potential compliance gap based on the chat interaction.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-y-auto">
               <ComplianceGapForm
                 chatHistoryId={chatHistoryId}
                 auditSessionId={auditSessionId}
@@ -107,9 +114,9 @@ export const ComplianceGapModal: React.FC<ComplianceGapModalProps> = ({
                 onCancel={handleClose}
               />
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
