@@ -9,50 +9,85 @@ import {
   DialogClose,
   DialogFooter,
 } from '@/components/ui/dialog';
-// import { complianceGapService } from '../services/complianceGapService';
 import type { 
-  ComplianceGapFormData, 
   ComplianceGapFromChatHistoryRequest,
   GapType,
-  RiskLevel
+  RiskLevel,
+  BusinessImpactLevel,
+  RecommendationType
 } from '../types';
 
-// Mock options for demonstration
-const GAP_TYPE_OPTIONS = [
+// Type definitions
+export interface ComplianceGapFormData {
+  gap_type: GapType;
+  gap_category: string;
+  gap_title: string;
+  gap_description: string;
+  risk_level: RiskLevel;
+  business_impact: BusinessImpactLevel;
+  regulatory_requirement: boolean;
+  potential_fine_amount?: number;
+  recommendation_type?: RecommendationType;
+  recommendation_text: string;
+  recommended_actions: string[];
+  confidence_score: number;
+  false_positive_likelihood: number;
+}
+
+// Mock options for demonstration - should match the types from index.ts
+const GAP_TYPE_OPTIONS: Array<{
+  value: GapType;
+  label: string;
+  description: string;
+}> = [
   { value: 'missing_policy', label: 'Missing Policy', description: 'Required policy document is missing' },
-  { value: 'insufficient_controls', label: 'Insufficient Controls', description: 'Existing controls are inadequate' },
-  { value: 'process_gap', label: 'Process Gap', description: 'Missing or incomplete process' },
-  { value: 'training_gap', label: 'Training Gap', description: 'Staff lack required training' },
-  { value: 'monitoring_gap', label: 'Monitoring Gap', description: 'Inadequate monitoring or reporting' },
-  { value: 'documentation_gap', label: 'Documentation Gap', description: 'Missing or outdated documentation' }
+  { value: 'outdated_policy', label: 'Outdated Policy', description: 'Existing policy is obsolete or out of date' },
+  { value: 'low_confidence', label: 'Low Confidence', description: 'Available information has low confidence level' },
+  { value: 'conflicting_policies', label: 'Conflicting Policies', description: 'Multiple policies provide contradictory guidance' },
+  { value: 'incomplete_coverage', label: 'Incomplete Coverage', description: 'Policy exists but does not cover all required areas' },
+  { value: 'no_evidence', label: 'No Evidence', description: 'No documentation found to support compliance' }
 ];
 
-const RISK_LEVEL_OPTIONS = [
+const RISK_LEVEL_OPTIONS: Array<{
+  value: RiskLevel;
+  label: string;
+  color: string;
+}> = [
   { value: 'low', label: 'Low Risk', color: 'bg-green-100 text-green-800' },
   { value: 'medium', label: 'Medium Risk', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'high', label: 'High Risk', color: 'bg-orange-100 text-orange-800' },
   { value: 'critical', label: 'Critical Risk', color: 'bg-red-100 text-red-800' }
 ];
 
-const BUSINESS_IMPACT_OPTIONS = [
+const BUSINESS_IMPACT_OPTIONS: Array<{
+  value: BusinessImpactLevel;
+  label: string;
+}> = [
   { value: 'low', label: 'Low Impact' },
   { value: 'medium', label: 'Medium Impact' },
   { value: 'high', label: 'High Impact' },
   { value: 'critical', label: 'Critical Impact' }
 ];
 
-const RECOMMENDATION_TYPE_OPTIONS = [
-  { value: 'policy_update', label: 'Policy Update' },
+const RECOMMENDATION_TYPE_OPTIONS: Array<{
+  value: RecommendationType;
+  label: string;
+}> = [
+  { value: 'create_policy', label: 'Create New Policy' },
+  { value: 'update_policy', label: 'Update Existing Policy' },
+  { value: 'upload_document', label: 'Upload Documentation' },
+  { value: 'training_needed', label: 'Training Required' },
   { value: 'process_improvement', label: 'Process Improvement' },
-  { value: 'training_program', label: 'Training Program' },
-  { value: 'technology_implementation', label: 'Technology Implementation' },
-  { value: 'monitoring_enhancement', label: 'Monitoring Enhancement' },
-  { value: 'documentation_review', label: 'Documentation Review' }
-];
+  { value: 'system_configuration', label: 'System Configuration' }
+  ];
+
+  const extractWholeNumberFromId = (id: string): string => {
+    return id.split('.')[0];
+  };
 
 // Mock service for this example
 const complianceGapService = {
-  analyzeMessageForGapType: (message: string) => ({
+  analyzeMessageForGapType: (message: string): { suggestedType: GapType; confidence: number } => ({
     suggestedType: 'missing_policy' as GapType,
     confidence: 0.8
   }),
@@ -71,7 +106,7 @@ interface ComplianceGapFormProps {
   complianceDomain?: string;
   initialMessage?: string;
   sources?: string[];
-  onSuccess: (gapId: string) => void;
+  onSubmitRequest: (request: ComplianceGapFromChatHistoryRequest) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -81,7 +116,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
   complianceDomain,
   initialMessage = '',
   sources = [],
-  onSuccess,
+  onSubmitRequest,
   onCancel
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -112,7 +147,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
 
       setFormData(prev => ({
         ...prev,
-        gap_type: analysis.suggestedType as GapType,
+        gap_type: analysis.suggestedType,
         gap_category: suggestedCategory,
         gap_title: `${suggestedCategory} Gap - ${new Date().toLocaleDateString()}`,
         gap_description: `Potential compliance gap identified from user query: "${initialMessage.substring(0, 200)}${initialMessage.length > 200 ? '...' : ''}"`,
@@ -145,40 +180,48 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!isFormValid()) return;
+
     setIsLoading(true);
     setError(null);
 
     try {
       const request: ComplianceGapFromChatHistoryRequest = {
         creation_method: "from_chat_history",
-        chat_history_id: chatHistoryId,
+        chat_history_id: extractWholeNumberFromId(chatHistoryId),
         audit_session_id: auditSessionId,
         compliance_domain: complianceDomain,
         search_terms_used: complianceGapService.extractSearchTerms(initialMessage),
         related_documents: sources,
-        ...formData
+        gap_type: formData.gap_type,
+        gap_category: formData.gap_category,
+        gap_title: formData.gap_title,
+        gap_description: formData.gap_description,
+        risk_level: formData.risk_level,
+        business_impact: formData.business_impact,
+        regulatory_requirement: formData.regulatory_requirement,
+        potential_fine_amount: formData.potential_fine_amount,
+        recommendation_type: formData.recommendation_type,
+        recommendation_text: formData.recommendation_text,
+        recommended_actions: formData.recommended_actions,
+        confidence_score: formData.confidence_score,
+        false_positive_likelihood: formData.false_positive_likelihood
       };
 
-      const response = await complianceGapService.createFromChatHistory(request);
-      onSuccess(response.id);
+      await onSubmitRequest(request);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to create compliance gap');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getRiskLevelColor = (level: RiskLevel) => {
-    return RISK_LEVEL_OPTIONS.find(option => option.value === level)?.color || '';
-  };
-
   const isFormValid = () => {
-    return formData.gap_type && 
-           formData.gap_category.trim() && 
-           formData.gap_title.trim() && 
-           formData.gap_description.trim();
+    return formData.gap_type &&
+      formData.gap_category.trim() &&
+      formData.gap_title.trim() &&
+      formData.gap_description.trim();
   };
 
   return (
@@ -196,13 +239,12 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
                     key={option.value}
                     type="button"
                     onClick={() => handleInputChange('gap_type', option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.gap_type === option.value
+                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${formData.gap_type === option.value
                         ? 'border-blue-400 bg-blue-50 text-blue-800'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ 
-                      transitionDelay: `${index * 50}ms` 
+                      }`}
+                    style={{
+                      transitionDelay: `${index * 50}ms`
                     }}
                   >
                     <div className="font-medium">{option.label}</div>
@@ -213,41 +255,26 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             </div>
 
             <div className="grid gap-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                <div className="grid gap-3">
-                  <Label htmlFor="gap_title">Gap Title *</Label>
-                  <Input
-                    id="gap_title"
-                    value={formData.gap_title}
-                    onChange={(e) => handleInputChange('gap_title', e.target.value)}
-                    placeholder="Brief, descriptive title for the gap"
-                    required
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="gap_category">Gap Category *</Label>
-                  <Input
-                    id="gap_category"
-                    value={formData.gap_category}
-                    onChange={(e) => handleInputChange('gap_category', e.target.value)}
-                    placeholder="e.g., Data Protection, Access Control"
-                    required
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="potential_fine_amount">Potential Fine Amount</Label>
-                  <Input
-                    id="potential_fine_amount"
-                    type="number"
-                    value={formData.potential_fine_amount || ''}
-                    onChange={(e) => handleInputChange('potential_fine_amount', e.target.value ? parseFloat(e.target.value) : undefined)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-              </div>
+              <Label htmlFor="gap_category">Gap Category *</Label>
+              <Input
+                id="gap_category"
+                value={formData.gap_category}
+                onChange={(e) => handleInputChange('gap_category', e.target.value)}
+                placeholder="e.g., Data Protection, Access Control"
+                required
+              />
             </div>
+          </div>
+
+          <div className="grid gap-3">
+            <Label htmlFor="gap_title">Gap Title *</Label>
+            <Input
+              id="gap_title"
+              value={formData.gap_title}
+              onChange={(e) => handleInputChange('gap_title', e.target.value)}
+              placeholder="Brief, descriptive title for the gap"
+              required
+            />
           </div>
 
           <div className="grid gap-3">
@@ -272,13 +299,12 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
                     key={option.value}
                     type="button"
                     onClick={() => handleInputChange('risk_level', option.value)}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.risk_level === option.value
+                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${formData.risk_level === option.value
                         ? `border-blue-400 ${option.color}`
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ 
-                      transitionDelay: `${index * 50}ms` 
+                      }`}
+                    style={{
+                      transitionDelay: `${index * 50}ms`
                     }}
                   >
                     <div className="font-medium">{option.label}</div>
@@ -295,13 +321,12 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
                     key={option.value}
                     type="button"
                     onClick={() => handleInputChange('business_impact', option.value)}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.business_impact === option.value
+                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${formData.business_impact === option.value
                         ? 'border-blue-400 bg-blue-50 text-blue-800'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ 
-                      transitionDelay: `${index * 50}ms` 
+                      }`}
+                    style={{
+                      transitionDelay: `${index * 50}ms`
                     }}
                   >
                     <div className="font-medium">{option.label}</div>
@@ -311,7 +336,16 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             </div>
 
             <div className="grid gap-3">
-              
+              <Label htmlFor="potential_fine_amount">Potential Fine Amount</Label>
+              <Input
+                id="potential_fine_amount"
+                type="number"
+                value={formData.potential_fine_amount || ''}
+                onChange={(e) => handleInputChange('potential_fine_amount', e.target.value ? parseFloat(e.target.value) : undefined)}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
             </div>
           </div>
 
@@ -331,7 +365,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
           {/* Recommendations */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Recommendations</h3>
-            
+
             <div className="grid gap-3">
               <Label>Recommendation Type</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -339,16 +373,15 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => handleInputChange('recommendation_type', 
+                    onClick={() => handleInputChange('recommendation_type',
                       formData.recommendation_type === option.value ? undefined : option.value
                     )}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.recommendation_type === option.value
+                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${formData.recommendation_type === option.value
                         ? 'border-blue-400 bg-blue-50 text-blue-800'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ 
-                      transitionDelay: `${index * 50}ms` 
+                      }`}
+                    style={{
+                      transitionDelay: `${index * 50}ms`
                     }}
                   >
                     <div className="font-medium">{option.label}</div>
@@ -370,7 +403,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
 
             <div className="grid gap-3">
               <Label>Recommended Actions</Label>
-              
+
               <div className="space-y-2">
                 {formData.recommended_actions.map((action, index) => (
                   <div key={index} className="flex items-center space-x-2">
@@ -394,7 +427,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
                     </Button>
                   </div>
                 ))}
-                
+
                 <div className="flex items-center space-x-2">
                   <Input
                     value={newAction}

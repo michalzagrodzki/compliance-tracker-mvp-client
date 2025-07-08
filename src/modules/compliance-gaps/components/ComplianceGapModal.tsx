@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import React from 'react';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { ComplianceGapFromChatHistoryRequest } from '../types';
 import { ComplianceGapForm } from './ComplianceGapForm';
 
 interface ComplianceGapModalProps {
@@ -20,11 +22,13 @@ interface ComplianceGapModalProps {
   complianceDomain?: string;
   initialMessage?: string;
   sources?: string[];
+  onSubmitRequest: (request: ComplianceGapFromChatHistoryRequest) => Promise<void>;
 }
 
 export const ComplianceGapModal: React.FC<ComplianceGapModalProps> = ({
   isOpen,
   onClose,
+  onSubmitRequest,
   chatHistoryId,
   auditSessionId,
   complianceDomain,
@@ -34,9 +38,14 @@ export const ComplianceGapModal: React.FC<ComplianceGapModalProps> = ({
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [createdGapId, setCreatedGapId] = React.useState<string | null>(null);
 
-  const handleSuccess = (gapId: string) => {
-    setCreatedGapId(gapId);
-    setShowSuccess(true);
+  const handleSubmitWithSuccess = async (request: ComplianceGapFromChatHistoryRequest) => {
+    try {
+      await onSubmitRequest(request);
+      setCreatedGapId(`GAP-${Date.now()}`);
+      setShowSuccess(true);
+    } catch (error) {
+      throw error; // Re-throw for form to handle
+    }
   };
 
   const handleClose = () => {
@@ -110,7 +119,7 @@ export const ComplianceGapModal: React.FC<ComplianceGapModalProps> = ({
                 complianceDomain={complianceDomain}
                 initialMessage={initialMessage}
                 sources={sources}
-                onSuccess={handleSuccess}
+                onSubmitRequest={handleSubmitWithSuccess}
                 onCancel={handleClose}
               />
             </div>

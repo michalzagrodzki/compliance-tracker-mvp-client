@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AlertCircle } from 'lucide-react';
 import { useChatStore } from '../store/chatStore';
-import { useComplianceGap, ComplianceGapModal } from '@/modules/compliance-gaps';
+import { useComplianceGap, ComplianceGapModal, type ComplianceGapFromChatHistoryRequest } from '@/modules/compliance-gaps';
 import { ChatNavbar } from './ChatNavbar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
@@ -32,6 +32,7 @@ export const ChatSession: React.FC = () => {
     isModalOpen,
     modalData,
     cancelModal,
+    submitGap,
   } = useComplianceGap();
 
   useEffect(() => {
@@ -65,11 +66,22 @@ export const ChatSession: React.FC = () => {
     }
   };
 
+  const handleSubmitComplianceGap = async (request: ComplianceGapFromChatHistoryRequest): Promise<void> => {
+    try {
+      const response = await submitGap(request);
+      console.log('Compliance gap created successfully:', response);
+      // The success state will be handled by the modal
+    } catch (error) {
+      console.error('Failed to create compliance gap:', error);
+      // Re-throw the error so the modal can handle it
+      throw error;
+    }
+  };
+
   const handleDocumentClick = (document: any) => {
     console.log('Document clicked:', document);
     // TODO: Implement document viewing/referencing functionality
   };
-
 
   if (isLoading && !currentSession) {
     return (
@@ -188,6 +200,7 @@ export const ChatSession: React.FC = () => {
       <ComplianceGapModal
         isOpen={isModalOpen}
         onClose={cancelModal}
+        onSubmitRequest={handleSubmitComplianceGap}
         chatHistoryId={modalData?.chatHistoryId || ''}
         auditSessionId={modalData?.auditSessionId}
         complianceDomain={modalData?.complianceDomain}

@@ -42,17 +42,17 @@ export const useComplianceGap = () => {
   );
 
   const handleSubmitGap = useCallback(
-    async (request: ComplianceGapFromChatHistoryRequest) => {
+    async (
+      request: ComplianceGapFromChatHistoryRequest
+    ): Promise<{ id: string }> => {
       try {
         const response = await createGapFromChatHistory(request);
-        closeModal();
         return response;
       } catch (error) {
-        // Error is handled in the store
         throw error;
       }
     },
-    [createGapFromChatHistory, closeModal]
+    [createGapFromChatHistory]
   );
 
   const handleLoadGaps = useCallback(
