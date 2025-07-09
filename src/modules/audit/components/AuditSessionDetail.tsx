@@ -6,6 +6,8 @@ import { useAuditSessionStore } from '../store/auditSessionStore'
 import Loading from './../../../components/Loading'
 import AuditSessionDocuments from './AuditSessionDocuments'
 import { ChatButton } from '@/modules/chat';
+import AuditSessionChats from './AuditSessionChats'
+import AuditSessionComplianceGaps from './AuditSessionComplianceGaps'
 import { 
   ArrowLeft,
   Calendar,
@@ -20,7 +22,7 @@ import {
   Play,
   Square
 } from 'lucide-react'
-import AuditSessionChats from './AuditSessionChats'
+
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -252,6 +254,11 @@ export default function AuditSessionDetail() {
               </div>
             </CardContent>
           </Card>
+          <AuditSessionComplianceGaps 
+            sessionId={currentSession.id}
+            sessionName={currentSession.session_name}
+            complianceDomain={currentSession.compliance_domain}
+          />
           <AuditSessionChats 
             sessionId={currentSession.id}
             sessionName={currentSession.session_name}
