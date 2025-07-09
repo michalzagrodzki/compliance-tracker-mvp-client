@@ -226,10 +226,8 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Scrollable form content */}
       <div className="flex-1 overflow-y-auto p-6 pb-20">
         <div className="space-y-6">
-          {/* Basic Information */}
           <div className="space-y-6">
             <div className="grid gap-3">
               <Label>Gap Type *</Label>
@@ -253,28 +251,41 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
                 ))}
               </div>
             </div>
-
-            <div className="grid gap-3">
-              <Label htmlFor="gap_category">Gap Category *</Label>
-              <Input
-                id="gap_category"
-                value={formData.gap_category}
-                onChange={(e) => handleInputChange('gap_category', e.target.value)}
-                placeholder="e.g., Data Protection, Access Control"
-                required
-              />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid gap-3">
+                <Label htmlFor="gap_title">Gap Title *</Label>
+                <Input
+                  id="gap_title"
+                  value={formData.gap_title}
+                  onChange={(e) => handleInputChange('gap_title', e.target.value)}
+                  placeholder="Brief, descriptive title for the gap"
+                  required
+                />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="gap_category">Gap Category *</Label>
+                <Input
+                  id="gap_category"
+                  value={formData.gap_category}
+                  onChange={(e) => handleInputChange('gap_category', e.target.value)}
+                  placeholder="e.g., Data Protection, Access Control"
+                  required
+                />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="potential_fine_amount">Potential Fine Amount</Label>
+                <Input
+                  id="potential_fine_amount"
+                  type="number"
+                  value={formData.potential_fine_amount || ''}
+                  onChange={(e) => handleInputChange('potential_fine_amount', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
             </div>
-          </div>
-
-          <div className="grid gap-3">
-            <Label htmlFor="gap_title">Gap Title *</Label>
-            <Input
-              id="gap_title"
-              value={formData.gap_title}
-              onChange={(e) => handleInputChange('gap_title', e.target.value)}
-              placeholder="Brief, descriptive title for the gap"
-              required
-            />
           </div>
 
           <div className="grid gap-3">
@@ -289,7 +300,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             />
           </div>
 
-          {/* Risk Assessment */}
           <div className="space-y-6">
             <div className="grid gap-3">
               <Label>Risk Level *</Label>
@@ -334,19 +344,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
                 ))}
               </div>
             </div>
-
-            <div className="grid gap-3">
-              <Label htmlFor="potential_fine_amount">Potential Fine Amount</Label>
-              <Input
-                id="potential_fine_amount"
-                type="number"
-                value={formData.potential_fine_amount || ''}
-                onChange={(e) => handleInputChange('potential_fine_amount', e.target.value ? parseFloat(e.target.value) : undefined)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-              />
-            </div>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -362,7 +359,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             </Label>
           </div>
 
-          {/* Recommendations */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Recommendations</h3>
 
@@ -450,7 +446,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             </div>
           </div>
 
-          {/* Confidence Scores */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="grid gap-3">
               <Label htmlFor="confidence_score">Confidence Score</Label>
@@ -491,7 +486,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             </div>
           </div>
 
-          {/* Error Display */}
           {error && (
             <div className="bg-destructive/15 border border-destructive/20 rounded-lg p-4">
               <div className="flex items-center space-x-2">
@@ -503,7 +497,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
         </div>
       </div>
 
-      {/* Fixed footer */}
       <div className="sticky bottom-0 bg-background border-t p-6">
         <DialogFooter>
           <DialogClose asChild>
