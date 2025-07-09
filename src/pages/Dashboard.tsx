@@ -8,7 +8,8 @@ import {
   Shield,
   ArrowRight,
   Upload,
-  FileText
+  FileText,
+  TriangleAlert
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -77,6 +78,26 @@ export default function Dashboard() {
             <Button asChild variant="outline" className="w-full">
               <Link to="/audit-sessions" className="flex items-center space-x-2">
                 <span>Browse Sessions</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <TriangleAlert className="h-6 w-6 text-primary" />
+              <CardTitle>View Compliance Gaps</CardTitle>
+            </div>
+            <CardDescription>
+              Review and manage your existing compliance gaps
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/compliance-gaps" className="flex items-center space-x-2">
+                <span>Browse Compliance Gaps</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

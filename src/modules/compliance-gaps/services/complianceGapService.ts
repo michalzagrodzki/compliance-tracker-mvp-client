@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/modules/compliance-gaps/services/complianceGapService.ts
-
 import { http } from "@/modules/api/http";
 import type {
+  ComplianceGapAssignment,
   ComplianceGapFromChatHistoryRequest,
   ComplianceGapResponse,
+  ComplianceGapReview,
+  ComplianceGapStatusUpdate,
+  ComplianceGapUpdate,
 } from "../types";
 
 const COMPLIANCE_GAP_ENDPOINTS = {
@@ -81,6 +83,46 @@ class ComplianceGapService {
     }
   }
 
+  async updateComplianceGap(
+    gapId: string,
+    updateData: ComplianceGapUpdate
+  ): Promise<ComplianceGapResponse> {
+    const response = await http.patch(`/compliance-gaps/${gapId}`, updateData);
+    return response.data;
+  }
+
+  async updateComplianceGapStatus(
+    gapId: string,
+    statusData: ComplianceGapStatusUpdate
+  ): Promise<ComplianceGapResponse> {
+    const response = await http.put(
+      `/compliance-gaps/${gapId}/status`,
+      statusData
+    );
+    return response.data;
+  }
+
+  async assignComplianceGap(
+    gapId: string,
+    assignmentData: ComplianceGapAssignment
+  ): Promise<ComplianceGapResponse> {
+    const response = await http.put(
+      `/compliance-gaps/${gapId}/assign`,
+      assignmentData
+    );
+    return response.data;
+  }
+
+  async reviewComplianceGap(
+    gapId: string,
+    reviewData: ComplianceGapReview
+  ): Promise<ComplianceGapResponse> {
+    const response = await http.put(
+      `/compliance-gaps/${gapId}/review`,
+      reviewData
+    );
+    return response.data;
+  }
   // Helper method to extract keywords from a message
   extractSearchTerms(message: string): string[] {
     // Remove common words and extract meaningful terms

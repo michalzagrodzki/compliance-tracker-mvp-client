@@ -121,22 +121,79 @@ export type RecommendationType =
   | "system_configuration";
 
 export interface ComplianceGapResponse {
-  risk_level: any;
-  business_impact: any;
-  potential_fine_amount: number;
-  confidence_score: number;
-  gap_description: string;
-  gap_category: string;
-  detected_at: string;
-  regulatory_requirement: any;
-  assigned_to: any;
-  due_date: any;
   id: string;
-  gap_title: string;
+  user_id: string;
+  chat_history_id: number;
+  audit_session_id: string;
+  compliance_domain: string;
+  pdf_ingestion_id: string | null;
   gap_type: GapType;
-  status: string;
+  gap_category: string;
+  gap_title: string;
+  gap_description: string;
+  original_question: string;
+  expected_answer_type: string | null;
+  search_terms_used: string[];
+  similarity_threshold_used: number;
+  best_match_score: number;
+  risk_level: RiskLevel;
+  business_impact: BusinessImpactLevel;
+  regulatory_requirement: boolean;
+  potential_fine_amount: number | null;
+  status: GapStatus;
+  assigned_to: string | null;
+  due_date: string | null;
+  resolution_notes: string | null;
+  recommendation_type: string | null;
+  recommendation_text: string;
+  recommended_actions: string[];
+  related_documents: string[];
+  detection_method: string;
+  confidence_score: number;
+  auto_generated: boolean;
+  false_positive_likelihood: number;
+  detected_at: string;
+  acknowledged_at: string | null;
+  resolved_at: string | null;
+  last_reviewed_at: string | null;
   created_at: string;
   updated_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  session_context: Record<string, any>;
+}
+
+export interface ComplianceGapUpdate {
+  gap_title?: string;
+  gap_description?: string;
+  risk_level?: RiskLevel;
+  business_impact?: BusinessImpactLevel;
+  regulatory_requirement?: boolean;
+  potential_fine_amount?: number;
+  assigned_to?: string;
+  due_date?: string;
+  resolution_notes?: string;
+  recommendation_type?: string;
+  recommendation_text?: string;
+  recommended_actions?: string[];
+  related_documents?: string[];
+  confidence_score?: number;
+  false_positive_likelihood?: number;
+  session_context?: Record<string, any>;
+}
+
+export interface ComplianceGapStatusUpdate {
+  status: GapStatus;
+  resolution_notes?: string;
+}
+
+export interface ComplianceGapAssignment {
+  assigned_to: string;
+  due_date?: string;
+}
+
+export interface ComplianceGapReview {
+  reviewer_notes?: string;
 }
 
 export interface ComplianceGapFormData {

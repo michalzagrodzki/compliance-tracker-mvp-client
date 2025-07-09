@@ -5,6 +5,10 @@ import { complianceGapService } from "../services/complianceGapService";
 import type {
   ComplianceGapResponse,
   ComplianceGapFromChatHistoryRequest,
+  ComplianceGapAssignment,
+  ComplianceGapReview,
+  ComplianceGapStatusUpdate,
+  ComplianceGapUpdate,
 } from "../types";
 
 interface ComplianceGapState {
@@ -37,7 +41,16 @@ interface ComplianceGapActions {
   }) => Promise<void>;
   loadGapById: (id: string) => Promise<void>;
   loadGapsByAuditSession: (sessionId: string) => Promise<void>;
-
+  updateGap: (gapId: string, updateData: ComplianceGapUpdate) => Promise<void>;
+  updateGapStatus: (
+    gapId: string,
+    statusData: ComplianceGapStatusUpdate
+  ) => Promise<void>;
+  assignGap: (
+    gapId: string,
+    assignmentData: ComplianceGapAssignment
+  ) => Promise<void>;
+  reviewGap: (gapId: string, reviewData: ComplianceGapReview) => Promise<void>;
   openModal: (data: {
     chatHistoryId: string;
     auditSessionId?: string;
@@ -135,6 +148,105 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
         error: error.message || "Failed to load audit session gaps",
         isLoading: false,
       });
+    }
+  },
+
+  updateGap: async (gapId: string, updateData: ComplianceGapUpdate) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const updatedGap = await complianceGapService.updateComplianceGap(
+        gapId,
+        updateData
+      );
+
+      set((state) => ({
+        gaps: state.gaps.map((gap) => (gap.id === gapId ? updatedGap : gap)),
+        currentGap:
+          state.currentGap?.id === gapId ? updatedGap : state.currentGap,
+        isLoading: false,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.message || "Failed to update compliance gap",
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  updateGapStatus: async (
+    gapId: string,
+    statusData: ComplianceGapStatusUpdate
+  ) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const updatedGap = await complianceGapService.updateComplianceGapStatus(
+        gapId,
+        statusData
+      );
+
+      set((state) => ({
+        gaps: state.gaps.map((gap) => (gap.id === gapId ? updatedGap : gap)),
+        currentGap:
+          state.currentGap?.id === gapId ? updatedGap : state.currentGap,
+        isLoading: false,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.message || "Failed to update gap status",
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  assignGap: async (gapId: string, assignmentData: ComplianceGapAssignment) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const updatedGap = await complianceGapService.assignComplianceGap(
+        gapId,
+        assignmentData
+      );
+
+      set((state) => ({
+        gaps: state.gaps.map((gap) => (gap.id === gapId ? updatedGap : gap)),
+        currentGap:
+          state.currentGap?.id === gapId ? updatedGap : state.currentGap,
+        isLoading: false,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.message || "Failed to assign compliance gap",
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  reviewGap: async (gapId: string, reviewData: ComplianceGapReview) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const updatedGap = await complianceGapService.reviewComplianceGap(
+        gapId,
+        reviewData
+      );
+
+      set((state) => ({
+        gaps: state.gaps.map((gap) => (gap.id === gapId ? updatedGap : gap)),
+        currentGap:
+          state.currentGap?.id === gapId ? updatedGap : state.currentGap,
+        isLoading: false,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.message || "Failed to review compliance gap",
+        isLoading: false,
+      });
+      throw error;
     }
   },
 

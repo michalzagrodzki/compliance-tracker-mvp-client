@@ -1,7 +1,13 @@
 /* eslint-disable no-useless-catch */
 import { useCallback } from "react";
 import { useComplianceGapStore } from "../store/complianceGapStore";
-import type { ComplianceGapFromChatHistoryRequest } from "../types";
+import type {
+  ComplianceGapAssignment,
+  ComplianceGapFromChatHistoryRequest,
+  ComplianceGapReview,
+  ComplianceGapStatusUpdate,
+  ComplianceGapUpdate,
+} from "../types";
 
 export const useComplianceGap = () => {
   const {
@@ -15,6 +21,10 @@ export const useComplianceGap = () => {
     loadGaps,
     loadGapById,
     loadGapsByAuditSession,
+    updateGap,
+    updateGapStatus,
+    assignGap,
+    reviewGap,
     openModal,
     closeModal,
     setLoading,
@@ -83,6 +93,50 @@ export const useComplianceGap = () => {
     [loadGapsByAuditSession]
   );
 
+  const handleUpdateGap = useCallback(
+    async (gapId: string, updateData: ComplianceGapUpdate) => {
+      try {
+        await updateGap(gapId, updateData);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateGap]
+  );
+
+  const handleUpdateGapStatus = useCallback(
+    async (gapId: string, statusData: ComplianceGapStatusUpdate) => {
+      try {
+        await updateGapStatus(gapId, statusData);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateGapStatus]
+  );
+
+  const handleAssignGap = useCallback(
+    async (gapId: string, assignmentData: ComplianceGapAssignment) => {
+      try {
+        await assignGap(gapId, assignmentData);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [assignGap]
+  );
+
+  const handleReviewGap = useCallback(
+    async (gapId: string, reviewData: ComplianceGapReview) => {
+      try {
+        await reviewGap(gapId, reviewData);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [reviewGap]
+  );
+
   const handleCancelModal = useCallback(() => {
     closeModal();
   }, [closeModal]);
@@ -102,6 +156,10 @@ export const useComplianceGap = () => {
     loadGaps: handleLoadGaps,
     loadGap: handleLoadGap,
     loadSessionGaps: handleLoadSessionGaps,
+    updateGap: handleUpdateGap,
+    updateGapStatus: handleUpdateGapStatus,
+    assignGap: handleAssignGap,
+    reviewGap: handleReviewGap,
     cancelModal: handleCancelModal,
     clearError,
     clearGaps,

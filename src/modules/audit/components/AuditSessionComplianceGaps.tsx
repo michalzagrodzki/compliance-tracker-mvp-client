@@ -17,7 +17,8 @@ import {
   DollarSign,
   Zap,
   Eye,
-  ArrowRight
+  ArrowRight,
+  TriangleAlert
 } from 'lucide-react'
 import { useComplianceGap } from '@/modules/compliance-gaps/hooks/useComplianceGap'
 import type { BusinessImpactLevel, GapStatus, RiskLevel } from '@/modules/compliance-gaps/types'
@@ -186,7 +187,7 @@ export default function AuditSessionComplianceGaps({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Shield className="h-5 w-5" />
+            <TriangleAlert className="h-5 w-5" />
             <span>Compliance Gaps</span>
           </CardTitle>
         </CardHeader>
@@ -206,7 +207,7 @@ export default function AuditSessionComplianceGaps({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center space-x-2">
-              <Shield className="h-5 w-5" />
+              <TriangleAlert className="h-5 w-5" />
               <span>Compliance Gaps</span>
               <span className="text-sm font-normal text-muted-foreground">
                 ({stats.total})
@@ -246,7 +247,7 @@ export default function AuditSessionComplianceGaps({
 
         {gaps.length === 0 ? (
           <div className="text-center py-8">
-            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <TriangleAlert className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold">No compliance gaps identified</h3>
             <p className="text-muted-foreground">
               Great! No compliance gaps have been identified during this audit session.
@@ -254,7 +255,6 @@ export default function AuditSessionComplianceGaps({
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Statistics Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Shield className="h-4 w-4 text-blue-600" />
@@ -287,8 +287,6 @@ export default function AuditSessionComplianceGaps({
                 </div>
               </div>
             </div>
-
-            {/* Risk Level Distribution */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {Object.entries(stats.byRiskLevel).map(([level, count]) => (
                 <div key={level} className={`p-3 rounded-lg border ${getRiskLevelColor(level)}`}>
@@ -302,8 +300,6 @@ export default function AuditSessionComplianceGaps({
                 </div>
               ))}
             </div>
-
-            {/* Compliance Gaps List */}
             <div className="space-y-3">
               <h4 className="font-semibold text-lg">Identified Gaps</h4>
               {gaps.map((gap) => (
