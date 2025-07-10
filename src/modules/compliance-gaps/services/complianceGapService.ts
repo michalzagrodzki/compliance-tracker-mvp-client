@@ -1,37 +1,71 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { http } from "@/modules/api/http";
 import type {
-  ComplianceGapAssignment,
-  ComplianceGapFromChatHistoryRequest,
   ComplianceGapResponse,
+  ComplianceGapFromChatHistoryRequest,
+  ComplianceGapAssignment,
   ComplianceGapReview,
   ComplianceGapStatusUpdate,
   ComplianceGapUpdate,
+  GapType,
+  RiskLevel,
+  BusinessImpactLevel,
+  RecommendationType,
+  DetectionMethod,
 } from "../types";
 
-const COMPLIANCE_GAP_ENDPOINTS = {
-  CREATE: "/v1/compliance-gaps",
-  LIST: "/v1/compliance-gaps",
-  GET_BY_ID: (id: string) => `/v1/compliance-gaps/${id}`,
-  GET_BY_AUDIT_SESSION: (sessionId: string) =>
-    `/v1/audit-sessions/${sessionId}/gaps`,
-} as const;
+// Add interface for direct creation request
+interface ComplianceGapDirectRequest {
+  user_id: string;
+  audit_session_id: string;
+  compliance_domain: string;
+  gap_type: GapType;
+  gap_category: string;
+  gap_title: string;
+  gap_description: string;
+  original_question: string;
+  creation_method: "direct";
+  chat_history_id?: number;
+  pdf_ingestion_id?: string;
+  expected_answer_type?: string;
+  search_terms_used: string[];
+  similarity_threshold_used: number;
+  best_match_score: number;
+  risk_level: RiskLevel;
+  business_impact: BusinessImpactLevel;
+  regulatory_requirement: boolean;
+  potential_fine_amount: number;
+  recommendation_type?: RecommendationType;
+  recommendation_text: string;
+  recommended_actions: string[];
+  related_documents: string[];
+  detection_method: DetectionMethod;
+  confidence_score: number;
+  false_positive_likelihood: number;
+  ip_address?: string;
+  user_agent: string;
+  session_context: Record<string, any>;
+}
 
 class ComplianceGapService {
+  private baseUrl = "/v1/compliance-gaps";
+
   async createFromChatHistory(
     request: ComplianceGapFromChatHistoryRequest
   ): Promise<ComplianceGapResponse> {
-    try {
-      const response = await http.post<ComplianceGapResponse>(
-        COMPLIANCE_GAP_ENDPOINTS.CREATE,
-        request
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error.response?.data?.detail || "Failed to create compliance gap"
-      );
-    }
+    const response = await http.post(
+      `${this.baseUrl}/from-chat-history`,
+      request
+    );
+    return response.data;
+  }
+
+  // Add method for direct creation
+  async createDirect(
+    request: ComplianceGapDirectRequest
+  ): Promise<ComplianceGapResponse> {
+    const response = await http.post(this.baseUrl, request);
+    return response.data;
   }
 
   async getComplianceGaps(params?: {
@@ -42,52 +76,29 @@ class ComplianceGapService {
     risk_level?: string;
     status?: string;
   }): Promise<ComplianceGapResponse[]> {
-    try {
-      const response = await http.get<ComplianceGapResponse[]>(
-        COMPLIANCE_GAP_ENDPOINTS.LIST,
-        { params }
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error.response?.data?.detail || "Failed to fetch compliance gaps"
-      );
-    }
+    const response = await http.get(this.baseUrl, { params });
+    return response.data;
   }
 
   async getComplianceGapById(id: string): Promise<ComplianceGapResponse> {
-    try {
-      const response = await http.get<ComplianceGapResponse>(
-        COMPLIANCE_GAP_ENDPOINTS.GET_BY_ID(id)
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error.response?.data?.detail || "Failed to fetch compliance gap"
-      );
-    }
+    const response = await http.get(`${this.baseUrl}/${id}`);
+    return response.data;
   }
 
   async getGapsByAuditSession(
     sessionId: string
   ): Promise<ComplianceGapResponse[]> {
-    try {
-      const response = await http.get<ComplianceGapResponse[]>(
-        COMPLIANCE_GAP_ENDPOINTS.GET_BY_AUDIT_SESSION(sessionId)
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(
-        error.response?.data?.detail || "Failed to fetch audit session gaps"
-      );
-    }
+    const response = await http.get(
+      `${this.baseUrl}/audit-session/${sessionId}`
+    );
+    return response.data;
   }
 
   async updateComplianceGap(
     gapId: string,
     updateData: ComplianceGapUpdate
   ): Promise<ComplianceGapResponse> {
-    const response = await http.patch(`/compliance-gaps/${gapId}`, updateData);
+    const response = await http.put(`${this.baseUrl}/${gapId}`, updateData);
     return response.data;
   }
 
@@ -95,8 +106,8 @@ class ComplianceGapService {
     gapId: string,
     statusData: ComplianceGapStatusUpdate
   ): Promise<ComplianceGapResponse> {
-    const response = await http.put(
-      `/compliance-gaps/${gapId}/status`,
+    const response = await http.patch(
+      `${this.baseUrl}/${gapId}/status`,
       statusData
     );
     return response.data;
@@ -106,8 +117,8 @@ class ComplianceGapService {
     gapId: string,
     assignmentData: ComplianceGapAssignment
   ): Promise<ComplianceGapResponse> {
-    const response = await http.put(
-      `/compliance-gaps/${gapId}/assign`,
+    const response = await http.patch(
+      `${this.baseUrl}/${gapId}/assign`,
       assignmentData
     );
     return response.data;
@@ -117,131 +128,92 @@ class ComplianceGapService {
     gapId: string,
     reviewData: ComplianceGapReview
   ): Promise<ComplianceGapResponse> {
-    const response = await http.put(
-      `/compliance-gaps/${gapId}/review`,
+    const response = await http.patch(
+      `${this.baseUrl}/${gapId}/review`,
       reviewData
     );
     return response.data;
   }
-  // Helper method to extract keywords from a message
+
+  // Utility methods for form assistance
+  analyzeMessageForGapType(message: string): {
+    suggestedType: GapType;
+    confidence: number;
+  } {
+    // Simple keyword-based analysis - in production this would be more sophisticated
+    const lowerMessage = message.toLowerCase();
+
+    if (
+      lowerMessage.includes("missing") ||
+      lowerMessage.includes("not found") ||
+      lowerMessage.includes("absent")
+    ) {
+      return { suggestedType: "missing_policy", confidence: 0.8 };
+    }
+
+    if (
+      lowerMessage.includes("old") ||
+      lowerMessage.includes("outdated") ||
+      lowerMessage.includes("obsolete")
+    ) {
+      return { suggestedType: "outdated_policy", confidence: 0.7 };
+    }
+
+    if (
+      lowerMessage.includes("conflict") ||
+      lowerMessage.includes("contradict")
+    ) {
+      return { suggestedType: "conflicting_policies", confidence: 0.8 };
+    }
+
+    if (
+      lowerMessage.includes("incomplete") ||
+      lowerMessage.includes("partial")
+    ) {
+      return { suggestedType: "incomplete_coverage", confidence: 0.7 };
+    }
+
+    if (
+      lowerMessage.includes("no evidence") ||
+      lowerMessage.includes("no documentation")
+    ) {
+      return { suggestedType: "no_evidence", confidence: 0.8 };
+    }
+
+    return { suggestedType: "missing_policy", confidence: 0.5 };
+  }
+
+  suggestGapCategory(domain: string): string {
+    const domainMappings: Record<string, string> = {
+      iso27001: "ISO 27001 Information Security",
+      gdpr: "GDPR Data Protection",
+      sox: "SOX Financial Controls",
+      hipaa: "HIPAA Healthcare Privacy",
+      pci: "PCI Payment Security",
+    };
+
+    return domainMappings[domain.toLowerCase()] || "General Compliance";
+  }
+
   extractSearchTerms(message: string): string[] {
-    // Remove common words and extract meaningful terms
-    const commonWords = new Set([
+    // Simple term extraction - remove common words and split
+    const commonWords = [
       "the",
+      "is",
+      "at",
+      "which",
+      "on",
+      "a",
+      "an",
       "and",
       "or",
       "but",
-      "in",
-      "on",
-      "at",
-      "to",
-      "for",
-      "of",
-      "with",
-      "by",
-      "is",
-      "are",
-      "was",
-      "were",
-      "be",
-      "been",
-      "have",
-      "has",
-      "had",
-      "do",
-      "does",
-      "did",
-      "will",
-      "would",
-      "could",
-      "should",
-      "can",
-      "may",
-      "what",
-      "how",
-      "when",
-      "where",
-      "why",
-      "who",
-      "which",
-      "that",
-      "this",
-      "these",
-      "those",
-      "a",
-      "an",
-    ]);
-
+    ];
     return message
       .toLowerCase()
       .split(/\s+/)
-      .filter((word) => word.length > 2 && !commonWords.has(word))
-      .filter((word) => /^[a-zA-Z]+$/.test(word)) // Only alphabetic words
+      .filter((word) => word.length > 2 && !commonWords.includes(word))
       .slice(0, 10); // Limit to 10 terms
-  }
-
-  // Helper method to suggest gap category based on compliance domain
-  suggestGapCategory(complianceDomain: string): string {
-    const categoryMap: Record<string, string> = {
-      ISO_27001: "Information Security",
-    };
-
-    return categoryMap[complianceDomain] || "General Compliance";
-  }
-
-  // Helper method to analyze message for potential gap type
-  analyzeMessageForGapType(message: string): {
-    suggestedType: string;
-    confidence: number;
-  } {
-    const gapIndicators = {
-      missing_policy: [
-        "missing",
-        "absent",
-        "no policy",
-        "not found",
-        "unavailable",
-      ],
-      outdated_policy: [
-        "outdated",
-        "old",
-        "expired",
-        "obsolete",
-        "previous version",
-      ],
-      low_confidence: ["uncertain", "unclear", "maybe", "possibly", "might"],
-      conflicting_policies: [
-        "conflict",
-        "contradiction",
-        "different",
-        "inconsistent",
-      ],
-      incomplete_coverage: ["partial", "incomplete", "limited", "some areas"],
-      no_evidence: [
-        "no evidence",
-        "no documentation",
-        "not documented",
-        "no proof",
-      ],
-    };
-
-    const messageLower = message.toLowerCase();
-    let bestMatch = { type: "missing_policy", score: 0 };
-
-    Object.entries(gapIndicators).forEach(([type, indicators]) => {
-      const score = indicators.reduce((acc, indicator) => {
-        return acc + (messageLower.includes(indicator) ? 1 : 0);
-      }, 0);
-
-      if (score > bestMatch.score) {
-        bestMatch = { type, score };
-      }
-    });
-
-    return {
-      suggestedType: bestMatch.type,
-      confidence: Math.min(bestMatch.score * 0.2 + 0.5, 0.9), // Scale to 0.5-0.9 range
-    };
   }
 }
 

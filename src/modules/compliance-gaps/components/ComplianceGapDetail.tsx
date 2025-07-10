@@ -33,7 +33,6 @@ import {
   Download,
   Share,
   Eye,
-  TriangleAlert,
 } from 'lucide-react'
 import type { ComplianceGapResponse, ComplianceGapUpdate, ComplianceGapStatusUpdate, RiskLevel, BusinessImpactLevel, GapStatus } from '../types'
 
@@ -319,7 +318,7 @@ export default function ComplianceGapDetail() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center space-x-2">
-              <TriangleAlert className="h-6 w-6" />
+              <Shield className="h-6 w-6" />
               <span>{currentGap.gap_title}</span>
             </h1>
             <p className="text-muted-foreground">
@@ -338,7 +337,6 @@ export default function ComplianceGapDetail() {
           </span>
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
@@ -530,6 +528,63 @@ export default function ComplianceGapDetail() {
               )}
             </CardContent>
           </Card>
+
+          {(currentGap.recommendation_text || currentGap.recommended_actions?.length > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5" />
+                  <span>Recommendations</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {currentGap.recommendation_type && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2">Recommendation Type</h4>
+                    <div className="flex items-center space-x-2">
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                      <span className="capitalize">{currentGap.recommendation_type.replace('_', ' ')}</span>
+                    </div>
+                  </div>
+                )}
+
+                {currentGap.recommendation_text && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2">Recommendation</h4>
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <p className="text-sm leading-relaxed text-blue-900">{currentGap.recommendation_text}</p>
+                    </div>
+                  </div>
+                )}
+
+                {currentGap.recommended_actions && currentGap.recommended_actions.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Recommended Actions</h4>
+                    <div className="space-y-2">
+                      {currentGap.recommended_actions.map((action, index) => (
+                        <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <div className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">
+                              {index + 1}
+                            </div>
+                          </div>
+                          <p className="text-sm leading-relaxed text-green-900">{action}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!currentGap.recommendation_text && (!currentGap.recommended_actions || currentGap.recommended_actions.length === 0) && (
+                  <div className="text-center py-6">
+                    <Target className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No recommendations available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -550,6 +605,7 @@ export default function ComplianceGapDetail() {
             </CardContent>
           </Card>
         </div>
+
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -594,6 +650,7 @@ export default function ComplianceGapDetail() {
               </Button>
             </CardContent>
           </Card>
+
           {showStatusUpdate && (
             <Card>
               <CardHeader>
@@ -631,6 +688,7 @@ export default function ComplianceGapDetail() {
               </CardContent>
             </Card>
           )}
+
           {showAssignForm && (
             <Card>
               <CardHeader>
@@ -660,6 +718,7 @@ export default function ComplianceGapDetail() {
               </CardContent>
             </Card>
           )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Assignment</CardTitle>
@@ -691,6 +750,7 @@ export default function ComplianceGapDetail() {
               )}
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Timeline</CardTitle>

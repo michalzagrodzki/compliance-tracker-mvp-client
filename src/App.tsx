@@ -29,6 +29,7 @@ import ChatLayout from './components/ChatLayout'
 import Loading from './components/Loading'
 import ComplianceGapDetail from './modules/compliance-gaps/components/ComplianceGapDetail'
 import ComplianceGapsList from './modules/compliance-gaps/components/ComplianceGapsList'
+import ComplianceGapCreatePage from './modules/compliance-gaps/components/ComplianceGapCreate'
 
 function App() {
   const { isAuthenticated, isLoading } = useAuthStore()
@@ -169,6 +170,16 @@ function App() {
             }
             >
             <Route index element={<ComplianceGapDetail />} />
+          </Route>
+          <Route
+            path="/compliance-gaps/new"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+            >
+            <Route index element={<ComplianceGapCreatePage />} />
           </Route>
           <Route
             path="/dashboard"

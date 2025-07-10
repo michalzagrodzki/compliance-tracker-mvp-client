@@ -9,7 +9,45 @@ import type {
   ComplianceGapReview,
   ComplianceGapStatusUpdate,
   ComplianceGapUpdate,
+  GapType,
+  RiskLevel,
+  BusinessImpactLevel,
+  RecommendationType,
+  DetectionMethod,
 } from "../types";
+
+// Add interface for direct creation request
+interface ComplianceGapDirectRequest {
+  user_id: string;
+  audit_session_id: string;
+  compliance_domain: string;
+  gap_type: GapType;
+  gap_category: string;
+  gap_title: string;
+  gap_description: string;
+  original_question: string;
+  creation_method: "direct";
+  chat_history_id?: number;
+  pdf_ingestion_id?: string;
+  expected_answer_type?: string;
+  search_terms_used: string[];
+  similarity_threshold_used: number;
+  best_match_score: number;
+  risk_level: RiskLevel;
+  business_impact: BusinessImpactLevel;
+  regulatory_requirement: boolean;
+  potential_fine_amount: number;
+  recommendation_type?: RecommendationType;
+  recommendation_text: string;
+  recommended_actions: string[];
+  related_documents: string[];
+  detection_method: DetectionMethod;
+  confidence_score: number;
+  false_positive_likelihood: number;
+  ip_address?: string;
+  user_agent: string;
+  session_context: Record<string, any>;
+}
 
 interface ComplianceGapState {
   gaps: ComplianceGapResponse[];
@@ -31,6 +69,12 @@ interface ComplianceGapActions {
   createGapFromChatHistory: (
     request: ComplianceGapFromChatHistoryRequest
   ) => Promise<ComplianceGapResponse>;
+
+  // Add new action for direct creation
+  createGapDirect: (
+    request: ComplianceGapDirectRequest
+  ) => Promise<ComplianceGapResponse>;
+
   loadGaps: (params?: {
     skip?: number;
     limit?: number;
@@ -84,6 +128,27 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
       const response = await complianceGapService.createFromChatHistory(
         request
       );
+
+      set((state) => ({
+        gaps: [response, ...state.gaps],
+        isLoading: false,
+      }));
+
+      return response;
+    } catch (error: any) {
+      set({
+        error: error.message || "Failed to create compliance gap",
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  createGapDirect: async (request: ComplianceGapDirectRequest) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const response = await complianceGapService.createDirect(request);
 
       set((state) => ({
         gaps: [response, ...state.gaps],

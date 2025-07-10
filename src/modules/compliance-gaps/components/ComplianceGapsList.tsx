@@ -215,9 +215,9 @@ export default function ComplianceGapsList() {
           </p>
         </div>
         <Button asChild>
-          <Link to="/chat" className="flex items-center space-x-2">
+          <Link to="/compliance-gaps/new" className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
-            <span>Start New Audit</span>
+            <span>Start New Compliance Gap</span>
           </Link>
         </Button>
       </div>
