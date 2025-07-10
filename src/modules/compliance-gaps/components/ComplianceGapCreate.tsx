@@ -120,9 +120,9 @@ export default function ComplianceGapCreatePage() {
   const [success, setSuccess] = useState(false);
   
   const [formData, setFormData] = useState<ComplianceGapDirectRequest>({
-    user_id: 'current-user-id', // Should come from session/auth context
+    user_id: user?.id || "",
     audit_session_id: '',
-    compliance_domain: 'iso27001', // Default as requested
+    compliance_domain: 'iso27001',
     gap_type: 'missing_policy',
     gap_category: '',
     gap_title: '',

@@ -49,6 +49,7 @@ interface ComplianceGapDirectRequest {
 
 class ComplianceGapService {
   private baseUrl = "/v1/compliance-gaps";
+  private baseVersionUrl = "/v1";
 
   async createFromChatHistory(
     request: ComplianceGapFromChatHistoryRequest
@@ -89,7 +90,7 @@ class ComplianceGapService {
     sessionId: string
   ): Promise<ComplianceGapResponse[]> {
     const response = await http.get(
-      `${this.baseUrl}/audit-session/${sessionId}`
+      `${this.baseVersionUrl}/audit-sessions/${sessionId}/gaps`
     );
     return response.data;
   }
