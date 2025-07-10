@@ -24,6 +24,9 @@ const AUDIT_SESSION_ENDPOINTS = {
     `/v1/audit-sessions/${sessionId}/pdf-ingestions/${documentId}`,
   SESSION_HISTORY: (sessionId: string) =>
     `/v1/audit-sessions/${sessionId}/history`,
+  CLOSE_SESSION: (sessionId: string) => `/v1/audit-sessions/${sessionId}/close`,
+  ACTIVATE_SESSION: (sessionId: string) =>
+    `/v1/audit-sessions/${sessionId}/activate`,
 } as const;
 
 class AuditSessionService {
@@ -148,6 +151,24 @@ class AuditSessionService {
   async getAuditSessionHistory(sessionId: string): Promise<any[]> {
     const response = await http.get<any[]>(
       AUDIT_SESSION_ENDPOINTS.SESSION_HISTORY(sessionId)
+    );
+    return response.data;
+  }
+
+  async closeAuditSession(
+    sessionId: string,
+    sessionSummary?: string
+  ): Promise<AuditSession> {
+    const response = await http.put<AuditSession>(
+      AUDIT_SESSION_ENDPOINTS.CLOSE_SESSION(sessionId),
+      { session_summary: sessionSummary }
+    );
+    return response.data;
+  }
+
+  async activateAuditSession(sessionId: string): Promise<AuditSession> {
+    const response = await http.put<AuditSession>(
+      AUDIT_SESSION_ENDPOINTS.ACTIVATE_SESSION(sessionId)
     );
     return response.data;
   }

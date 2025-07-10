@@ -67,6 +67,8 @@ export interface AuditSessionActions {
     sessionId: string,
     documentId: string
   ) => Promise<void>;
+  closeSession: (sessionId: string, summary?: string) => Promise<void>;
+  reactivateSession: (sessionId: string) => Promise<void>;
 }
 
 export interface DocumentWithRelationship extends PdfIngestion {

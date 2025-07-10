@@ -8,6 +8,7 @@ import AuditSessionDocuments from './AuditSessionDocuments'
 import { ChatButton } from '@/modules/chat';
 import AuditSessionChats from './AuditSessionChats'
 import AuditSessionComplianceGaps from './AuditSessionComplianceGaps'
+import { CompleteSessionDialog } from './CompleteSessionDialog'
 import { 
   ArrowLeft,
   Calendar,
@@ -20,7 +21,8 @@ import {
   FileText,
   Download,
   Play,
-  Square
+  Square,
+  RefreshCw
 } from 'lucide-react'
 
 
@@ -57,7 +59,7 @@ const DOMAIN_INFO = {
 
 export default function AuditSessionDetail() {
   const { sessionId } = useParams<{ sessionId: string }>()
-  const { currentSession, isLoading, error, fetchSessionById } = useAuditSessionStore()
+  const { currentSession, isLoading, error, fetchSessionById, reactivateSession } = useAuditSessionStore()
 
   useEffect(() => {
     if (sessionId) {
@@ -245,10 +247,16 @@ export default function AuditSessionDetail() {
                   <Download className="h-4 w-4" />
                   <span>Export Audit Report</span>
                 </Button>
-                {isActive && (
-                  <Button variant="outline" className="flex items-center space-x-2">
-                    <Square className="h-4 w-4" />
-                    <span>Complete Session</span>
+                { isActive ? (
+                  <CompleteSessionDialog sessionId={currentSession.id} />
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => reactivateSession(currentSession.id)}
+                    className="flex items-center space-x-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Reactivate Session</span>
                   </Button>
                 )}
               </div>

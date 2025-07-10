@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/modules/audit/store/auditSessionStore.ts
-
 import { create } from "zustand";
 import { auditSessionService } from "../services/auditSessionService";
 import type {
@@ -103,7 +101,6 @@ export const useAuditSessionStore = create<AuditSessionStore>((set, get) => ({
     }
   },
 
-  // Document-related actions - completely rewritten
   fetchSessionDocuments: async (sessionId: string) => {
     const currentState = get();
 
@@ -149,7 +146,6 @@ export const useAuditSessionStore = create<AuditSessionStore>((set, get) => ({
         notes
       );
 
-      // Refetch documents to get updated list
       const documents = await auditSessionService.getSessionDocuments(
         sessionId
       );
@@ -203,6 +199,35 @@ export const useAuditSessionStore = create<AuditSessionStore>((set, get) => ({
         isRemovingDocument: null,
       });
       throw new Error(errorMessage);
+    }
+  },
+
+  closeSession: async (sessionId: string, summary?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await auditSessionService.closeAuditSession(
+        sessionId,
+        summary
+      );
+      set({ currentSession: updated, isLoading: false });
+    } catch (err: any) {
+      set({
+        error: err.response?.data?.detail || "Failed to close audit session",
+        isLoading: false,
+      });
+    }
+  },
+
+  reactivateSession: async (sessionId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await auditSessionService.activateAuditSession(sessionId);
+      set({ currentSession: updated, isLoading: false });
+    } catch (err: any) {
+      set({
+        error: err.response?.data?.detail || "Failed to reactivate session",
+        isLoading: false,
+      });
     }
   },
 
