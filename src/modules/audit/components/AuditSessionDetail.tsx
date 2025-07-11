@@ -243,9 +243,15 @@ export default function AuditSessionDetail() {
                   sessionName={currentSession.session_name}
                   complianceDomain={currentSession.compliance_domain}
                 />
-                <Button variant="outline" className="flex items-center space-x-2">
-                  <Download className="h-4 w-4" />
-                  <span>Export Audit Report</span>
+                <Button
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                  asChild
+                >
+                  <Link to={`/audit-sessions/${currentSession.id}/create-report`}>
+                    <Download className="h-4 w-4" />
+                    <span>Create Audit Report</span>
+                  </Link>
                 </Button>
                 { isActive ? (
                   <CompleteSessionDialog sessionId={currentSession.id} />
