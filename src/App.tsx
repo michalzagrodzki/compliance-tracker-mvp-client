@@ -30,6 +30,7 @@ import Loading from './components/Loading'
 import ComplianceGapDetail from './modules/compliance-gaps/components/ComplianceGapDetail'
 import ComplianceGapsList from './modules/compliance-gaps/components/ComplianceGapsList'
 import ComplianceGapCreatePage from './modules/compliance-gaps/components/ComplianceGapCreate'
+import CreateAuditReportPage from './modules/audit-reports/components/CreateAuditReportPage'
 
 function App() {
   const { isAuthenticated, isLoading } = useAuthStore()
@@ -118,6 +119,16 @@ function App() {
             }
             >
             <Route index element={<ChatSession />} />
+          </Route>
+          <Route
+            path="/audit-sessions/:sessionId/create-report"
+            element={
+              <ProtectedRoute>
+                <ChatLayout />
+              </ProtectedRoute>
+            }
+            >
+            <Route index element={<CreateAuditReportPage />} />
           </Route>
           <Route
             path="/documents"
