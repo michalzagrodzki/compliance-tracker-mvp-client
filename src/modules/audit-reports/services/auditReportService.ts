@@ -30,17 +30,13 @@ class AuditReportService {
     reportData: AuditReportCreate
   ): Promise<AuditReportResponse> {
     try {
-      // Validate and clean data before sending
       const cleanedData = {
         ...reportData,
-        // Ensure chat_history_ids are numbers
         chat_history_ids: reportData.chat_history_ids.map((id) => {
           const numId = typeof id === "string" ? parseInt(id, 10) : id;
           return isNaN(numId) ? 0 : numId;
         }),
-        // Ensure empty string fields are either null or removed
         template_used: reportData.template_used?.trim() || null,
-        // Add default values for fields the backend expects
         report_status: "draft",
         total_questions_asked: 0,
         questions_answered_satisfactorily: 0,
@@ -49,7 +45,6 @@ class AuditReportService {
         high_risk_gaps_count: 0,
         medium_risk_gaps_count: 0,
         low_risk_gaps_count: 0,
-        // Ensure all UUID fields are strings, not UUID objects
         user_id: String(reportData.user_id),
         audit_session_id: String(reportData.audit_session_id),
         compliance_gap_ids:
@@ -59,11 +54,18 @@ class AuditReportService {
           reportData.pdf_ingestion_ids?.map((id) => String(id)) || [],
       };
 
-      const response = await http.post<AuditReportResponse>(
+      const response = await http.post<AuditReport>(
         AUDIT_REPORT_ENDPOINTS.CREATE,
         cleanedData
       );
-      return response.data;
+      const auditReport = response.data;
+
+      return {
+        success: true,
+        message: "Audit report created successfully",
+        report_id: auditReport.id,
+        download_url: auditReport.download_url || undefined,
+      };
     } catch (error: any) {
       // Transform error response to match our expected format
       const errorMessage =

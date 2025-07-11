@@ -79,7 +79,15 @@ export default function CreateAuditReportPage() {
     target_audience: 'compliance_team',
     template_used: '',
     confidentiality_level: 'internal',
-    external_auditor_access: false
+    external_auditor_access: false,
+    report_status: 'draft',
+    total_questions_asked: 0,
+    questions_answered_satisfactorily: 0,
+    total_gaps_identified: 0,
+    critical_gaps_count: 0,
+    high_risk_gaps_count: 0,
+    medium_risk_gaps_count: 0,
+    low_risk_gaps_count: 0
   });
 
   useEffect(() => {
