@@ -30,9 +30,38 @@ class AuditReportService {
     reportData: AuditReportCreate
   ): Promise<AuditReportResponse> {
     try {
+      // Validate and clean data before sending
+      const cleanedData = {
+        ...reportData,
+        // Ensure chat_history_ids are numbers
+        chat_history_ids: reportData.chat_history_ids.map((id) => {
+          const numId = typeof id === "string" ? parseInt(id, 10) : id;
+          return isNaN(numId) ? 0 : numId;
+        }),
+        // Ensure empty string fields are either null or removed
+        template_used: reportData.template_used?.trim() || null,
+        // Add default values for fields the backend expects
+        report_status: "draft",
+        total_questions_asked: 0,
+        questions_answered_satisfactorily: 0,
+        total_gaps_identified: reportData.compliance_gap_ids?.length || 0,
+        critical_gaps_count: 0,
+        high_risk_gaps_count: 0,
+        medium_risk_gaps_count: 0,
+        low_risk_gaps_count: 0,
+        // Ensure all UUID fields are strings, not UUID objects
+        user_id: String(reportData.user_id),
+        audit_session_id: String(reportData.audit_session_id),
+        compliance_gap_ids:
+          reportData.compliance_gap_ids?.map((id) => String(id)) || [],
+        document_ids: reportData.document_ids?.map((id) => String(id)) || [],
+        pdf_ingestion_ids:
+          reportData.pdf_ingestion_ids?.map((id) => String(id)) || [],
+      };
+
       const response = await http.post<AuditReportResponse>(
         AUDIT_REPORT_ENDPOINTS.CREATE,
-        reportData
+        cleanedData
       );
       return response.data;
     } catch (error: any) {
@@ -102,15 +131,15 @@ class AuditReportService {
     return response.data;
   }
 
-  // Data source methods for report creation
   async getSessionChatHistory(sessionId: string): Promise<ChatHistoryItem[]> {
     try {
-      const response = await http.get<ChatHistoryItem[]>(
+      const response = await http.get<any[]>(
         AUDIT_REPORT_ENDPOINTS.SESSION_CHATS(sessionId)
       );
       return response.data.map((chat) => ({
         ...chat,
-        selected: true, // Default to selected
+        id: typeof chat.id === "string" ? parseInt(chat.id, 10) : chat.id,
+        selected: true,
       }));
     } catch (error: any) {
       console.error("Failed to fetch chat history:", error);

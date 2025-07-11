@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type {
+  GapType,
+  BusinessImpactLevel,
+  RecommendationType,
+} from "@/modules/compliance-gaps";
+
 export type ReportType =
   | "compliance_audit"
   | "gap_analysis"
@@ -44,15 +50,22 @@ export interface AuditReport {
 }
 
 export interface AuditReportCreate {
+  // Core relationships
   user_id: string;
   audit_session_id: string;
   compliance_domain: string;
+
+  // Report metadata
   report_title: string;
   report_type: ReportType;
+
+  // Session data references
   chat_history_ids: number[];
   compliance_gap_ids: string[];
   document_ids: string[];
   pdf_ingestion_ids: string[];
+
+  // Report generation settings
   include_technical_details: boolean;
   include_source_citations: boolean;
   include_confidence_scores: boolean;
@@ -60,6 +73,16 @@ export interface AuditReportCreate {
   template_used?: string;
   confidentiality_level: ConfidentialityLevel;
   external_auditor_access: boolean;
+
+  // Optional fields with defaults that backend should handle
+  report_status?: string;
+  total_questions_asked?: number;
+  questions_answered_satisfactorily?: number;
+  total_gaps_identified?: number;
+  critical_gaps_count?: number;
+  high_risk_gaps_count?: number;
+  medium_risk_gaps_count?: number;
+  low_risk_gaps_count?: number;
 }
 
 export interface AuditReportResponse {
@@ -197,10 +220,21 @@ export interface ChatHistoryItem {
 export interface ComplianceGapItem {
   id: string;
   gap_title: string;
-  gap_type: string;
+  gap_type: GapType;
   risk_level: string;
   gap_description: string;
   selected?: boolean;
+  business_impact: BusinessImpactLevel;
+  gap_category: string;
+  confidence_score: number;
+  potential_fine_amount: number | null;
+  detection_method: string;
+  recommendation_text?: string;
+  recommended_actions: string[];
+  recommendation_type?: RecommendationType;
+  regulatory_requirement?: boolean;
+  detected_at: string;
+  false_positive_likelihood: number;
 }
 
 export interface DocumentItem {

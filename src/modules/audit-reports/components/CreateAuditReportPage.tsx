@@ -17,6 +17,8 @@ import {
   Download,
   Eye,
   Loader2,
+  AlertCircle,
+  Shield,
 } from 'lucide-react';
 import { useAuditSessionStore } from '@/modules/audit/store/auditSessionStore';
 import { useAuthStore } from '@/modules/auth/store/authStore';
@@ -158,7 +160,10 @@ export default function CreateAuditReportPage() {
     
     return {
       ...formData,
-      chat_history_ids: selectedData.selectedChats.map(chat => chat.id),
+      chat_history_ids: selectedData.selectedChats.map(chat => {
+        const id = typeof chat.id === 'string' ? parseInt(chat.id, 10) : chat.id;
+        return isNaN(id) ? 0 : id;
+      }),
       compliance_gap_ids: selectedData.selectedGaps.map(gap => gap.id),
       document_ids: selectedData.selectedDocuments.map(doc => doc.id),
       pdf_ingestion_ids: selectedData.selectedDocuments.map(doc => doc.id), // Same as document_ids for now
@@ -578,28 +583,174 @@ export default function CreateAuditReportPage() {
                   </div>
                   
                   {showDataSourcesDetails.gaps && (
-                    <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
-                      {dataSources.complianceGaps.map((gap) => (
-                        <div key={gap.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                          <input
-                            type="checkbox"
-                            checked={gap.selected}
-                            onChange={(e) => updateGapSelection(gap.id, e.target.checked)}
-                            className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900">
-                              {gap.gap_title}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {gap.gap_type} | Risk: {gap.risk_level}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1 line-clamp-2">
-                              {gap.gap_description}
+                    <div className=" overflow-y-auto space-y-3 border rounded-md p-4">
+                      {dataSources.complianceGaps.map((gap) => {
+                        const getRiskLevelColor = (level: string) => {
+                          switch (level) {
+                            case 'low': return 'text-green-600 bg-green-50 border-green-200'
+                            case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+                            case 'high': return 'text-orange-600 bg-orange-50 border-orange-200'
+                            case 'critical': return 'text-red-600 bg-red-50 border-red-200'
+                            default: return 'text-gray-600 bg-gray-50 border-gray-200'
+                          }
+                        };
+
+                        const getBusinessImpactColor = (level: string) => {
+                          switch (level) {
+                            case 'low': return 'text-blue-600 bg-blue-50 border-blue-200'
+                            case 'medium': return 'text-indigo-600 bg-indigo-50 border-indigo-200'
+                            case 'high': return 'text-purple-600 bg-purple-50 border-purple-200'
+                            case 'critical': return 'text-pink-600 bg-pink-50 border-pink-200'
+                            default: return 'text-gray-600 bg-gray-50 border-gray-200'
+                          }
+                        };
+
+                        const getRiskIcon = (level: string) => {
+                          switch (level) {
+                            case 'low': return <CheckCircle className="h-3 w-3" />
+                            case 'medium': return <AlertCircle className="h-3 w-3" />
+                            case 'high': return <AlertTriangle className="h-3 w-3" />
+                            case 'critical': return <XCircle className="h-3 w-3" />
+                            default: return <AlertTriangle className="h-3 w-3" />
+                          }
+                        };
+
+                        return (
+                          <div key={gap.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-100">
+                            <input
+                              type="checkbox"
+                              checked={gap.selected}
+                              onChange={(e) => updateGapSelection(gap.id, e.target.checked)}
+                              className="mt-2 h-4 w-4 text-primary focus:ring-primary border-input rounded"
+                            />
+                            <div className="flex-1 min-w-0 space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold text-gray-900 leading-tight">
+                                    {gap.gap_title}
+                                  </h4>
+                                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                                    {gap.gap_description}
+                                  </p>
+                                </div>
+                                <div className="flex items-center space-x-1 ml-2">
+                                  {gap.regulatory_requirement && (
+                                    <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full">
+                                      <Shield className="h-3 w-3" />
+                                      <span className="text-xs font-medium">Regulatory</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center space-x-2 flex-wrap gap-1">
+                                <div className={`flex items-center space-x-1 px-2 py-1 rounded-full border text-xs font-medium ${getRiskLevelColor(gap.risk_level)}`}>
+                                  {getRiskIcon(gap.risk_level)}
+                                  <span>{gap.risk_level.toUpperCase()} RISK</span>
+                                </div>
+                                <div className={`flex items-center space-x-1 px-2 py-1 rounded-full border text-xs font-medium ${getBusinessImpactColor(gap.business_impact)}`}>
+                                  <span>{gap.business_impact.toUpperCase()} IMPACT</span>
+                                </div>
+                                <div className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                                  {gap.gap_type.replace('_', ' ').toUpperCase()}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                                <div className="flex items-center space-x-1 text-gray-600">
+                                  <FileText className="h-3 w-3 text-blue-500" />
+                                  <span className="font-medium">Category:</span>
+                                  <span className="truncate">{gap.gap_category}</span>
+                                </div>
+                                
+                                <div className="flex items-center space-x-1 text-gray-600">
+                                  <Download className="h-3 w-3 text-purple-500" />
+                                  <span className="font-medium">Confidence:</span>
+                                  <span className="font-semibold text-purple-600">
+                                    {Math.round((gap.confidence_score || 0) * 100)}%
+                                  </span>
+                                </div>
+
+                                {gap.potential_fine_amount && gap.potential_fine_amount > 0 && (
+                                  <div className="flex items-center space-x-1 text-gray-600">
+                                    <XCircle className="h-3 w-3 text-red-500" />
+                                    <span className="font-medium">Potential Fine:</span>
+                                    <span className="font-semibold text-red-600">
+                                      ${gap.potential_fine_amount.toLocaleString()}
+                                    </span>
+                                  </div>
+                                )}
+
+                                <div className="flex items-center space-x-1 text-gray-600">
+                                  <Eye className="h-3 w-3 text-green-500" />
+                                  <span className="font-medium">Detection:</span>
+                                  <span>{gap.detection_method?.replace('_', ' ') || 'Manual'}</span>
+                                </div>
+                              </div>
+
+                              {(gap.recommendation_text || gap.recommended_actions?.length > 0) && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+                                  <div className="flex items-start space-x-2">
+                                    <Info className="h-3 w-3 text-blue-600 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                      <p className="text-xs font-medium text-blue-800 mb-1">Recommended Action:</p>
+                                      {gap.recommendation_text && (
+                                        <p className="text-xs text-blue-700 leading-relaxed mb-1">
+                                          {gap.recommendation_text}
+                                        </p>
+                                      )}
+                                      {gap.recommended_actions?.length > 0 && (
+                                        <ul className="text-xs text-blue-700 space-y-0.5">
+                                          {gap.recommended_actions.slice(0, 2).map((action, index) => (
+                                            <li key={index} className="flex items-start space-x-1">
+                                              <span className="text-blue-500 mt-0.5">•</span>
+                                              <span>{action}</span>
+                                            </li>
+                                          ))}
+                                          {gap.recommended_actions.length > 2 && (
+                                            <li className="text-blue-600 font-medium">
+                                              +{gap.recommended_actions.length - 2} more actions...
+                                            </li>
+                                          )}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                                <div className="flex items-center space-x-3 text-xs text-gray-500">
+                                  <span>Gap ID: {gap.id.slice(0, 8)}</span>
+                                  {gap.detected_at && (
+                                    <span>Detected: {new Date(gap.detected_at).toLocaleDateString()}</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  {gap.false_positive_likelihood > 0.3 && (
+                                    <div className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
+                                      Review Needed
+                                    </div>
+                                  )}
+                                  {gap.business_impact === 'critical' || gap.risk_level === 'critical' ? (
+                                    <div className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                      Urgent
+                                    </div>
+                                  ) : gap.regulatory_requirement ? (
+                                    <div className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                                      Priority
+                                    </div>
+                                  ) : (
+                                    <div className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                      Standard
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>

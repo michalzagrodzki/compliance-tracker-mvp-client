@@ -116,7 +116,11 @@ export const useAuditReport = () => {
 
       return {
         ...baseReportData,
-        chat_history_ids: selectedData.selectedChats.map((chat) => chat.id),
+        chat_history_ids: selectedData.selectedChats.map((chat) => {
+          const id =
+            typeof chat.id === "string" ? parseInt(chat.id, 10) : chat.id;
+          return isNaN(id) ? 0 : id;
+        }),
         compliance_gap_ids: selectedData.selectedGaps.map((gap) => gap.id),
         document_ids: selectedData.selectedDocuments.map((doc) => doc.id),
         pdf_ingestion_ids: selectedData.selectedDocuments.map((doc) => doc.id),

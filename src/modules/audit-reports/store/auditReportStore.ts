@@ -13,6 +13,7 @@ interface AuditReportStore extends AuditReportState, AuditReportActions {
   // Data sources for report creation
   dataSources: ReportDataSources;
 
+  // Data source actions
   loadSessionDataSources: (sessionId: string) => Promise<void>;
   updateChatSelection: (chatId: number, selected: boolean) => void;
   updateGapSelection: (gapId: string, selected: boolean) => void;
@@ -64,7 +65,6 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
           : response.error || "Failed to create report",
       });
 
-      // If successful, add to reports list
       if (response.success && response.report_id) {
         try {
           const newReport = await auditReportService.getReportById(
@@ -276,12 +276,10 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   },
 }));
 
-// Export utility functions for direct store access
 export const auditReportStoreUtils = {
   getState: () => useAuditReportStore.getState(),
   setState: useAuditReportStore.setState,
 
-  // Get selected items for report creation
   getSelectedData: () => {
     const { dataSources } = useAuditReportStore.getState();
 
@@ -292,7 +290,6 @@ export const auditReportStoreUtils = {
     };
   },
 
-  // Get selection counts
   getSelectionCounts: () => {
     const { dataSources } = useAuditReportStore.getState();
 
