@@ -13,7 +13,6 @@ const AUDIT_REPORT_ENDPOINTS = {
   CREATE: "/v1/audit-reports",
   LIST: "/v1/audit-reports",
   BY_ID: (reportId: string) => `/v1/audit-reports/${reportId}`,
-  BY_USER: (userId: string) => `/v1/audit-reports/user/${userId}`,
   BY_SESSION: (sessionId: string) => `/v1/audit-reports/session/${sessionId}`,
   DOWNLOAD: (reportId: string) => `/v1/audit-reports/${reportId}/download`,
 
@@ -84,20 +83,6 @@ class AuditReportService {
   ): Promise<AuditReport[]> {
     const response = await http.get<AuditReport[]>(
       AUDIT_REPORT_ENDPOINTS.LIST,
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
-  }
-
-  async getUserReports(
-    userId: string,
-    skip: number = 0,
-    limit: number = 10
-  ): Promise<AuditReport[]> {
-    const response = await http.get<AuditReport[]>(
-      AUDIT_REPORT_ENDPOINTS.BY_USER(userId),
       {
         params: { skip, limit },
       }

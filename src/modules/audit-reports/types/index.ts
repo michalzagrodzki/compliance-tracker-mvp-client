@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type {
   GapType,
   BusinessImpactLevel,
@@ -26,6 +25,20 @@ export type ConfidentialityLevel =
   | "restricted";
 
 export interface AuditReport {
+  critical_gaps_count: any;
+  high_risk_gaps_count: any;
+  medium_risk_gaps_count: any;
+  low_risk_gaps_count: any;
+  total_questions_asked: number;
+  questions_answered_satisfactorily: number;
+  report_generated_at: any;
+  report_finalized_at: any;
+  last_modified_at: any;
+  export_formats: any;
+  auto_generated: any;
+  generated_by: any;
+  reviewed_by: any;
+  approved_by: any;
   id: string;
   user_id: string;
   audit_session_id: string;
