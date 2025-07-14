@@ -104,11 +104,7 @@ export interface AuditReportState {
 
 export interface AuditReportActions {
   createReport: (reportData: AuditReportCreate) => Promise<AuditReportResponse>;
-  fetchReports: (
-    userId?: string,
-    skip?: number,
-    limit?: number
-  ) => Promise<void>;
+  fetchReports: (skip?: number, limit?: number) => Promise<void>;
   fetchReportById: (reportId: string) => Promise<void>;
   clearError: () => void;
   clearCreateResponse: () => void;

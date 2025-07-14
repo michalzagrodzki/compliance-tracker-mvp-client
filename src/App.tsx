@@ -31,6 +31,7 @@ import ComplianceGapDetail from './modules/compliance-gaps/components/Compliance
 import ComplianceGapsList from './modules/compliance-gaps/components/ComplianceGapsList'
 import ComplianceGapCreatePage from './modules/compliance-gaps/components/ComplianceGapCreate'
 import CreateAuditReportPage from './modules/audit-reports/components/CreateAuditReportPage'
+import AuditReportsList from './modules/audit-reports/components/AuditReportsList'
 
 function App() {
   const { isAuthenticated, isLoading } = useAuthStore()
@@ -191,6 +192,16 @@ function App() {
             }
             >
             <Route index element={<ComplianceGapCreatePage />} />
+          </Route>
+          <Route
+            path="/audit-report"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AuditReportsList />} />
           </Route>
           <Route
             path="/dashboard"

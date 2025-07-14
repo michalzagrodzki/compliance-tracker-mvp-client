@@ -44,8 +44,8 @@ export const useAuditReport = () => {
   );
 
   const handleLoadReports = useCallback(
-    async (userId?: string, skip?: number, limit?: number) => {
-      await fetchReports(userId, skip, limit);
+    async (skip?: number, limit?: number) => {
+      await fetchReports(skip, limit);
     },
     [fetchReports]
   );

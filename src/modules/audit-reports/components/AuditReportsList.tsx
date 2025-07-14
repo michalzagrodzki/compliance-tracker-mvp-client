@@ -89,7 +89,7 @@ export default function AuditReportsList() {
 
   useEffect(() => {
     if (user?.id) {
-      loadReports(user.id);
+      loadReports();
     }
   }, [user?.id, loadReports]);
 
@@ -129,7 +129,7 @@ export default function AuditReportsList() {
   const handleRefresh = () => {
     clearError();
     if (user?.id) {
-      loadReports(user.id);
+      loadReports();
     }
   };
 
