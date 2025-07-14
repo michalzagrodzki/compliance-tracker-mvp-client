@@ -7,6 +7,7 @@ import type {
   AuditReportState,
   AuditReportActions,
   ReportDataSources,
+  AuditReport,
 } from "../types";
 
 interface AuditReportStore extends AuditReportState, AuditReportActions {
@@ -32,6 +33,8 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   error: null,
   isCreating: false,
   createResponse: null,
+  isUpdating: false,
+  updateError: null,
 
   // Data sources state
   dataSources: {
@@ -47,6 +50,7 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   setLoading: (loading: boolean) => set({ isLoading: loading }),
   clearError: () => set({ error: null }),
   clearCreateResponse: () => set({ createResponse: null }),
+  clearUpdateError: () => set({ updateError: null }),
 
   // Core report actions
   createReport: async (
@@ -166,6 +170,44 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
           isLoadingDocuments: false,
         },
       });
+    }
+  },
+
+  updateReport: async (
+    reportId: string,
+    updateData: Partial<AuditReport>,
+    changeDescription?: string
+  ) => {
+    set({ isUpdating: true, updateError: null });
+
+    try {
+      const updatedReport = await auditReportService.updateReport(
+        reportId,
+        updateData,
+        changeDescription
+      );
+
+      // Update the current report if it's the one being edited
+      const currentReport = get().currentReport;
+      if (currentReport && currentReport.id === reportId) {
+        set({ currentReport: updatedReport });
+      }
+
+      // Update the report in the reports list
+      const reports = get().reports;
+      const updatedReports = reports.map((report) =>
+        report.id === reportId ? updatedReport : report
+      );
+      set({ reports: updatedReports });
+
+      set({ isUpdating: false });
+    } catch (error: any) {
+      set({
+        updateError:
+          error.response?.data?.detail || "Failed to update audit report",
+        isUpdating: false,
+      });
+      throw error;
     }
   },
 

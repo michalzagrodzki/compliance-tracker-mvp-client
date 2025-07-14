@@ -201,6 +201,8 @@ export interface AuditReportState {
   reports: AuditReport[];
   currentReport: AuditReport | null;
   isLoading: boolean;
+  isUpdating: boolean;
+  updateError: string | null;
   error: string | null;
   isCreating: boolean;
   createResponse: AuditReportResponse | null;
@@ -208,6 +210,12 @@ export interface AuditReportState {
 
 export interface AuditReportActions {
   createReport: (reportData: AuditReportCreate) => Promise<AuditReportResponse>;
+  updateReport: (
+    reportId: string,
+    updateData: Partial<AuditReport>,
+    changeDescription?: string
+  ) => Promise<void>;
+  clearUpdateError: () => void;
   fetchReports: (skip?: number, limit?: number) => Promise<void>;
   fetchReportById: (reportId: string) => Promise<void>;
   clearError: () => void;

@@ -4,7 +4,11 @@ import {
   useAuditReportStore,
   auditReportStoreUtils,
 } from "../store/auditReportStore";
-import type { AuditReportCreate, AuditReportResponse } from "../types";
+import type {
+  AuditReport,
+  AuditReportCreate,
+  AuditReportResponse,
+} from "../types";
 
 export const useAuditReport = () => {
   const {
@@ -29,6 +33,10 @@ export const useAuditReport = () => {
     clearCreateResponse,
     clearDataSources,
     setLoading,
+    isUpdating,
+    updateError,
+    updateReport,
+    clearUpdateError,
   } = useAuditReportStore();
 
   const handleCreateReport = useCallback(
@@ -41,6 +49,21 @@ export const useAuditReport = () => {
       }
     },
     [createReport]
+  );
+
+  const handleUpdateReport = useCallback(
+    async (
+      reportId: string,
+      updateData: Partial<AuditReport>,
+      changeDescription?: string
+    ) => {
+      try {
+        await updateReport(reportId, updateData, changeDescription);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateReport]
   );
 
   const handleLoadReports = useCallback(
@@ -183,9 +206,12 @@ export const useAuditReport = () => {
     error,
     createResponse,
     dataSources,
+    isUpdating,
+    updateError,
 
     // Actions
     createReport: handleCreateReport,
+    updateReport: handleUpdateReport,
     loadReports: handleLoadReports,
     loadReport: handleLoadReport,
     loadSessionData: handleLoadSessionData,
@@ -200,6 +226,7 @@ export const useAuditReport = () => {
     resetForm,
     clearError,
     clearCreateResponse,
+    clearUpdateError,
     setLoading,
   };
 };

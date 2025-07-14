@@ -11,6 +11,7 @@ import type {
 
 const AUDIT_REPORT_ENDPOINTS = {
   CREATE: "/v1/audit-reports",
+  UPDATE: (reportId: string) => `/v1/audit-reports/${reportId}`,
   LIST: "/v1/audit-reports",
   BY_ID: (reportId: string) => `/v1/audit-reports/${reportId}`,
   BY_SESSION: (sessionId: string) => `/v1/audit-reports/session/${sessionId}`,
@@ -107,6 +108,24 @@ class AuditReportService {
       {
         params: { skip, limit },
       }
+    );
+    return response.data;
+  }
+
+  async updateReport(
+    reportId: string,
+    updateData: Partial<AuditReport>,
+    changeDescription?: string
+  ): Promise<AuditReport> {
+    const payload = {
+      update_data: updateData,
+      change_description:
+        changeDescription || "Report updated via web interface",
+    };
+
+    const response = await http.patch<AuditReport>(
+      AUDIT_REPORT_ENDPOINTS.UPDATE(reportId),
+      payload
     );
     return response.data;
   }

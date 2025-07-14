@@ -282,6 +282,12 @@ export default function AuditReportItem() {
           </span>
           
           <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/audit-reports/${reportId}/edit`}>
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Link>
+            </Button>
             <Button variant="outline" size="sm">
               <Download className="h-4 w-4 mr-1" />
               Download
@@ -575,6 +581,12 @@ export default function AuditReportItem() {
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <Button variant="outline" className="w-full" asChild>
+                <Link to={`/audit-reports/${reportId}/edit`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Report
+                </Link>
+              </Button>
               <Button className="w-full" asChild>
                 <Link to={`/audit-sessions/${currentReport.audit_session_id}`}>
                   <Eye className="h-4 w-4 mr-2" />
