@@ -12,6 +12,13 @@ export type ReportType =
   | "external_audit"
   | "internal_review";
 
+export type ReportStatus =
+  | "draft"
+  | "finalized"
+  | "approved"
+  | "distributed"
+  | "archived";
+
 export type TargetAudience =
   | "executives"
   | "compliance_team"
@@ -24,41 +31,125 @@ export type ConfidentialityLevel =
   | "confidential"
   | "restricted";
 
+export type OverallComplianceRating =
+  | "excellent"
+  | "good"
+  | "fair"
+  | "poor"
+  | "critical";
+
+export type TrendingDirection = "improving" | "stable" | "declining";
+
+export interface DetailedFinding {
+  id?: string;
+  title: string;
+  description: string;
+  severity: string;
+  category: string;
+  recommendation: string;
+  source_references?: string[];
+}
+
+export interface Recommendation {
+  id?: string;
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+  estimated_effort: string;
+  category: string;
+}
+
+export interface ActionItem {
+  id?: string;
+  title: string;
+  description: string;
+  assigned_to?: string;
+  due_date?: string;
+  priority: "high" | "medium" | "low";
+  status: "pending" | "in_progress" | "completed";
+}
+
+export interface AuditTrailEntry {
+  timestamp: string;
+  user_id: string;
+  action: string;
+  details: string;
+  ip_address?: string;
+}
 export interface AuditReport {
-  critical_gaps_count: any;
-  high_risk_gaps_count: any;
-  medium_risk_gaps_count: any;
-  low_risk_gaps_count: any;
-  total_questions_asked: number;
-  questions_answered_satisfactorily: number;
-  report_generated_at: any;
-  report_finalized_at: any;
-  last_modified_at: any;
-  export_formats: any;
-  auto_generated: any;
-  generated_by: any;
-  reviewed_by: any;
-  approved_by: any;
   id: string;
   user_id: string;
   audit_session_id: string;
   compliance_domain: string;
   report_title: string;
   report_type: ReportType;
+  report_status: ReportStatus;
   chat_history_ids: number[];
   compliance_gap_ids: string[];
   document_ids: string[];
   pdf_ingestion_ids: string[];
+  total_questions_asked: number;
+  questions_answered_satisfactorily: number;
+  total_gaps_identified: number;
+  critical_gaps_count: number;
+  high_risk_gaps_count: number;
+  medium_risk_gaps_count: number;
+  low_risk_gaps_count: number;
+  requirements_total: number | null;
+  requirements_covered: number | null;
+  coverage_percentage: number | null;
+  policy_documents_referenced: number;
+  unique_sources_count: number;
+  session_duration_minutes: number | null;
+  avg_response_time_ms: number | null;
+  total_tokens_used: number | null;
+  total_similarity_searches: number | null;
+  avg_confidence_score: number | null;
+  low_confidence_answers_count: number;
+  contradictory_findings_count: number;
+  outdated_references_count: number;
+  overall_compliance_rating: OverallComplianceRating | null;
+  estimated_remediation_cost: number | null;
+  estimated_remediation_time_days: number | null;
+  regulatory_risk_score: number | null; // 1-10 scale
+  potential_fine_exposure: number | null;
+  executive_summary: string | null;
+  detailed_findings: Record<string, any> | DetailedFinding[];
+  recommendations: Recommendation[];
+  action_items: ActionItem[];
+  appendices: Record<string, any>;
+  template_used: string | null;
   include_technical_details: boolean;
   include_source_citations: boolean;
   include_confidence_scores: boolean;
   target_audience: TargetAudience;
-  template_used?: string;
-  confidentiality_level: ConfidentialityLevel;
+  generated_by: string | null;
+  reviewed_by: string | null;
+  approved_by: string | null;
+  distributed_to: string[];
   external_auditor_access: boolean;
+  confidentiality_level: ConfidentialityLevel;
+  audit_trail: AuditTrailEntry[];
+  external_audit_reference: string | null;
+  regulatory_submission_date: string | null;
+  regulatory_response_received: boolean;
+  report_file_path: string | null;
+  report_file_size: number | null;
+  report_hash: string | null;
+  export_formats: string[];
+  previous_report_id: string | null;
+  improvement_from_previous: number | null;
+  trending_direction: TrendingDirection | null;
+  benchmark_comparison: Record<string, any>;
+  scheduled_followup_date: string | null;
+  auto_generated: boolean;
+  integration_exports: Record<string, any>;
+  notification_sent: boolean;
+  report_generated_at: string;
+  report_finalized_at: string | null;
+  last_modified_at: string;
   created_at: string;
   updated_at: string;
-  report_status?: string;
   download_url?: string;
 }
 
@@ -212,6 +303,44 @@ export const CONFIDENTIALITY_LEVEL_OPTIONS: Array<{
     value: "restricted",
     label: "Restricted",
     description: "Highest level of confidentiality required",
+    color: "bg-red-100 text-red-800",
+  },
+];
+
+export const COMPLIANCE_RATING_OPTIONS: Array<{
+  value: OverallComplianceRating;
+  label: string;
+  description: string;
+  color: string;
+}> = [
+  {
+    value: "excellent",
+    label: "Excellent",
+    description: "Exceeds all compliance requirements",
+    color: "bg-emerald-100 text-emerald-800",
+  },
+  {
+    value: "good",
+    label: "Good",
+    description: "Meets most compliance requirements with minor gaps",
+    color: "bg-green-100 text-green-800",
+  },
+  {
+    value: "fair",
+    label: "Fair",
+    description: "Meets basic requirements but has notable gaps",
+    color: "bg-yellow-100 text-yellow-800",
+  },
+  {
+    value: "poor",
+    label: "Poor",
+    description: "Significant compliance gaps requiring attention",
+    color: "bg-orange-100 text-orange-800",
+  },
+  {
+    value: "critical",
+    label: "Critical",
+    description: "Major compliance failures requiring immediate action",
     color: "bg-red-100 text-red-800",
   },
 ];

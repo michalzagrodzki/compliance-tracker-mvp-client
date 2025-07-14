@@ -250,14 +250,12 @@ export default function AuditReportItem() {
   const ConfidentialityIcon = confidentialityInfo.icon;
   const AudienceIcon = audienceInfo.icon;
 
-  const totalGaps = currentReport.critical_gaps_count + currentReport.high_risk_gaps_count + 
-                   currentReport.medium_risk_gaps_count + currentReport.low_risk_gaps_count;
+  const totalGaps = currentReport.total_gaps_identified;
 
   const hasMetrics = totalGaps > 0 || currentReport.total_questions_asked > 0;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" asChild>
@@ -366,9 +364,7 @@ export default function AuditReportItem() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Report Overview */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -427,7 +423,6 @@ export default function AuditReportItem() {
             </CardContent>
           </Card>
 
-          {/* Risk Analysis */}
           {hasMetrics && (
             <Card>
               <CardHeader>
@@ -485,7 +480,6 @@ export default function AuditReportItem() {
             </Card>
           )}
 
-          {/* Assessment Metrics */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -539,7 +533,6 @@ export default function AuditReportItem() {
             </CardContent>
           </Card>
 
-          {/* Report Configuration */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -576,9 +569,7 @@ export default function AuditReportItem() {
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Quick Actions</CardTitle>
@@ -608,7 +599,6 @@ export default function AuditReportItem() {
             </CardContent>
           </Card>
 
-          {/* Report Status */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Report Status</CardTitle>
@@ -654,7 +644,6 @@ export default function AuditReportItem() {
             </CardContent>
           </Card>
 
-          {/* Report Details */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Report Details</CardTitle>
@@ -756,7 +745,6 @@ export default function AuditReportItem() {
             </CardContent>
           </Card>
 
-          {/* Data Sources Summary */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Data Sources</CardTitle>
@@ -797,7 +785,6 @@ export default function AuditReportItem() {
             </CardContent>
           </Card>
 
-          {/* Executive Summary */}
           {totalGaps > 0 && (
             <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
               <CardHeader>
@@ -855,7 +842,6 @@ export default function AuditReportItem() {
         </div>
       </div>
 
-      {/* Additional Information */}
       <Card className="bg-muted/50">
         <CardContent className="pt-6">
           <div className="space-y-3 text-sm">

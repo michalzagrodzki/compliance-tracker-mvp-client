@@ -195,7 +195,7 @@ function App() {
             <Route index element={<ComplianceGapCreatePage />} />
           </Route>
           <Route
-            path="/audit-report"
+            path="/audit-reports"
             element={
               <ProtectedRoute>
                 <Layout />
@@ -205,7 +205,7 @@ function App() {
             <Route index element={<AuditReportsList />} />
           </Route>
           <Route
-            path="/audit-report/:reportId"
+            path="/audit-reports/:reportId"
             element={
               <ProtectedRoute>
                 <Layout />
