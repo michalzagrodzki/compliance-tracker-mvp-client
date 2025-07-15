@@ -216,6 +216,16 @@ function App() {
             <Route index element={<AuditReportItem />} />
           </Route>
           <Route
+            path="/audit-reports/new"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<CreateAuditReportPage />} />
+          </Route>
+          <Route
             path="/audit-reports/:reportId/edit"
             element={
               <ProtectedRoute>

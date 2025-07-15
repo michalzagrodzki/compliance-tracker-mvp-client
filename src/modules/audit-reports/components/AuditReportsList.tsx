@@ -160,11 +160,11 @@ export default function AuditReportsList() {
             <span>Refresh</span>
           </Button>
           <Button
-            onClick={() => navigate('/audit-sessions')}
+            onClick={() => navigate('/audit-reports/new')}
             className="flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
-            <span>Create New Report</span>
+            <span>Create Audit Report</span>
           </Button>
         </div>
       </div>

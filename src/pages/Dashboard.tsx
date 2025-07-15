@@ -22,7 +22,7 @@ export default function Dashboard() {
       title: "Create Audit Report",
       description: "Generate a new audit report from existing session data",
       icon: Edit,
-      linkTo: "/audit-reports/create",
+      linkTo: "/audit-reports/new",
       linkTitle: "New Report",
       variant: "default" as const
     },
