@@ -48,6 +48,7 @@ export interface AuditSessionActions {
     limit?: number
   ) => Promise<void>;
   fetchSessionById: (sessionId: string) => Promise<void>;
+  fetchSessionsByDomain: (domain: string) => Promise<void>;
   createSession: (sessionData: AuditSessionCreate) => Promise<AuditSession>;
   searchSessions: (searchData: AuditSessionSearchRequest) => Promise<void>;
   clearError: () => void;

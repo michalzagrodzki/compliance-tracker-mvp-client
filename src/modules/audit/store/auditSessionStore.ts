@@ -63,6 +63,22 @@ export const useAuditSessionStore = create<AuditSessionStore>((set, get) => ({
     }
   },
 
+  fetchSessionsByDomain: async (domain: string) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const sessions = await auditSessionService.getSessionsByDomain(domain);
+      set({ sessions, isLoading: false });
+    } catch (error: any) {
+      set({
+        error:
+          error.response?.data?.detail ||
+          "Failed to fetch audit sessions by domain",
+        isLoading: false,
+      });
+    }
+  },
+
   createSession: async (
     sessionData: AuditSessionCreate
   ): Promise<AuditSession> => {
