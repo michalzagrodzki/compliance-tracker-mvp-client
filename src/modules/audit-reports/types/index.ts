@@ -114,6 +114,9 @@ export interface AuditReport {
   regulatory_risk_score: number | null; // 1-10 scale
   potential_fine_exposure: number | null;
   executive_summary: string | null;
+  control_risk_prioritization: string | null;
+  threat_intelligence_analysis: string | null;
+  target_audience_summary: string | null;
   detailed_findings: Record<string, any> | DetailedFinding[];
   recommendations: Recommendation[];
   action_items: ActionItem[];
@@ -178,6 +181,12 @@ export interface AuditReportCreate {
   confidentiality_level: ConfidentialityLevel;
   external_auditor_access: boolean;
 
+  // Report summaries
+  executive_summary?: string;
+  control_risk_prioritization?: string;
+  threat_intelligence_analysis?: string;
+  target_audience_summary?: string;
+
   // Optional fields with defaults that backend should handle
   report_status?: string;
   total_questions_asked?: number;
@@ -206,6 +215,7 @@ export interface AuditReportState {
   error: string | null;
   isCreating: boolean;
   createResponse: AuditReportResponse | null;
+  isGeneratingSummary: boolean;
 }
 
 export interface AuditReportActions {

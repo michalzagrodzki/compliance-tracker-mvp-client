@@ -19,6 +19,7 @@ import {
   Loader2,
   AlertCircle,
   Shield,
+  Sparkles,
 } from 'lucide-react';
 import { useAuditSessionStore } from '@/modules/audit/store/auditSessionStore';
 import { useAuthStore } from '@/modules/auth/store/authStore';
@@ -47,6 +48,7 @@ export default function CreateAuditReportPage() {
     error,
     createResponse,
     dataSources,
+    isGeneratingSummary,
     loadSessionDataSources,
     updateChatSelection,
     updateGapSelection,
@@ -86,6 +88,10 @@ export default function CreateAuditReportPage() {
     include_confidence_scores: false,
     target_audience: 'compliance_team',
     template_used: '',
+    executive_summary: '',
+    control_risk_prioritization: '',
+    threat_intelligence_analysis: '',
+    target_audience_summary: '',
     confidentiality_level: 'internal',
     external_auditor_access: false,
     report_status: 'draft',
@@ -203,6 +209,14 @@ export default function CreateAuditReportPage() {
     }));
   };
 
+  const handleGenerateSummary = async (summaryType: 'executive_summary' | 'control_risk_prioritization' | 'threat_intelligence_analysis' | 'target_audience_summary') => {
+    if (!selectedAuditSession) {
+      return;
+    }
+
+    console.log("generate summary by type " + summaryType)
+  };
+
   const toggleDataSourcesDetail = (source: 'chats' | 'gaps' | 'documents') => {
     setShowDataSourcesDetails(prev => ({
       ...prev,
@@ -211,15 +225,11 @@ export default function CreateAuditReportPage() {
   };
 
   const isFormValid = () => {
-    const selectionCounts = auditReportStoreUtils.getSelectionCounts();
     return formData.report_title.trim() &&
            formData.compliance_domain.trim() &&
            formData.audit_session_id.trim() &&
            formData.target_audience &&
-           formData.confidentiality_level &&
-           (selectionCounts.selectedChatsCount > 0 || 
-            selectionCounts.selectedGapsCount > 0 || 
-            selectionCounts.selectedDocumentsCount > 0);
+           formData.confidentiality_level;
   };
 
   const prepareReportData = (): AuditReportCreate => {
@@ -388,6 +398,7 @@ export default function CreateAuditReportPage() {
                 <p>• Choose the appropriate report type and target audience for proper formatting</p>
                 <p>• Configure technical details, citations, and confidence scores based on your needs</p>
                 <p>• Set the confidentiality level and external auditor access as required</p>
+                <p>• Use the "Generate summary" buttons to automatically create summaries for each section</p>
                 <p>• The generated report will compile all selected data into a professional format</p>
               </div>
             </div>
@@ -562,6 +573,153 @@ export default function CreateAuditReportPage() {
                 Optional template reference for report formatting
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Report Summaries</CardTitle>
+            <CardDescription>
+              Generate AI-powered summaries for different sections of your audit report
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="executive_summary" className="text-sm font-medium">Executive Summary</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGenerateSummary('executive_summary')}
+                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingSummary ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  <span>Generate summary</span>
+                </Button>
+              </div>
+              <textarea
+                id="executive_summary"
+                value={formData.executive_summary || ''}
+                onChange={(e) => handleInputChange('executive_summary', e.target.value)}
+                placeholder="Executive summary of the audit findings and recommendations..."
+                rows={4}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
+              />
+              <p className="text-xs text-muted-foreground">
+                High-level overview of audit findings for executive stakeholders
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="control_risk_prioritization" className="text-sm font-medium">Control Risk Prioritization</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGenerateSummary('control_risk_prioritization')}
+                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingSummary ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  <span>Generate summary</span>
+                </Button>
+              </div>
+              <textarea
+                id="control_risk_prioritization"
+                value={formData.control_risk_prioritization || ''}
+                onChange={(e) => handleInputChange('control_risk_prioritization', e.target.value)}
+                placeholder="Control risk prioritization analysis and recommendations..."
+                rows={4}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
+              />
+              <p className="text-xs text-muted-foreground">
+                Prioritization of control risks based on impact and likelihood
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="threat_intelligence_analysis" className="text-sm font-medium">Threat Intelligence Analysis</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGenerateSummary('threat_intelligence_analysis')}
+                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingSummary ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  <span>Generate summary</span>
+                </Button>
+              </div>
+              <textarea
+                id="threat_intelligence_analysis"
+                value={formData.threat_intelligence_analysis || ''}
+                onChange={(e) => handleInputChange('threat_intelligence_analysis', e.target.value)}
+                placeholder="Threat intelligence analysis and current threat landscape..."
+                rows={4}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
+              />
+              <p className="text-xs text-muted-foreground">
+                Analysis of current threats and their relevance to the organization
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="target_audience_summary" className="text-sm font-medium">Target Audience Summary</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGenerateSummary('target_audience_summary')}
+                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingSummary ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  <span>Generate summary</span>
+                </Button>
+              </div>
+              <textarea
+                id="target_audience_summary"
+                value={formData.target_audience_summary || ''}
+                onChange={(e) => handleInputChange('target_audience_summary', e.target.value)}
+                placeholder="Summary tailored to the specific target audience..."
+                rows={4}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
+              />
+              <p className="text-xs text-muted-foreground">
+                Summary specifically tailored to the selected target audience
+              </p>
+            </div>
+
+            {!selectedAuditSession && (
+              <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg">
+                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">
+                  Select an audit session to enable summary generation
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1043,8 +1201,6 @@ export default function CreateAuditReportPage() {
               </div>
             </div>
 
-            
-
             <div className="flex items-center space-x-2 pt-4 border-t">
               <input
                 type="checkbox"
@@ -1111,6 +1267,10 @@ export default function CreateAuditReportPage() {
               <li className="flex items-start space-x-2">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                 <span>Set the correct confidentiality level to ensure proper handling and distribution</span>
+              </li>
+              <li className="flex items-start space-x-2">
+                <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
+                <span>Use the "Generate summary" buttons to create AI-powered summaries for each section</span>
               </li>
               <li className="flex items-start space-x-2">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>

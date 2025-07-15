@@ -35,6 +35,7 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   createResponse: null,
   isUpdating: false,
   updateError: null,
+  isGeneratingSummary: false,
 
   // Data sources state
   dataSources: {

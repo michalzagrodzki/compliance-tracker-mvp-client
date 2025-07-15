@@ -19,6 +19,7 @@ export const useAuditReport = () => {
     error,
     createResponse,
     dataSources,
+    isGeneratingSummary,
     createReport,
     fetchReports,
     fetchReportById,
@@ -208,6 +209,7 @@ export const useAuditReport = () => {
     dataSources,
     isUpdating,
     updateError,
+    isGeneratingSummary,
 
     // Actions
     createReport: handleCreateReport,
