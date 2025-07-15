@@ -33,11 +33,15 @@ import {
   CONFIDENTIALITY_LEVEL_OPTIONS,
 } from '../types';
 
+const COMPLIANCE_DOMAINS = [
+  { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
+]
+
 export default function CreateAuditReportPage() {
   const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId: string }>();
   const { user } = useAuthStore();
-  const { currentSession, fetchSessionById } = useAuditSessionStore();
+  const { currentSession, sessions, fetchSessionById, fetchSessionsByDomain } = useAuditSessionStore();
   const {
     isCreating,
     error,
@@ -62,6 +66,10 @@ export default function CreateAuditReportPage() {
     gaps: false,
     documents: false
   });
+  const [selectedComplianceDomain, setSelectedComplianceDomain] = useState('');
+  const [selectedAuditSession, setSelectedAuditSession] = useState('');
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+
 
   const [formData, setFormData] = useState<AuditReportCreate>({
     user_id: user?.id || "",
@@ -107,15 +115,65 @@ export default function CreateAuditReportPage() {
   }, [sessionId, fetchSessionById, loadSessionDataSources, clearError, clearCreateResponse, clearDataSources]);
 
   useEffect(() => {
-    // Update form when session is loaded
-    if (currentSession) {
+    // Update form when session is loaded (for sessionId flow)
+    if (currentSession && sessionId) {
       setFormData(prev => ({
         ...prev,
         compliance_domain: currentSession.compliance_domain,
         report_title: `${currentSession.session_name} - Audit Report`,
+        audit_session_id: sessionId,
       }));
+      setSelectedComplianceDomain(currentSession.compliance_domain);
+      setSelectedAuditSession(sessionId);
     }
-  }, [currentSession]);
+  }, [currentSession, sessionId]);
+
+  const handleComplianceDomainChange = async (domain: string) => {
+    setSelectedComplianceDomain(domain);
+    setSelectedAuditSession(''); // Reset audit session selection
+    
+    setFormData(prev => ({
+      ...prev,
+      compliance_domain: domain,
+      audit_session_id: '', // Reset audit session in form data
+    }));
+
+    if (domain && !sessionId) {
+      // Only fetch sessions if not in sessionId flow
+      setIsLoadingSessions(true);
+      try {
+        await fetchSessionsByDomain(domain);
+      } catch (error) {
+        console.error('Failed to fetch sessions by domain:', error);
+      } finally {
+        setIsLoadingSessions(false);
+      }
+    }
+  };
+
+  const handleAuditSessionChange = async (sessionId: string) => {
+    setSelectedAuditSession(sessionId);
+    
+    setFormData(prev => ({
+      ...prev,
+      audit_session_id: sessionId,
+    }));
+
+    if (sessionId) {
+      // Load session details and data sources
+      await fetchSessionById(sessionId);
+      await loadSessionDataSources(sessionId);
+      
+      // Find the session and update report title
+      const selectedSession = sessions.find(s => s.id === sessionId);
+      if (selectedSession) {
+        setFormData(prev => ({
+          ...prev,
+          report_title: `${selectedSession.session_name} - Audit Report`,
+        }));
+      }
+    }
+  };
 
   const handleInputChange = (field: keyof AuditReportCreate, value: any) => {
     setFormData(prev => ({
@@ -156,6 +214,7 @@ export default function CreateAuditReportPage() {
     const selectionCounts = auditReportStoreUtils.getSelectionCounts();
     return formData.report_title.trim() &&
            formData.compliance_domain.trim() &&
+           formData.audit_session_id.trim() &&
            formData.target_audience &&
            formData.confidentiality_level &&
            (selectionCounts.selectedChatsCount > 0 || 
@@ -187,7 +246,11 @@ export default function CreateAuditReportPage() {
   };
 
   const handleCancel = () => {
-    navigate(`/audit-sessions/${sessionId}`);
+    if (sessionId) {
+      navigate(`/audit-sessions/${sessionId}`);
+    } else {
+      navigate('/audit-reports');
+    }
   };
 
   const getSelectionCounts = () => auditReportStoreUtils.getSelectionCounts();
@@ -238,11 +301,11 @@ export default function CreateAuditReportPage() {
               
               <Button
                 variant="outline"
-                onClick={() => navigate(`/audit-sessions/${sessionId}`)}
+                onClick={() => navigate(sessionId ? `/audit-sessions/${sessionId}` : '/audit-reports')}
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>Back to Session</span>
+                <span>Back to {sessionId ? 'Session' : 'Reports'}</span>
               </Button>
               
               {!createResponse.success && (
@@ -272,11 +335,11 @@ export default function CreateAuditReportPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/audit-sessions/${sessionId}`)}
+            onClick={() => navigate(sessionId ? `/audit-sessions/${sessionId}` : '/audit-reports')}
             className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Audit Session
+            Back to {sessionId ? 'Audit Session' : 'Reports'}
           </Button>
         </div>
         <h1 className="text-3xl font-bold text-foreground">Create Audit Report</h1>
@@ -346,11 +409,11 @@ export default function CreateAuditReportPage() {
           <CardHeader>
             <CardTitle>Report Information</CardTitle>
             <CardDescription>
-              Basic details about the audit report including title, type, and target audience
+              Basic details about the audit report including title, compliance domain, and audit session
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label htmlFor="report_title" className="text-sm font-medium">Report Title *</label>
                 <Input
@@ -367,16 +430,56 @@ export default function CreateAuditReportPage() {
 
               <div className="space-y-2">
                 <label htmlFor="compliance_domain" className="text-sm font-medium">Compliance Domain *</label>
-                <Input
+                <select
                   id="compliance_domain"
-                  value={formData.compliance_domain}
-                  onChange={(e) => handleInputChange('compliance_domain', e.target.value)}
-                  placeholder="e.g., ISO27001"
+                  value={selectedComplianceDomain}
+                  onChange={(e) => handleComplianceDomainChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                  disabled={!!sessionId}
                   required
-                  disabled={!!currentSession?.compliance_domain}
-                />
+                >
+                  <option value="">Select a compliance framework...</option>
+                  {COMPLIANCE_DOMAINS.map((domain) => (
+                    <option key={domain.value} value={domain.value}>
+                      {domain.label}
+                    </option>
+                  ))}
+                </select>
                 <p className="text-xs text-muted-foreground">
                   Compliance framework this report addresses
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="audit_session" className="text-sm font-medium">Audit Session *</label>
+                <select
+                  id="audit_session"
+                  value={selectedAuditSession}
+                  onChange={(e) => handleAuditSessionChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!!sessionId || !selectedComplianceDomain || isLoadingSessions}
+                  required
+                >
+                  <option value="">
+                    {!selectedComplianceDomain ? 'Select compliance domain first...' : 
+                     isLoadingSessions ? 'Loading sessions...' : 
+                     'Select an audit session...'}
+                  </option>
+                  {sessions.map((session) => (
+                    <option key={session.id} value={session.id}>
+                      {session.session_name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {isLoadingSessions ? (
+                    <span className="flex items-center space-x-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Loading available sessions...</span>
+                    </span>
+                  ) : (
+                    'Audit session this report is based on'
+                  )}
                 </p>
               </div>
             </div>
@@ -444,411 +547,425 @@ export default function CreateAuditReportPage() {
           <CardHeader>
             <CardTitle>Data Sources Selection</CardTitle>
             <CardDescription>
-              Choose which data to include in your audit report from the current session
+              Choose which data to include in your audit report from the selected session
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium">Chat History</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({getSelectionCounts().selectedChatsCount} of {getSelectionCounts().totalChatsCount} selected)
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => selectAllChats(true)}
-                    disabled={dataSources.isLoadingChats}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => selectAllChats(false)}
-                    disabled={dataSources.isLoadingChats}
-                  >
-                    Deselect All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleDataSourcesDetail('chats')}
-                  >
-                    {showDataSourcesDetails.chats ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+            {!selectedAuditSession && (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 font-medium">Select an audit session first</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Choose a compliance domain and audit session to view available data sources
+                </p>
               </div>
+            )}
 
-              {dataSources.isLoadingChats ? (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading chat history...</span>
-                </div>
-              ) : dataSources.chatHistory.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No chat history found for this session
-                </div>
-              ) : (
-                <>
-                  <div className="text-sm text-muted-foreground">
-                    {dataSources.chatHistory.length} chat conversations available
-                  </div>
-                  
-                  {showDataSourcesDetails.chats && (
-                    <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
-                      {dataSources.chatHistory.map((chat) => (
-                        <div key={chat.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                          <input
-                            type="checkbox"
-                            checked={chat.selected}
-                            onChange={(e) => updateChatSelection(chat.id, e.target.checked)}
-                            className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">
-                              {chat.user_message || chat.message}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {new Date(chat.timestamp).toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+            {selectedAuditSession && (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium">Chat History</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({getSelectionCounts().selectedChatsCount} of {getSelectionCounts().totalChatsCount} selected)
+                      </span>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  <span className="font-medium">Compliance Gaps</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({getSelectionCounts().selectedGapsCount} of {getSelectionCounts().totalGapsCount} selected)
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => selectAllGaps(true)}
-                    disabled={dataSources.isLoadingGaps}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => selectAllGaps(false)}
-                    disabled={dataSources.isLoadingGaps}
-                  >
-                    Deselect All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleDataSourcesDetail('gaps')}
-                  >
-                    {showDataSourcesDetails.gaps ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              {dataSources.isLoadingGaps ? (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading compliance gaps...</span>
-                </div>
-              ) : dataSources.complianceGaps.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No compliance gaps found for this session
-                </div>
-              ) : (
-                <>
-                  <div className="text-sm text-muted-foreground">
-                    {dataSources.complianceGaps.length} compliance gaps available
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectAllChats(true)}
+                        disabled={dataSources.isLoadingChats}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectAllChats(false)}
+                        disabled={dataSources.isLoadingChats}
+                      >
+                        Deselect All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleDataSourcesDetail('chats')}
+                      >
+                        {showDataSourcesDetails.chats ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                  
-                  {showDataSourcesDetails.gaps && (
-                    <div className=" overflow-y-auto space-y-3 border rounded-md p-4">
-                      {dataSources.complianceGaps.map((gap) => {
-                        const getRiskLevelColor = (level: string) => {
-                          switch (level) {
-                            case 'low': return 'text-green-600 bg-green-50 border-green-200'
-                            case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-                            case 'high': return 'text-orange-600 bg-orange-50 border-orange-200'
-                            case 'critical': return 'text-red-600 bg-red-50 border-red-200'
-                            default: return 'text-gray-600 bg-gray-50 border-gray-200'
-                          }
-                        };
 
-                        const getBusinessImpactColor = (level: string) => {
-                          switch (level) {
-                            case 'low': return 'text-blue-600 bg-blue-50 border-blue-200'
-                            case 'medium': return 'text-indigo-600 bg-indigo-50 border-indigo-200'
-                            case 'high': return 'text-purple-600 bg-purple-50 border-purple-200'
-                            case 'critical': return 'text-pink-600 bg-pink-50 border-pink-200'
-                            default: return 'text-gray-600 bg-gray-50 border-gray-200'
-                          }
-                        };
-
-                        const getRiskIcon = (level: string) => {
-                          switch (level) {
-                            case 'low': return <CheckCircle className="h-3 w-3" />
-                            case 'medium': return <AlertCircle className="h-3 w-3" />
-                            case 'high': return <AlertTriangle className="h-3 w-3" />
-                            case 'critical': return <XCircle className="h-3 w-3" />
-                            default: return <AlertTriangle className="h-3 w-3" />
-                          }
-                        };
-
-                        return (
-                          <div key={gap.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-100">
-                            <input
-                              type="checkbox"
-                              checked={gap.selected}
-                              onChange={(e) => updateGapSelection(gap.id, e.target.checked)}
-                              className="mt-2 h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                            />
-                            <div className="flex-1 min-w-0 space-y-3">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h4 className="text-sm font-semibold text-gray-900 leading-tight">
-                                    {gap.gap_title}
-                                  </h4>
-                                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                                    {gap.gap_description}
-                                  </p>
+                  {dataSources.isLoadingChats ? (
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading chat history...</span>
+                    </div>
+                  ) : dataSources.chatHistory.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      No chat history found for this session
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm text-muted-foreground">
+                        {dataSources.chatHistory.length} chat conversations available
+                      </div>
+                      
+                      {showDataSourcesDetails.chats && (
+                        <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
+                          {dataSources.chatHistory.map((chat) => (
+                            <div key={chat.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
+                              <input
+                                type="checkbox"
+                                checked={chat.selected}
+                                onChange={(e) => updateChatSelection(chat.id, e.target.checked)}
+                                className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {chat.user_message || chat.message}
                                 </div>
-                                <div className="flex items-center space-x-1 ml-2">
-                                  {gap.regulatory_requirement && (
-                                    <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full">
-                                      <Shield className="h-3 w-3" />
-                                      <span className="text-xs font-medium">Regulatory</span>
-                                    </div>
-                                  )}
+                                <div className="text-xs text-gray-500">
+                                  {new Date(chat.timestamp).toLocaleString()}
                                 </div>
                               </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
-                              <div className="flex items-center space-x-2 flex-wrap gap-1">
-                                <div className={`flex items-center space-x-1 px-2 py-1 rounded-full border text-xs font-medium ${getRiskLevelColor(gap.risk_level)}`}>
-                                  {getRiskIcon(gap.risk_level)}
-                                  <span>{gap.risk_level.toUpperCase()} RISK</span>
-                                </div>
-                                <div className={`flex items-center space-x-1 px-2 py-1 rounded-full border text-xs font-medium ${getBusinessImpactColor(gap.business_impact)}`}>
-                                  <span>{gap.business_impact.toUpperCase()} IMPACT</span>
-                                </div>
-                                <div className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                                  {gap.gap_type.replace('_', ' ').toUpperCase()}
-                                </div>
-                              </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="h-5 w-5 text-orange-600" />
+                      <span className="font-medium">Compliance Gaps</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({getSelectionCounts().selectedGapsCount} of {getSelectionCounts().totalGapsCount} selected)
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectAllGaps(true)}
+                        disabled={dataSources.isLoadingGaps}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectAllGaps(false)}
+                        disabled={dataSources.isLoadingGaps}
+                      >
+                        Deselect All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleDataSourcesDetail('gaps')}
+                      >
+                        {showDataSourcesDetails.gaps ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
 
-                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                                <div className="flex items-center space-x-1 text-gray-600">
-                                  <FileText className="h-3 w-3 text-blue-500" />
-                                  <span className="font-medium">Category:</span>
-                                  <span className="truncate">{gap.gap_category}</span>
-                                </div>
-                                
-                                <div className="flex items-center space-x-1 text-gray-600">
-                                  <Download className="h-3 w-3 text-purple-500" />
-                                  <span className="font-medium">Confidence:</span>
-                                  <span className="font-semibold text-purple-600">
-                                    {Math.round((gap.confidence_score || 0) * 100)}%
-                                  </span>
-                                </div>
+                  {dataSources.isLoadingGaps ? (
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading compliance gaps...</span>
+                    </div>
+                  ) : dataSources.complianceGaps.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      No compliance gaps found for this session
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm text-muted-foreground">
+                        {dataSources.complianceGaps.length} compliance gaps available
+                      </div>
+                      
+                      {showDataSourcesDetails.gaps && (
+                        <div className=" overflow-y-auto space-y-3 border rounded-md p-4">
+                          {dataSources.complianceGaps.map((gap) => {
+                            const getRiskLevelColor = (level: string) => {
+                              switch (level) {
+                                case 'low': return 'text-green-600 bg-green-50 border-green-200'
+                                case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+                                case 'high': return 'text-orange-600 bg-orange-50 border-orange-200'
+                                case 'critical': return 'text-red-600 bg-red-50 border-red-200'
+                                default: return 'text-gray-600 bg-gray-50 border-gray-200'
+                              }
+                            };
 
-                                {gap.potential_fine_amount && gap.potential_fine_amount > 0 && (
-                                  <div className="flex items-center space-x-1 text-gray-600">
-                                    <XCircle className="h-3 w-3 text-red-500" />
-                                    <span className="font-medium">Potential Fine:</span>
-                                    <span className="font-semibold text-red-600">
-                                      ${gap.potential_fine_amount.toLocaleString()}
-                                    </span>
-                                  </div>
-                                )}
+                            const getBusinessImpactColor = (level: string) => {
+                              switch (level) {
+                                case 'low': return 'text-blue-600 bg-blue-50 border-blue-200'
+                                case 'medium': return 'text-indigo-600 bg-indigo-50 border-indigo-200'
+                                case 'high': return 'text-purple-600 bg-purple-50 border-purple-200'
+                                case 'critical': return 'text-pink-600 bg-pink-50 border-pink-200'
+                                default: return 'text-gray-600 bg-gray-50 border-gray-200'
+                              }
+                            };
 
-                                <div className="flex items-center space-x-1 text-gray-600">
-                                  <Eye className="h-3 w-3 text-green-500" />
-                                  <span className="font-medium">Detection:</span>
-                                  <span>{gap.detection_method?.replace('_', ' ') || 'Manual'}</span>
-                                </div>
-                              </div>
+                            const getRiskIcon = (level: string) => {
+                              switch (level) {
+                                case 'low': return <CheckCircle className="h-3 w-3" />
+                                case 'medium': return <AlertCircle className="h-3 w-3" />
+                                case 'high': return <AlertTriangle className="h-3 w-3" />
+                                case 'critical': return <XCircle className="h-3 w-3" />
+                                default: return <AlertTriangle className="h-3 w-3" />
+                              }
+                            };
 
-                              {(gap.recommendation_text || gap.recommended_actions?.length > 0) && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
-                                  <div className="flex items-start space-x-2">
-                                    <Info className="h-3 w-3 text-blue-600 mt-0.5 flex-shrink-0" />
+                            return (
+                              <div key={gap.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-100">
+                                <input
+                                  type="checkbox"
+                                  checked={gap.selected}
+                                  onChange={(e) => updateGapSelection(gap.id, e.target.checked)}
+                                  className="mt-2 h-4 w-4 text-primary focus:ring-primary border-input rounded"
+                                />
+                                <div className="flex-1 min-w-0 space-y-3">
+                                  <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                      <p className="text-xs font-medium text-blue-800 mb-1">Recommended Action:</p>
-                                      {gap.recommendation_text && (
-                                        <p className="text-xs text-blue-700 leading-relaxed mb-1">
-                                          {gap.recommendation_text}
-                                        </p>
+                                      <h4 className="text-sm font-semibold text-gray-900 leading-tight">
+                                        {gap.gap_title}
+                                      </h4>
+                                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                                        {gap.gap_description}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center space-x-1 ml-2">
+                                      {gap.regulatory_requirement && (
+                                        <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full">
+                                          <Shield className="h-3 w-3" />
+                                          <span className="text-xs font-medium">Regulatory</span>
+                                        </div>
                                       )}
-                                      {gap.recommended_actions?.length > 0 && (
-                                        <ul className="text-xs text-blue-700 space-y-0.5">
-                                          {gap.recommended_actions.slice(0, 2).map((action, index) => (
-                                            <li key={index} className="flex items-start space-x-1">
-                                              <span className="text-blue-500 mt-0.5">•</span>
-                                              <span>{action}</span>
-                                            </li>
-                                          ))}
-                                          {gap.recommended_actions.length > 2 && (
-                                            <li className="text-blue-600 font-medium">
-                                              +{gap.recommended_actions.length - 2} more actions...
-                                            </li>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center space-x-2 flex-wrap gap-1">
+                                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full border text-xs font-medium ${getRiskLevelColor(gap.risk_level)}`}>
+                                      {getRiskIcon(gap.risk_level)}
+                                      <span>{gap.risk_level.toUpperCase()} RISK</span>
+                                    </div>
+                                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full border text-xs font-medium ${getBusinessImpactColor(gap.business_impact)}`}>
+                                      <span>{gap.business_impact.toUpperCase()} IMPACT</span>
+                                    </div>
+                                    <div className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                                      {gap.gap_type.replace('_', ' ').toUpperCase()}
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                                    <div className="flex items-center space-x-1 text-gray-600">
+                                      <FileText className="h-3 w-3 text-blue-500" />
+                                      <span className="font-medium">Category:</span>
+                                      <span className="truncate">{gap.gap_category}</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center space-x-1 text-gray-600">
+                                      <Download className="h-3 w-3 text-purple-500" />
+                                      <span className="font-medium">Confidence:</span>
+                                      <span className="font-semibold text-purple-600">
+                                        {Math.round((gap.confidence_score || 0) * 100)}%
+                                      </span>
+                                    </div>
+
+                                    {gap.potential_fine_amount && gap.potential_fine_amount > 0 && (
+                                      <div className="flex items-center space-x-1 text-gray-600">
+                                        <XCircle className="h-3 w-3 text-red-500" />
+                                        <span className="font-medium">Potential Fine:</span>
+                                        <span className="font-semibold text-red-600">
+                                          ${gap.potential_fine_amount.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    <div className="flex items-center space-x-1 text-gray-600">
+                                      <Eye className="h-3 w-3 text-green-500" />
+                                      <span className="font-medium">Detection:</span>
+                                      <span>{gap.detection_method?.replace('_', ' ') || 'Manual'}</span>
+                                    </div>
+                                  </div>
+
+                                  {(gap.recommendation_text || gap.recommended_actions?.length > 0) && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+                                      <div className="flex items-start space-x-2">
+                                        <Info className="h-3 w-3 text-blue-600 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                          <p className="text-xs font-medium text-blue-800 mb-1">Recommended Action:</p>
+                                          {gap.recommendation_text && (
+                                            <p className="text-xs text-blue-700 leading-relaxed mb-1">
+                                              {gap.recommendation_text}
+                                            </p>
                                           )}
-                                        </ul>
+                                          {gap.recommended_actions?.length > 0 && (
+                                            <ul className="text-xs text-blue-700 space-y-0.5">
+                                              {gap.recommended_actions.slice(0, 2).map((action, index) => (
+                                                <li key={index} className="flex items-start space-x-1">
+                                                  <span className="text-blue-500 mt-0.5">•</span>
+                                                  <span>{action}</span>
+                                                </li>
+                                              ))}
+                                              {gap.recommended_actions.length > 2 && (
+                                                <li className="text-blue-600 font-medium">
+                                                  +{gap.recommended_actions.length - 2} more actions...
+                                                </li>
+                                              )}
+                                            </ul>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                                    <div className="flex items-center space-x-3 text-xs text-gray-500">
+                                      <span>Gap ID: {gap.id.slice(0, 8)}</span>
+                                      {gap.detected_at && (
+                                        <span>Detected: {new Date(gap.detected_at).toLocaleDateString()}</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      {gap.false_positive_likelihood > 0.3 && (
+                                        <div className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
+                                          Review Needed
+                                        </div>
+                                      )}
+                                      {gap.business_impact === 'critical' || gap.risk_level === 'critical' ? (
+                                        <div className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                          Urgent
+                                        </div>
+                                      ) : gap.regulatory_requirement ? (
+                                        <div className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                                          Priority
+                                        </div>
+                                      ) : (
+                                        <div className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                          Standard
+                                        </div>
                                       )}
                                     </div>
                                   </div>
                                 </div>
-                              )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
-                              <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-                                <div className="flex items-center space-x-3 text-xs text-gray-500">
-                                  <span>Gap ID: {gap.id.slice(0, 8)}</span>
-                                  {gap.detected_at && (
-                                    <span>Detected: {new Date(gap.detected_at).toLocaleDateString()}</span>
-                                  )}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-5 w-5 text-green-600" />
+                      <span className="font-medium">Documents</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({getSelectionCounts().selectedDocumentsCount} of {getSelectionCounts().totalDocumentsCount} selected)
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectAllDocuments(true)}
+                        disabled={dataSources.isLoadingDocuments}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectAllDocuments(false)}
+                        disabled={dataSources.isLoadingDocuments}
+                      >
+                        Deselect All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleDataSourcesDetail('documents')}
+                      >
+                        {showDataSourcesDetails.documents ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {dataSources.isLoadingDocuments ? (
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading documents...</span>
+                    </div>
+                  ) : dataSources.documents.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      No documents found for this session
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm text-muted-foreground">
+                        {dataSources.documents.length} documents available
+                      </div>
+                      
+                      {showDataSourcesDetails.documents && (
+                        <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
+                          {dataSources.documents.map((doc) => (
+                            <div key={doc.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
+                              <input
+                                type="checkbox"
+                                checked={doc.selected}
+                                onChange={(e) => updateDocumentSelection(doc.id, e.target.checked)}
+                                className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {doc.filename}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                  {gap.false_positive_likelihood > 0.3 && (
-                                    <div className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
-                                      Review Needed
-                                    </div>
-                                  )}
-                                  {gap.business_impact === 'critical' || gap.risk_level === 'critical' ? (
-                                    <div className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                                      Urgent
-                                    </div>
-                                  ) : gap.regulatory_requirement ? (
-                                    <div className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
-                                      Priority
-                                    </div>
-                                  ) : (
-                                    <div className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                                      Standard
-                                    </div>
-                                  )}
+                                <div className="text-xs text-gray-500">
+                                  Uploaded: {new Date(doc.upload_date).toLocaleDateString()}
+                                  {doc.file_size && ` | Size: ${(doc.file_size / 1024 / 1024).toFixed(2)} MB`}
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-5 w-5 text-green-600" />
-                  <span className="font-medium">Documents</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({getSelectionCounts().selectedDocumentsCount} of {getSelectionCounts().totalDocumentsCount} selected)
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => selectAllDocuments(true)}
-                    disabled={dataSources.isLoadingDocuments}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => selectAllDocuments(false)}
-                    disabled={dataSources.isLoadingDocuments}
-                  >
-                    Deselect All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleDataSourcesDetail('documents')}
-                  >
-                    {showDataSourcesDetails.documents ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              {dataSources.isLoadingDocuments ? (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading documents...</span>
-                </div>
-              ) : dataSources.documents.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No documents found for this session
-                </div>
-              ) : (
-                <>
-                  <div className="text-sm text-muted-foreground">
-                    {dataSources.documents.length} documents available
-                  </div>
-                  
-                  {showDataSourcesDetails.documents && (
-                    <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
-                      {dataSources.documents.map((doc) => (
-                        <div key={doc.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                          <input
-                            type="checkbox"
-                            checked={doc.selected}
-                            onChange={(e) => updateDocumentSelection(doc.id, e.target.checked)}
-                            className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900">
-                              {doc.filename}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Uploaded: {new Date(doc.upload_date).toLocaleDateString()}
-                              {doc.file_size && ` | Size: ${(doc.file_size / 1024 / 1024).toFixed(2)} MB`}
-                            </div>
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
