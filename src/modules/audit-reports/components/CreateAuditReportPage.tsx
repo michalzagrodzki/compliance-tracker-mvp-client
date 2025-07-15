@@ -528,6 +528,28 @@ export default function CreateAuditReportPage() {
               </div>
             </div>
 
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Confidentiality Level *</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                {CONFIDENTIALITY_LEVEL_OPTIONS.map((option, index) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleConfidentialityChange(option.value)}
+                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
+                      formData.confidentiality_level === option.value
+                        ? `border-blue-400 ${option.color}`
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                    style={{ transitionDelay: `${index * 50}ms` }}
+                  >
+                    <div className="font-medium">{option.label}</div>
+                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label htmlFor="template_used" className="text-sm font-medium">Template Used</label>
               <Input
@@ -1021,27 +1043,7 @@ export default function CreateAuditReportPage() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Confidentiality Level *</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                {CONFIDENTIALITY_LEVEL_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleConfidentialityChange(option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.confidentiality_level === option.value
-                        ? `border-blue-400 ${option.color}`
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            
 
             <div className="flex items-center space-x-2 pt-4 border-t">
               <input
