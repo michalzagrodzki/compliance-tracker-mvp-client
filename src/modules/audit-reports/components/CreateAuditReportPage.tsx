@@ -32,7 +32,10 @@ import {
   REPORT_TYPE_OPTIONS,
   TARGET_AUDIENCE_OPTIONS,
   CONFIDENTIALITY_LEVEL_OPTIONS,
+  SummaryType
 } from '../types';
+import { useAuditReport } from '../hooks/useAuditReport';
+import type { ComplianceGap } from '@/modules/compliance-gaps/types';
 
 const COMPLIANCE_DOMAINS = [
   { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
@@ -48,7 +51,6 @@ export default function CreateAuditReportPage() {
     error,
     createResponse,
     dataSources,
-    isGeneratingSummary,
     loadSessionDataSources,
     updateChatSelection,
     updateGapSelection,
@@ -61,6 +63,20 @@ export default function CreateAuditReportPage() {
     clearCreateResponse,
     clearDataSources
   } = useAuditReportStore();
+
+  const {
+    isGeneratingSummary,
+    executiveSummary,
+    summaryError,
+    generateExecutiveSummary,
+    clearExecutiveSummary,
+    clearSummaryError,
+    canGenerateSummary,
+    getSelectedData,
+    prepareReportData,
+    validateSummaryGeneration,
+    loadSessionData,
+  } = useAuditReport();
 
   const [showAboutInfo, setShowAboutInfo] = useState(false);
   const [showDataSourcesDetails, setShowDataSourcesDetails] = useState({
@@ -107,19 +123,19 @@ export default function CreateAuditReportPage() {
   useEffect(() => {
     clearError();
     clearCreateResponse();
-
+  
     if (sessionId) {
-      // Load session details
       fetchSessionById(sessionId);
-      // Load all data sources for the session
-      loadSessionDataSources(sessionId);
+      loadSessionData(sessionId);
     }
-
+  
     return () => {
       clearDataSources();
+      clearExecutiveSummary();
+      clearSummaryError();
     };
-  }, [sessionId, fetchSessionById, loadSessionDataSources, clearError, clearCreateResponse, clearDataSources]);
-
+  }, [sessionId, fetchSessionById, loadSessionData, clearError, clearCreateResponse, clearDataSources, clearExecutiveSummary, clearSummaryError]);
+  
   useEffect(() => {
     // Update form when session is loaded (for sessionId flow)
     if (currentSession && sessionId) {
@@ -133,6 +149,15 @@ export default function CreateAuditReportPage() {
       setSelectedAuditSession(sessionId);
     }
   }, [currentSession, sessionId]);
+
+  useEffect(() => {
+    if (executiveSummary?.executive_summary) {
+      setFormData(prev => ({
+        ...prev,
+        executive_summary: executiveSummary.executive_summary,
+      }));
+    }
+  }, [executiveSummary]);
 
   const handleComplianceDomainChange = async (domain: string) => {
     setSelectedComplianceDomain(domain);
@@ -209,12 +234,69 @@ export default function CreateAuditReportPage() {
     }));
   };
 
-  const handleGenerateSummary = async (summaryType: 'executive_summary' | 'control_risk_prioritization' | 'threat_intelligence_analysis' | 'target_audience_summary') => {
+  const handleGenerateSummary = async (input: any) => {
+    return console.log("generate summary for:" + input)
+  }
+
+  const handleGenerateExecutiveSummary = async () => {
     if (!selectedAuditSession) {
       return;
     }
-
-    console.log("generate summary by type " + summaryType)
+  
+    // Validate that gaps are selected
+    const validation = validateSummaryGeneration();
+    if (!validation.isValid) {
+      // You might want to show a toast or alert here
+      console.error('Validation failed:', validation.errors);
+      return;
+    }
+  
+    try {
+      // Clear any previous errors
+      clearSummaryError();
+  
+      // Prepare the report data with current form state
+      const reportData = prepareReportData(formData);
+  
+      // Get selected gaps for summary generation
+      const selectedData = getSelectedData();
+      const selectedGaps: ComplianceGap[] = selectedData.selectedGaps.map(gap => ({
+        id: gap.id,
+        user_id: user?.id || "",
+        audit_session_id: selectedAuditSession,
+        compliance_domain: formData.compliance_domain,
+        gap_type: gap.gap_type,
+        gap_category: gap.gap_category,
+        gap_title: gap.gap_title,
+        gap_description: gap.gap_description,
+        original_question: "",
+        risk_level: gap.risk_level as any,
+        business_impact: gap.business_impact as any,
+        regulatory_requirement: gap.regulatory_requirement || false,
+        potential_fine_amount: gap.potential_fine_amount ?? undefined,
+        status: "identified" as any,
+        recommendation_type: gap.recommendation_type,
+        recommendation_text: gap.recommendation_text,
+        recommended_actions: gap.recommended_actions || [],
+        detection_method: (gap.detection_method as any) || "manual",
+        confidence_score: gap.confidence_score,
+        auto_generated: true,
+        false_positive_likelihood: gap.false_positive_likelihood || 0,
+        detected_at: gap.detected_at || new Date().toISOString(),
+        created_at: gap.detected_at || new Date().toISOString(),
+        updated_at: gap.detected_at || new Date().toISOString(),
+      }));
+  
+      // Generate executive summary
+      await generateExecutiveSummary(
+        reportData,
+        selectedGaps,
+        SummaryType.STANDARD
+      );
+  
+    } catch (error) {
+      console.error('Failed to generate executive summary:', error);
+    }
   };
 
   const toggleDataSourcesDetail = (source: 'chats' | 'gaps' | 'documents') => {
@@ -232,26 +314,12 @@ export default function CreateAuditReportPage() {
            formData.confidentiality_level;
   };
 
-  const prepareReportData = (): AuditReportCreate => {
-    const selectedData = auditReportStoreUtils.getSelectedData();
-    
-    return {
-      ...formData,
-      chat_history_ids: selectedData.selectedChats.map(chat => {
-        const id = typeof chat.id === 'string' ? parseInt(chat.id, 10) : chat.id;
-        return isNaN(id) ? 0 : id;
-      }),
-      compliance_gap_ids: selectedData.selectedGaps.map(gap => gap.id),
-      document_ids: selectedData.selectedDocuments.map(doc => doc.id),
-      pdf_ingestion_ids: selectedData.selectedDocuments.map(doc => doc.id), // Same as document_ids for now
-    };
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid()) return;
 
-    const reportData = prepareReportData();
+    const reportData = prepareReportData(formData);
     await createReport(reportData);
   };
 
@@ -406,11 +474,11 @@ export default function CreateAuditReportPage() {
         </CardContent>
       </Card>
 
-      {error && (
+      {(error || summaryError) && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="flex items-center space-x-2 pt-6">
             <XCircle className="h-4 w-4 text-red-600" />
-            <span className="text-red-700">{error}</span>
+            <span className="text-red-700">{error || summaryError}</span>
           </CardContent>
         </Card>
       )}
@@ -591,8 +659,8 @@ export default function CreateAuditReportPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handleGenerateSummary('executive_summary')}
-                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  onClick={handleGenerateExecutiveSummary}
+                  disabled={!selectedAuditSession || !canGenerateSummary() || isGeneratingSummary}
                   className="flex items-center space-x-2"
                 >
                   {isGeneratingSummary ? (
@@ -600,7 +668,9 @@ export default function CreateAuditReportPage() {
                   ) : (
                     <Sparkles className="h-4 w-4" />
                   )}
-                  <span>Generate summary</span>
+                  <span>
+                    {isGeneratingSummary ? 'Generating...' : 'Generate Executive Summary'}
+                  </span>
                 </Button>
               </div>
               <textarea
@@ -608,13 +678,48 @@ export default function CreateAuditReportPage() {
                 value={formData.executive_summary || ''}
                 onChange={(e) => handleInputChange('executive_summary', e.target.value)}
                 placeholder="Executive summary of the audit findings and recommendations..."
-                rows={4}
+                rows={6}
                 className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
               />
-              <p className="text-xs text-muted-foreground">
-                High-level overview of audit findings for executive stakeholders
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  High-level overview of audit findings for executive stakeholders
+                </p>
+                {!canGenerateSummary() && selectedAuditSession && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable summary generation
+                  </p>
+                )}
+              </div>
             </div>
+
+            {executiveSummary && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">
+                    Executive Summary Generated Successfully
+                  </span>
+                </div>
+                <div className="text-xs text-green-700 space-y-1">
+                  <p>• Total Gaps Analyzed: {executiveSummary.total_gaps}</p>
+                  <p>• High Risk Gaps: {executiveSummary.high_risk_gaps}</p>
+                  <p>• Regulatory Gaps: {executiveSummary.regulatory_gaps}</p>
+                  {executiveSummary.potential_financial_impact && (
+                    <p>• Potential Financial Impact: ${executiveSummary.potential_financial_impact.toLocaleString()}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!selectedAuditSession && (
+              <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg">
+                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">
+                  Select an audit session to enable summary generation
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">

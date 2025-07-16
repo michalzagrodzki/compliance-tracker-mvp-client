@@ -8,7 +8,11 @@ import type {
   AuditReport,
   AuditReportCreate,
   AuditReportResponse,
+  ExecutiveSummaryResponse,
+  SummaryTypeValue,
 } from "../types";
+import { SummaryType } from "../types";
+import type { ComplianceGap } from "@/modules/compliance-gaps/types";
 
 export const useAuditReport = () => {
   const {
@@ -20,6 +24,9 @@ export const useAuditReport = () => {
     createResponse,
     dataSources,
     isGeneratingSummary,
+    executiveSummary,
+    summaryError,
+    summaryGenerationHistory,
     createReport,
     fetchReports,
     fetchReportById,
@@ -38,6 +45,12 @@ export const useAuditReport = () => {
     updateError,
     updateReport,
     clearUpdateError,
+    generateExecutiveSummary,
+    clearExecutiveSummary,
+    clearSummaryError,
+    updateExecutiveSummaryInReport,
+    getSummaryHistory,
+    clearSummaryHistory,
   } = useAuditReportStore();
 
   const handleCreateReport = useCallback(
@@ -118,6 +131,81 @@ export const useAuditReport = () => {
     [selectAllChats, selectAllGaps, selectAllDocuments]
   );
 
+  // Executive Summary Actions
+  const handleGenerateExecutiveSummary = useCallback(
+    async (
+      auditReport: AuditReportCreate,
+      complianceGaps?: ComplianceGap[],
+      summaryType: SummaryTypeValue = SummaryType.STANDARD
+    ): Promise<ExecutiveSummaryResponse> => {
+      try {
+        // Use provided gaps or get from selected data
+        const gaps = complianceGaps;
+
+        if (!gaps || (gaps && gaps.length === 0)) {
+          throw new Error("No compliance gaps selected for summary generation");
+        }
+
+        const response = await generateExecutiveSummary(
+          auditReport,
+          gaps,
+          summaryType
+        );
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [generateExecutiveSummary]
+  );
+
+  const handleUpdateExecutiveSummaryInReport = useCallback(
+    async (reportId: string, summary: string) => {
+      try {
+        await updateExecutiveSummaryInReport(reportId, summary);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateExecutiveSummaryInReport]
+  );
+
+  const handleRegenerateSummary = useCallback(
+    async (
+      auditReport: AuditReportCreate,
+      summaryType: SummaryTypeValue = SummaryType.STANDARD
+    ): Promise<ExecutiveSummaryResponse> => {
+      try {
+        clearExecutiveSummary();
+        return await handleGenerateExecutiveSummary(
+          auditReport,
+          undefined,
+          summaryType
+        );
+      } catch (error) {
+        throw error;
+      }
+    },
+    [clearExecutiveSummary, handleGenerateExecutiveSummary]
+  );
+
+  const handleSaveAndUseSummary = useCallback(
+    async (reportId: string, summary?: string): Promise<void> => {
+      try {
+        const summaryToUse = summary || executiveSummary?.executive_summary;
+
+        if (!summaryToUse) {
+          throw new Error("No executive summary available to save");
+        }
+
+        await updateExecutiveSummaryInReport(reportId, summaryToUse);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [executiveSummary, updateExecutiveSummaryInReport]
+  );
+
   const getSelectedData = useCallback(() => {
     return auditReportStoreUtils.getSelectedData();
   }, []);
@@ -192,11 +280,72 @@ export const useAuditReport = () => {
     []
   );
 
+  const validateSummaryGeneration = useCallback((): {
+    isValid: boolean;
+    errors: string[];
+  } => {
+    const errors: string[] = [];
+    const selectionCounts = auditReportStoreUtils.getSelectionCounts();
+
+    if (selectionCounts.selectedGapsCount === 0) {
+      errors.push(
+        "At least one compliance gap must be selected to generate an executive summary"
+      );
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }, []);
+
   const resetForm = useCallback(() => {
     clearError();
     clearCreateResponse();
     clearDataSources();
-  }, [clearError, clearCreateResponse, clearDataSources]);
+    clearExecutiveSummary();
+    clearSummaryError();
+  }, [
+    clearError,
+    clearCreateResponse,
+    clearDataSources,
+    clearExecutiveSummary,
+    clearSummaryError,
+  ]);
+
+  const resetSummaryState = useCallback(() => {
+    clearExecutiveSummary();
+    clearSummaryError();
+  }, [clearExecutiveSummary, clearSummaryError]);
+
+  // Executive Summary utilities
+  const hasExecutiveSummary = useCallback(() => {
+    return auditReportStoreUtils.hasExecutiveSummary();
+  }, []);
+
+  const getExecutiveSummaryPreview = useCallback((maxLength?: number) => {
+    return auditReportStoreUtils.getExecutiveSummaryPreview(maxLength);
+  }, []);
+
+  const canGenerateSummary = useCallback(() => {
+    const selectionCounts = auditReportStoreUtils.getSelectionCounts();
+    return selectionCounts.selectedGapsCount > 0;
+  }, []);
+
+  const getSummaryStats = useCallback(() => {
+    if (!executiveSummary) return null;
+
+    return {
+      totalGaps: executiveSummary.total_gaps,
+      highRiskGaps: executiveSummary.high_risk_gaps,
+      mediumRiskGaps: executiveSummary.medium_risk_gaps,
+      lowRiskGaps: executiveSummary.low_risk_gaps,
+      regulatoryGaps: executiveSummary.regulatory_gaps,
+      potentialFinancialImpact: executiveSummary.potential_financial_impact,
+      auditSessionId: executiveSummary.audit_session_id,
+      complianceDomain: executiveSummary.compliance_domain,
+    };
+  }, [executiveSummary]);
 
   return {
     // State
@@ -211,6 +360,11 @@ export const useAuditReport = () => {
     updateError,
     isGeneratingSummary,
 
+    // Executive Summary State
+    executiveSummary,
+    summaryError,
+    summaryGenerationHistory,
+
     // Actions
     createReport: handleCreateReport,
     updateReport: handleUpdateReport,
@@ -220,15 +374,31 @@ export const useAuditReport = () => {
     updateSelections: handleUpdateSelections,
     selectAll: handleSelectAll,
 
+    // Executive Summary Actions
+    generateExecutiveSummary: handleGenerateExecutiveSummary,
+    regenerateSummary: handleRegenerateSummary,
+    updateExecutiveSummaryInReport: handleUpdateExecutiveSummaryInReport,
+    saveAndUseSummary: handleSaveAndUseSummary,
+
     // Utilities
     getSelectedData,
     getSelectionCounts,
     prepareReportData,
     validateReportData,
+    validateSummaryGeneration,
     resetForm,
+    resetSummaryState,
+    hasExecutiveSummary,
+    getExecutiveSummaryPreview,
+    canGenerateSummary,
+    getSummaryStats,
+    getSummaryHistory,
+    clearSummaryHistory,
     clearError,
     clearCreateResponse,
     clearUpdateError,
+    clearExecutiveSummary,
+    clearSummaryError,
     setLoading,
   };
 };

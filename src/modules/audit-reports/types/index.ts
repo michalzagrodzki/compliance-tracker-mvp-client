@@ -4,6 +4,7 @@ import type {
   BusinessImpactLevel,
   RecommendationType,
 } from "@/modules/compliance-gaps";
+import type { ComplianceGap } from "@/modules/compliance-gaps/types";
 
 export type ReportType =
   | "compliance_audit"
@@ -37,6 +38,14 @@ export type OverallComplianceRating =
   | "fair"
   | "poor"
   | "critical";
+
+export const SummaryType = {
+  STANDARD: "standard",
+  DETAILED: "detailed",
+  BRIEF: "brief",
+} as const;
+
+export type SummaryTypeValue = (typeof SummaryType)[keyof typeof SummaryType];
 
 export type TrendingDirection = "improving" | "stable" | "declining";
 
@@ -408,4 +417,23 @@ export interface ReportDataSources {
   isLoadingChats: boolean;
   isLoadingGaps: boolean;
   isLoadingDocuments: boolean;
+}
+
+export interface ExecutiveSummaryRequest {
+  audit_report: AuditReportCreate;
+  compliance_gaps: ComplianceGap[];
+  summary_type?: SummaryTypeValue;
+}
+
+export interface ExecutiveSummaryResponse {
+  executive_summary: string;
+  audit_session_id: string;
+  compliance_domain: string;
+  total_gaps: number;
+  high_risk_gaps: number;
+  medium_risk_gaps: number;
+  low_risk_gaps: number;
+  regulatory_gaps: number;
+  potential_financial_impact: number;
+  generation_metadata: Record<string, any>;
 }

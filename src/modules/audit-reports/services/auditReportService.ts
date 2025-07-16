@@ -1,13 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { http } from "@/modules/api/http";
-import type {
-  AuditReport,
-  AuditReportCreate,
-  AuditReportResponse,
-  ChatHistoryItem,
-  ComplianceGapItem,
-  DocumentItem,
+import {
+  SummaryType,
+  type AuditReport,
+  type AuditReportCreate,
+  type AuditReportResponse,
+  type ChatHistoryItem,
+  type ComplianceGapItem,
+  type DocumentItem,
+  type ExecutiveSummaryRequest,
+  type ExecutiveSummaryResponse,
+  type SummaryTypeValue,
 } from "../types";
+import type { ComplianceGap } from "@/modules/compliance-gaps/types";
 
 const AUDIT_REPORT_ENDPOINTS = {
   CREATE: "/v1/audit-reports",
@@ -16,6 +21,7 @@ const AUDIT_REPORT_ENDPOINTS = {
   BY_ID: (reportId: string) => `/v1/audit-reports/${reportId}`,
   BY_SESSION: (sessionId: string) => `/v1/audit-reports/session/${sessionId}`,
   DOWNLOAD: (reportId: string) => `/v1/audit-reports/${reportId}/download`,
+  EXECUTIVE_SUMMARY: "/v1/executive-summary",
 
   // Data source endpoints
   SESSION_CHATS: (sessionId: string) =>
@@ -182,6 +188,32 @@ class AuditReportService {
     } catch (error: any) {
       console.error("Failed to fetch session documents:", error);
       return [];
+    }
+  }
+
+  async createExecutiveSummary(
+    auditReport: AuditReportCreate,
+    complianceGaps: ComplianceGap[],
+    summaryType: SummaryTypeValue = SummaryType.STANDARD
+  ): Promise<ExecutiveSummaryResponse> {
+    try {
+      const requestData: ExecutiveSummaryRequest = {
+        audit_report: auditReport,
+        compliance_gaps: complianceGaps,
+        summary_type: summaryType,
+      };
+
+      const response = await http.post<ExecutiveSummaryResponse>(
+        AUDIT_REPORT_ENDPOINTS.EXECUTIVE_SUMMARY,
+        requestData
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to create executive summary:", error);
+      throw new Error(
+        error.response?.data?.detail || "Failed to create executive summary"
+      );
     }
   }
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { auditReportService } from "../services/auditReportService";
@@ -8,10 +9,41 @@ import type {
   AuditReportActions,
   ReportDataSources,
   AuditReport,
+  ExecutiveSummaryResponse,
+  SummaryTypeValue,
 } from "../types";
+import { SummaryType } from "../types";
+import type { ComplianceGap } from "@/modules/compliance-gaps/types";
 
-interface AuditReportStore extends AuditReportState, AuditReportActions {
-  // Data sources for report creation
+interface ExecutiveSummaryState {
+  executiveSummary: ExecutiveSummaryResponse | null;
+  isGeneratingSummary: boolean;
+  summaryError: string | null;
+  summaryGenerationHistory: ExecutiveSummaryResponse[];
+}
+
+interface ExecutiveSummaryActions {
+  generateExecutiveSummary: (
+    auditReport: AuditReportCreate,
+    complianceGaps: ComplianceGap[],
+    summaryType?: SummaryTypeValue,
+    customInstructions?: string
+  ) => Promise<ExecutiveSummaryResponse>;
+  clearExecutiveSummary: () => void;
+  clearSummaryError: () => void;
+  updateExecutiveSummaryInReport: (
+    reportId: string,
+    summary: string
+  ) => Promise<void>;
+  getSummaryHistory: () => ExecutiveSummaryResponse[];
+  clearSummaryHistory: () => void;
+}
+
+interface AuditReportStore
+  extends AuditReportState,
+    AuditReportActions,
+    ExecutiveSummaryState,
+    ExecutiveSummaryActions {
   dataSources: ReportDataSources;
 
   // Data source actions
@@ -36,6 +68,11 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   isUpdating: false,
   updateError: null,
   isGeneratingSummary: false,
+
+  // Executive Summary State
+  executiveSummary: null,
+  summaryError: null,
+  summaryGenerationHistory: [],
 
   // Data sources state
   dataSources: {
@@ -311,6 +348,72 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
       },
     });
   },
+
+  generateExecutiveSummary: async (
+    auditReport: AuditReportCreate,
+    complianceGaps: ComplianceGap[],
+    summaryType: SummaryTypeValue = SummaryType.STANDARD
+  ): Promise<ExecutiveSummaryResponse> => {
+    set({ isGeneratingSummary: true, summaryError: null });
+
+    try {
+      const summaryResponse = await auditReportService.createExecutiveSummary(
+        auditReport,
+        complianceGaps,
+        summaryType
+      );
+
+      // Add to history
+      const currentHistory = get().summaryGenerationHistory;
+      const updatedHistory = [summaryResponse, ...currentHistory.slice(0, 4)]; // Keep last 5
+
+      set({
+        executiveSummary: summaryResponse,
+        summaryGenerationHistory: updatedHistory,
+        isGeneratingSummary: false,
+      });
+
+      return summaryResponse;
+    } catch (error: any) {
+      const errorMessage =
+        error.message || "Failed to generate executive summary";
+      set({
+        summaryError: errorMessage,
+        isGeneratingSummary: false,
+      });
+      throw error;
+    }
+  },
+
+  clearExecutiveSummary: () => {
+    set({
+      executiveSummary: null,
+      summaryError: null,
+    });
+  },
+
+  clearSummaryError: () => {
+    set({ summaryError: null });
+  },
+
+  updateExecutiveSummaryInReport: async (
+    reportId: string,
+    summary: string
+  ): Promise<void> => {
+    try {
+      await get().updateReport(reportId, { executive_summary: summary });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getSummaryHistory: () => {
+    return get().summaryGenerationHistory;
+  },
+
+  clearSummaryHistory: () => {
+    set({ summaryGenerationHistory: [] });
+  },
 }));
 
 export const auditReportStoreUtils = {
@@ -344,5 +447,53 @@ export const auditReportStoreUtils = {
       ).length,
       totalDocumentsCount: dataSources.documents.length,
     };
+  },
+
+  // Executive Summary utilities
+  hasExecutiveSummary: () => {
+    const { executiveSummary } = useAuditReportStore.getState();
+    return executiveSummary !== null;
+  },
+
+  getExecutiveSummaryPreview: (maxLength: number = 200) => {
+    const { executiveSummary } = useAuditReportStore.getState();
+    if (!executiveSummary?.executive_summary) return null;
+
+    const summary = executiveSummary.executive_summary;
+    return summary.length > maxLength
+      ? summary.substring(0, maxLength) + "..."
+      : summary;
+  },
+
+  getComplianceGapsForSummary: () => {
+    const { dataSources } = useAuditReportStore.getState();
+    return dataSources.complianceGaps
+      .filter((gap) => gap.selected)
+      .map((gap) => ({
+        id: gap.id,
+        gap_type: gap.gap_type,
+        gap_category: gap.gap_category,
+        gap_title: gap.gap_title,
+        gap_description: gap.gap_description,
+        risk_level: gap.risk_level,
+        business_impact: gap.business_impact,
+        regulatory_requirement: gap.regulatory_requirement || false,
+        potential_fine_amount: gap.potential_fine_amount,
+        recommendation_text: gap.recommendation_text,
+        recommended_actions: gap.recommended_actions,
+        confidence_score: gap.confidence_score,
+        detection_method: gap.detection_method,
+        false_positive_likelihood: gap.false_positive_likelihood,
+        // Add required fields for ComplianceGap type
+        user_id: "", // Will be populated by backend
+        audit_session_id: "", // Will be populated by backend
+        compliance_domain: "", // Will be populated by backend
+        original_question: "", // Will be populated by backend
+        status: "identified" as const,
+        auto_generated: true,
+        detected_at: gap.detected_at,
+        created_at: gap.detected_at,
+        updated_at: gap.detected_at,
+      }));
   },
 };
