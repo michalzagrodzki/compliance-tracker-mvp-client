@@ -24,6 +24,7 @@ import {
   Square,
   RefreshCw
 } from 'lucide-react'
+import { GenerateAuditReportDialog } from '@/modules/audit-reports/components/GenerateAuditReportDialog'
 
 
 const formatDate = (dateString: string) => {
@@ -243,6 +244,12 @@ export default function AuditSessionDetail() {
                   sessionName={currentSession.session_name}
                   complianceDomain={currentSession.compliance_domain}
                 />
+                <GenerateAuditReportDialog
+                  sessionId={currentSession.id}
+                  sessionName={currentSession.session_name}
+                  complianceDomain={currentSession.compliance_domain}
+                  startedAt={currentSession.started_at}
+                />
                 <Button
                   variant="outline"
                   className="flex items-center space-x-2"
@@ -250,7 +257,7 @@ export default function AuditSessionDetail() {
                 >
                   <Link to={`/audit-sessions/${currentSession.id}/create-report`}>
                     <Download className="h-4 w-4" />
-                    <span>Create Audit Report</span>
+                    <span>Create Manually Audit Report</span>
                   </Link>
                 </Button>
                 { isActive ? (

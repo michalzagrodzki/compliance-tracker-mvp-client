@@ -7,6 +7,8 @@ import {
 import type {
   AuditReport,
   AuditReportCreate,
+  AuditReportGenerateRequest,
+  AuditReportGenerateResponse,
   AuditReportResponse,
   ExecutiveSummaryResponse,
   SummaryTypeValue,
@@ -51,6 +53,12 @@ export const useAuditReport = () => {
     updateExecutiveSummaryInReport,
     getSummaryHistory,
     clearSummaryHistory,
+    isGenerating,
+    generateResponse,
+    generateError,
+    generateAuditReport,
+    clearGenerateResponse,
+    clearGenerateError,
   } = useAuditReportStore();
 
   const handleCreateReport = useCallback(
@@ -63,6 +71,20 @@ export const useAuditReport = () => {
       }
     },
     [createReport]
+  );
+
+  const handleGenerateReport = useCallback(
+    async (
+      generateRequest: AuditReportGenerateRequest
+    ): Promise<AuditReportGenerateResponse> => {
+      try {
+        const response = await generateAuditReport(generateRequest);
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [generateAuditReport]
   );
 
   const handleUpdateReport = useCallback(
@@ -280,6 +302,40 @@ export const useAuditReport = () => {
     []
   );
 
+  const validateGenerateRequest = useCallback(
+    (
+      generateRequest: Partial<AuditReportGenerateRequest>
+    ): { isValid: boolean; errors: string[] } => {
+      const errors: string[] = [];
+
+      if (!generateRequest.audit_session_id?.trim()) {
+        errors.push("Audit session ID is required");
+      }
+
+      if (!generateRequest.report_title?.trim()) {
+        errors.push("Report title is required");
+      }
+
+      if (!generateRequest.report_type) {
+        errors.push("Report type is required");
+      }
+
+      if (!generateRequest.target_audience) {
+        errors.push("Target audience is required");
+      }
+
+      if (!generateRequest.confidentiality_level) {
+        errors.push("Confidentiality level is required");
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+      };
+    },
+    []
+  );
+
   const validateSummaryGeneration = useCallback((): {
     isValid: boolean;
     errors: string[];
@@ -317,6 +373,11 @@ export const useAuditReport = () => {
     clearExecutiveSummary();
     clearSummaryError();
   }, [clearExecutiveSummary, clearSummaryError]);
+
+  const resetGenerationState = useCallback(() => {
+    clearGenerateError();
+    clearGenerateResponse();
+  }, [clearGenerateError, clearGenerateResponse]);
 
   // Executive Summary utilities
   const hasExecutiveSummary = useCallback(() => {
@@ -359,11 +420,12 @@ export const useAuditReport = () => {
     isUpdating,
     updateError,
     isGeneratingSummary,
-
-    // Executive Summary State
     executiveSummary,
     summaryError,
     summaryGenerationHistory,
+    isGenerating,
+    generateResponse,
+    generateError,
 
     // Actions
     createReport: handleCreateReport,
@@ -373,12 +435,16 @@ export const useAuditReport = () => {
     loadSessionData: handleLoadSessionData,
     updateSelections: handleUpdateSelections,
     selectAll: handleSelectAll,
-
-    // Executive Summary Actions
     generateExecutiveSummary: handleGenerateExecutiveSummary,
     regenerateSummary: handleRegenerateSummary,
     updateExecutiveSummaryInReport: handleUpdateExecutiveSummaryInReport,
     saveAndUseSummary: handleSaveAndUseSummary,
+
+    generateReport: handleGenerateReport,
+    validateGenerateRequest,
+    resetGenerationState,
+    clearGenerateError,
+    clearGenerateResponse,
 
     // Utilities
     getSelectedData,

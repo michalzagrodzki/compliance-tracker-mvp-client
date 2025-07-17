@@ -4,6 +4,8 @@ import {
   SummaryType,
   type AuditReport,
   type AuditReportCreate,
+  type AuditReportGenerateRequest,
+  type AuditReportGenerateResponse,
   type AuditReportResponse,
   type ChatHistoryItem,
   type ComplianceGapItem,
@@ -22,6 +24,7 @@ const AUDIT_REPORT_ENDPOINTS = {
   BY_SESSION: (sessionId: string) => `/v1/audit-reports/session/${sessionId}`,
   DOWNLOAD: (reportId: string) => `/v1/audit-reports/${reportId}/download`,
   EXECUTIVE_SUMMARY: "/v1/executive-summary",
+  GENERATE: "/v1/audit-reports/generate",
 
   // Data source endpoints
   SESSION_CHATS: (sessionId: string) =>
@@ -84,6 +87,39 @@ class AuditReportService {
     }
   }
 
+  async generateAuditReport(
+    generateRequest: AuditReportGenerateRequest
+  ): Promise<AuditReportGenerateResponse> {
+    try {
+      const response = await http.post<any>(
+        AUDIT_REPORT_ENDPOINTS.GENERATE,
+        generateRequest
+      );
+      const data = response.data;
+
+      return {
+        success: true,
+        message: data.message || "Audit report generation started successfully",
+        report_id: data.report_id,
+        download_url: data.download_url,
+        generation_status: data.generation_status || "completed",
+      };
+    } catch (error: any) {
+      console.error("Failed to generate audit report:", error);
+
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        "Failed to generate audit report";
+
+      return {
+        success: false,
+        message: errorMessage,
+        error: errorMessage,
+        generation_status: "failed",
+      };
+    }
+  }
   async getAllReports(
     skip: number = 0,
     limit: number = 10

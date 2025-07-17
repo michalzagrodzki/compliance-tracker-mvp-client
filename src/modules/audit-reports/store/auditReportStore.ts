@@ -11,6 +11,8 @@ import type {
   AuditReport,
   ExecutiveSummaryResponse,
   SummaryTypeValue,
+  AuditReportGenerateRequest,
+  AuditReportGenerateResponse,
 } from "../types";
 import { SummaryType } from "../types";
 import type { ComplianceGap } from "@/modules/compliance-gaps/types";
@@ -69,7 +71,10 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   updateError: null,
   isGeneratingSummary: false,
 
-  // Executive Summary State
+  isGenerating: false,
+  generateResponse: null,
+  generateError: null,
+
   executiveSummary: null,
   summaryError: null,
   summaryGenerationHistory: [],
@@ -90,7 +95,9 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   clearCreateResponse: () => set({ createResponse: null }),
   clearUpdateError: () => set({ updateError: null }),
 
-  // Core report actions
+  clearGenerateResponse: () => set({ generateResponse: null }),
+  clearGenerateError: () => set({ generateError: null }),
+
   createReport: async (
     reportData: AuditReportCreate
   ): Promise<AuditReportResponse> => {
@@ -139,6 +146,51 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
     }
   },
 
+  generateAuditReport: async (
+    generateRequest: AuditReportGenerateRequest
+  ): Promise<AuditReportGenerateResponse> => {
+    set({ isGenerating: true, generateError: null, generateResponse: null });
+
+    try {
+      const response = await auditReportService.generateAuditReport(
+        generateRequest
+      );
+
+      set({
+        generateResponse: response,
+        isGenerating: false,
+        generateError: response.success
+          ? null
+          : response.error || "Failed to generate report",
+      });
+
+      if (response.success) {
+        try {
+          await get().fetchReports();
+        } catch {
+          // Don't fail the generation if we can't refresh the list
+        }
+      }
+
+      return response;
+    } catch (error: any) {
+      const errorMessage = error.message || "Failed to generate audit report";
+      const errorResponse: AuditReportGenerateResponse = {
+        success: false,
+        message: errorMessage,
+        error: errorMessage,
+        generation_status: "failed",
+      };
+
+      set({
+        generateError: errorMessage,
+        isGenerating: false,
+        generateResponse: errorResponse,
+      });
+
+      return errorResponse;
+    }
+  },
   fetchReports: async (skip: number = 0, limit: number = 10) => {
     set({ isLoading: true, error: null });
 

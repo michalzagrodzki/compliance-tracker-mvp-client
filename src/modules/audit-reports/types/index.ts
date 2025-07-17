@@ -225,6 +225,9 @@ export interface AuditReportState {
   isCreating: boolean;
   createResponse: AuditReportResponse | null;
   isGeneratingSummary: boolean;
+  isGenerating: boolean;
+  generateResponse: AuditReportGenerateResponse | null;
+  generateError: string | null;
 }
 
 export interface AuditReportActions {
@@ -240,6 +243,12 @@ export interface AuditReportActions {
   clearError: () => void;
   clearCreateResponse: () => void;
   setLoading: (loading: boolean) => void;
+
+  generateAuditReport: (
+    generateRequest: AuditReportGenerateRequest
+  ) => Promise<AuditReportGenerateResponse>;
+  clearGenerateResponse: () => void;
+  clearGenerateError: () => void;
 }
 
 // Available options for form dropdowns
@@ -437,3 +446,64 @@ export interface ExecutiveSummaryResponse {
   potential_financial_impact: number;
   generation_metadata: Record<string, any>;
 }
+
+export interface AuditReportGenerateRequest {
+  audit_session_id: string;
+  report_title: string;
+  report_type: ReportType;
+
+  // Generation options
+  include_all_conversations: boolean;
+  include_identified_gaps: boolean;
+  include_document_references: boolean;
+  generate_recommendations: boolean;
+
+  // Report configuration
+  include_technical_details: boolean;
+  include_source_citations: boolean;
+  include_confidence_scores: boolean;
+  target_audience: TargetAudience;
+
+  // Distribution settings
+  confidentiality_level: ConfidentialityLevel;
+  auto_distribute: boolean;
+  distribution_list?: string[];
+}
+
+export interface AuditReportGenerateResponse {
+  success: boolean;
+  message: string;
+  report_id?: string;
+  download_url?: string;
+  error?: string;
+  generation_status?: "started" | "completed" | "failed";
+}
+
+export const generateReportTitle = (
+  complianceDomain: string,
+  sessionDate?: string
+): string => {
+  const date = sessionDate ? new Date(sessionDate) : new Date();
+  const year = date.getFullYear();
+  const quarter = Math.floor((date.getMonth() + 3) / 3);
+
+  return `${year} - Q${quarter} - ${complianceDomain} Compliance Audit`;
+};
+
+export const DEFAULT_GENERATE_REQUEST: Omit<
+  AuditReportGenerateRequest,
+  "audit_session_id" | "report_title"
+> = {
+  report_type: "compliance_audit",
+  include_all_conversations: true,
+  include_identified_gaps: true,
+  include_document_references: true,
+  generate_recommendations: true,
+  include_technical_details: false,
+  include_source_citations: true,
+  include_confidence_scores: false,
+  target_audience: "compliance_team",
+  confidentiality_level: "internal",
+  auto_distribute: false,
+  distribution_list: undefined,
+};
