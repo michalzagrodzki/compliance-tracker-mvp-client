@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useComplianceGap } from '../hooks/useComplianceGap'
@@ -383,6 +383,60 @@ export default function ComplianceGapDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+        <Card>
+            <CardHeader>
+              <CardTitle>Gap Actions</CardTitle>
+              <CardDescription>
+                Manage compliance gap status, assignments, and reporting
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2"
+                  onClick={() => setShowStatusUpdate(true)}
+                >
+                  <Activity className="h-4 w-4" />
+                  <span>Update Status</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2"
+                  onClick={() => setShowAssignForm(true)}
+                >
+                  <UserCheck className="h-4 w-4" />
+                  <span>Assign to User</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2"
+                  onClick={handleMarkReviewed}
+                >
+                  <Eye className="h-4 w-4" />
+                  <span>Mark as Reviewed</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2"
+                >
+                  <Share className="h-4 w-4" />
+                  <span>Share Gap</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Export Report</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -528,7 +582,7 @@ export default function ComplianceGapDetail() {
               )}
             </CardContent>
           </Card>
-
+          
           {(currentGap.recommendation_text || currentGap.recommended_actions?.length > 0) && (
             <Card>
               <CardHeader>
@@ -607,49 +661,6 @@ export default function ComplianceGapDetail() {
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setShowStatusUpdate(true)}
-              >
-                <Activity className="h-4 w-4 mr-2" />
-                Update Status
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setShowAssignForm(true)}
-              >
-                <UserCheck className="h-4 w-4 mr-2" />
-                Assign to User
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={handleMarkReviewed}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Mark as Reviewed
-              </Button>
-              
-              <Button variant="outline" className="w-full">
-                <Share className="h-4 w-4 mr-2" />
-                Share Gap
-              </Button>
-              
-              <Button variant="outline" className="w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Export Report
-              </Button>
-            </CardContent>
-          </Card>
 
           {showStatusUpdate && (
             <Card>
