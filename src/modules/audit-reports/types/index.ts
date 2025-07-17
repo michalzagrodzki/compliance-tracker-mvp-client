@@ -53,7 +53,7 @@ export interface DetailedFinding {
   id?: string;
   title: string;
   description: string;
-  severity: string;
+  severity: "critical" | "high" | "medium" | "low";
   category: string;
   recommendation: string;
   source_references?: string[];
@@ -126,10 +126,10 @@ export interface AuditReport {
   control_risk_prioritization: string | null;
   threat_intelligence_analysis: string | null;
   target_audience_summary: string | null;
-  detailed_findings: Record<string, any> | DetailedFinding[];
+  detailed_findings: DetailedFinding[] | Record<string, any>;
   recommendations: Recommendation[];
   action_items: ActionItem[];
-  appendices: Record<string, any>;
+  appendices: Record<string, any> | null;
   template_used: string | null;
   include_technical_details: boolean;
   include_source_citations: boolean;
@@ -152,7 +152,7 @@ export interface AuditReport {
   previous_report_id: string | null;
   improvement_from_previous: number | null;
   trending_direction: TrendingDirection | null;
-  benchmark_comparison: Record<string, any>;
+  benchmark_comparison: Record<string, any> | null;
   scheduled_followup_date: string | null;
   auto_generated: boolean;
   integration_exports: Record<string, any>;

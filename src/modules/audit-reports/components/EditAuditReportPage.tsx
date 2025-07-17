@@ -23,22 +23,44 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Sparkles,
 } from 'lucide-react';
 import { useAuditReport } from '../hooks/useAuditReport';
+import { useAuthStore } from '@/modules/auth/store/authStore';
+import { useAuditReportStore } from '../store/auditReportStore';
 import {
   type AuditReport,
   type ReportStatus,
   type ReportType,
   type Recommendation,
   type ActionItem,
+  type AuditReportCreate,
+  type DetailedFinding,
   REPORT_TYPE_OPTIONS,
   COMPLIANCE_RATING_OPTIONS,
   CONFIDENTIALITY_LEVEL_OPTIONS,
+  SummaryType,
 } from '../types';
+import type { ComplianceGap } from '@/modules/compliance-gaps/types';
 
 export default function EditAuditReportPage() {
   const navigate = useNavigate();
   const { reportId } = useParams<{ reportId: string }>();
+  const { user } = useAuthStore();
+  const {
+    dataSources,
+    updateChatSelection,
+    updateGapSelection,
+    updateDocumentSelection,
+    clearDataSources,
+    isGeneratingSummary,
+    executiveSummary,
+    summaryError,
+    generateExecutiveSummary,
+    clearExecutiveSummary,
+    clearSummaryError,
+  } = useAuditReportStore();
+
   const {
     currentReport,
     isLoading,
@@ -48,8 +70,10 @@ export default function EditAuditReportPage() {
     loadReport,
     updateReport,
     clearUpdateError,
-    dataSources,
     loadSessionData,
+    canGenerateSummary,
+    getSelectedData,
+    validateSummaryGeneration,
   } = useAuditReport();
 
   const [formData, setFormData] = useState<Partial<AuditReport>>({});
@@ -62,6 +86,7 @@ export default function EditAuditReportPage() {
     documents: false
   });
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [detailedFindings, setDetailedFindings] = useState<DetailedFinding[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
   useEffect(() => {
@@ -69,7 +94,9 @@ export default function EditAuditReportPage() {
       loadReport(reportId);
     }
     clearUpdateError();
-  }, [reportId, loadReport, clearUpdateError]);
+    clearExecutiveSummary();
+    clearSummaryError();
+  }, [reportId, loadReport, clearUpdateError, clearExecutiveSummary, clearSummaryError]);
 
   useEffect(() => {
     if (currentReport) {
@@ -107,11 +134,34 @@ export default function EditAuditReportPage() {
         benchmark_comparison: currentReport.benchmark_comparison,
       });
       
+      const convertedDetailedFindings = Array.isArray(currentReport.detailed_findings) 
+      ? currentReport.detailed_findings 
+        : [];
+      
       setRecommendations(Array.isArray(currentReport.recommendations) ? currentReport.recommendations : []);
+      setDetailedFindings(convertedDetailedFindings);
       setActionItems(Array.isArray(currentReport.action_items) ? currentReport.action_items : []);
       setHasChanges(false);
     }
   }, [currentReport, loadSessionData]);
+
+  useEffect(() => {
+    if (executiveSummary?.executive_summary) {
+      setFormData(prev => ({
+        ...prev,
+        executive_summary: executiveSummary.executive_summary,
+      }));
+      setHasChanges(true);
+    }
+  }, [executiveSummary]);
+
+  useEffect(() => {
+    return () => {
+      clearDataSources();
+      clearExecutiveSummary();
+      clearSummaryError();
+    };
+  }, [clearDataSources, clearExecutiveSummary, clearSummaryError]);
 
   const handleInputChange = (field: keyof AuditReport, value: any) => {
     setFormData(prev => ({
@@ -127,6 +177,119 @@ export default function EditAuditReportPage() {
       [field]: newArray
     }));
     setHasChanges(true);
+  };
+
+  const prepareDataForBackend = (data: Partial<AuditReport>) => {
+    const cleanedData = { ...data };
+    
+    cleanedData.detailed_findings = detailedFindings.map(finding => ({
+      id: finding.id,
+      title: finding.title || '',
+      description: finding.description || '',
+      severity: finding.severity || 'medium',
+      category: finding.category || '',
+      recommendation: finding.recommendation || '',
+      source_references: finding.source_references || []
+    }));
+    cleanedData.recommendations = recommendations.map(rec => ({
+      id: rec.id,
+      title: rec.title || '',
+      description: rec.description || '',
+      priority: rec.priority || 'medium',
+      estimated_effort: rec.estimated_effort || '',
+      category: rec.category || ''
+    }));
+    cleanedData.action_items = actionItems.map(item => ({
+      id: item.id,
+      title: item.title || '',
+      description: item.description || '',
+      assigned_to: item.assigned_to || '',
+      due_date: item.due_date || '',
+      priority: item.priority || 'medium',
+      status: item.status || 'pending'
+    }));
+    
+    if (!cleanedData.appendices || (typeof cleanedData.appendices === 'object' && Object.keys(cleanedData.appendices).length === 0)) {
+      cleanedData.appendices = null;
+    }
+    
+    if (!cleanedData.benchmark_comparison || (typeof cleanedData.benchmark_comparison === 'object' && Object.keys(cleanedData.benchmark_comparison).length === 0)) {
+      cleanedData.benchmark_comparison = null;
+    }
+    
+    return cleanedData;
+  };
+
+  const handleGenerateExecutiveSummary = async () => {
+    if (!currentReport) {
+      return;
+    }
+
+    const validation = validateSummaryGeneration();
+    if (!validation.isValid) {
+      console.error('Validation failed:', validation.errors);
+      return;
+    }
+
+    try {
+      clearSummaryError();
+      
+      // Create a report data object for summary generation
+      const reportData: AuditReportCreate = {
+        user_id: user?.id || "",
+        audit_session_id: currentReport.audit_session_id,
+        compliance_domain: currentReport.compliance_domain,
+        report_title: formData.report_title || currentReport.report_title,
+        report_type: formData.report_type || currentReport.report_type,
+        chat_history_ids: formData.chat_history_ids || currentReport.chat_history_ids,
+        compliance_gap_ids: formData.compliance_gap_ids || currentReport.compliance_gap_ids,
+        document_ids: formData.document_ids || currentReport.document_ids,
+        pdf_ingestion_ids: formData.pdf_ingestion_ids || currentReport.pdf_ingestion_ids,
+        include_technical_details: currentReport.include_technical_details,
+        include_source_citations: currentReport.include_source_citations,
+        include_confidence_scores: currentReport.include_confidence_scores,
+        target_audience: currentReport.target_audience,
+        confidentiality_level: formData.confidentiality_level || currentReport.confidentiality_level,
+        external_auditor_access: currentReport.external_auditor_access,
+      };
+
+      const selectedData = getSelectedData();
+      const selectedGaps: ComplianceGap[] = selectedData.selectedGaps.map(gap => ({
+        id: gap.id,
+        user_id: user?.id || "",
+        audit_session_id: currentReport.audit_session_id,
+        compliance_domain: currentReport.compliance_domain,
+        gap_type: gap.gap_type,
+        gap_category: gap.gap_category,
+        gap_title: gap.gap_title,
+        gap_description: gap.gap_description,
+        original_question: "",
+        risk_level: gap.risk_level as any,
+        business_impact: gap.business_impact as any,
+        regulatory_requirement: gap.regulatory_requirement || false,
+        potential_fine_amount: gap.potential_fine_amount ?? undefined,
+        status: "identified" as any,
+        recommendation_type: gap.recommendation_type,
+        recommendation_text: gap.recommendation_text,
+        recommended_actions: gap.recommended_actions || [],
+        detection_method: (gap.detection_method as any) || "manual",
+        confidence_score: gap.confidence_score,
+        auto_generated: true,
+        false_positive_likelihood: gap.false_positive_likelihood || 0,
+        detected_at: gap.detected_at || new Date().toISOString(),
+        created_at: gap.detected_at || new Date().toISOString(),
+        updated_at: gap.detected_at || new Date().toISOString(),
+      }));
+
+      await generateExecutiveSummary(
+        reportData,
+        selectedGaps,
+        SummaryType.STANDARD
+      );
+
+    } catch (error) {
+      console.error('Failed to generate executive summary:', error);
+    }
   };
 
   const addRecommendation = () => {
@@ -155,6 +318,35 @@ export default function EditAuditReportPage() {
     const updatedRecommendations = recommendations.filter((_, i) => i !== index);
     setRecommendations(updatedRecommendations);
     handleArrayChange('recommendations', updatedRecommendations);
+  };
+
+  const addDetailedFinding = () => {
+    const newFinding: DetailedFinding = {
+      id: Date.now().toString(),
+      title: '',
+      description: '',
+      severity: 'medium',
+      category: '',
+      recommendation: '',
+      source_references: []
+    };
+    const updatedFindings = [...detailedFindings, newFinding];
+    setDetailedFindings(updatedFindings);
+    setHasChanges(true);
+  };
+  
+  const updateDetailedFinding = (index: number, field: keyof DetailedFinding, value: any) => {
+    const updatedFindings = detailedFindings.map((finding, i) => 
+      i === index ? { ...finding, [field]: value } : finding
+    );
+    setDetailedFindings(updatedFindings);
+    setHasChanges(true);
+  };
+  
+  const removeDetailedFinding = (index: number) => {
+    const updatedFindings = detailedFindings.filter((_, i) => i !== index);
+    setDetailedFindings(updatedFindings);
+    setHasChanges(true);
   };
 
   const addActionItem = () => {
@@ -187,20 +379,26 @@ export default function EditAuditReportPage() {
   };
 
   const toggleDataSourceSelection = (type: 'chat' | 'gap' | 'document', id: string | number) => {
-    const currentIds = formData[`${type === 'chat' ? 'chat_history' : type === 'gap' ? 'compliance_gap' : type === 'document' ? 'document' : 'pdf_ingestion'}_ids` as keyof AuditReport] as any[] || [];
-    
-    let updatedIds;
-    if (currentIds.includes(id)) {
-      updatedIds = currentIds.filter(existingId => existingId !== id);
-    } else {
-      updatedIds = [...currentIds, id];
-    }
-
     if (type === 'chat') {
+      updateChatSelection(id as number, !dataSources.chatHistory.find(c => c.id === id)?.selected);
+      const currentIds = formData.chat_history_ids || [];
+      const updatedIds = currentIds.includes(id as number) 
+        ? currentIds.filter(existingId => existingId !== id)
+        : [...currentIds, id as number];
       handleArrayChange('chat_history_ids', updatedIds);
     } else if (type === 'gap') {
+      updateGapSelection(id as string, !dataSources.complianceGaps.find(g => g.id === id)?.selected);
+      const currentIds = formData.compliance_gap_ids || [];
+      const updatedIds = currentIds.includes(id as string) 
+        ? currentIds.filter(existingId => existingId !== id)
+        : [...currentIds, id as string];
       handleArrayChange('compliance_gap_ids', updatedIds);
     } else if (type === 'document') {
+      updateDocumentSelection(id as string, !dataSources.documents.find(d => d.id === id)?.selected);
+      const currentIds = formData.document_ids || [];
+      const updatedIds = currentIds.includes(id as string) 
+        ? currentIds.filter(existingId => existingId !== id)
+        : [...currentIds, id as string];
       handleArrayChange('document_ids', updatedIds);
       handleArrayChange('pdf_ingestion_ids', updatedIds); // Keep them in sync
     }
@@ -218,7 +416,9 @@ export default function EditAuditReportPage() {
     if (!reportId || !hasChanges) return;
 
     try {
-      await updateReport(reportId, formData, changeDescription);
+      const formattedData = prepareDataForBackend(formData);
+
+      await updateReport(reportId, formattedData, changeDescription);
       setHasChanges(false);
       setChangeDescription('');
       setShowSuccessMessage(true);
@@ -335,11 +535,11 @@ export default function EditAuditReportPage() {
         </div>
       </div>
 
-      {(error || updateError) && (
+      {(error || updateError || summaryError) && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="flex items-center space-x-2 pt-6">
             <XCircle className="h-4 w-4 text-red-600" />
-            <span className="text-red-700">{error || updateError}</span>
+            <span className="text-red-700">{error || updateError || summaryError}</span>
           </CardContent>
         </Card>
       )}
@@ -521,8 +721,77 @@ export default function EditAuditReportPage() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Executive Summary</CardTitle>
+            <CardDescription>
+              Provide or generate a high-level overview of the audit findings and conclusions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="executive_summary" className="text-sm font-medium">Executive Summary</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateExecutiveSummary}
+                  disabled={!canGenerateSummary() || isGeneratingSummary}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingSummary ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  <span>
+                    {isGeneratingSummary ? 'Generating...' : 'Generate Executive Summary'}
+                  </span>
+                </Button>
+              </div>
+              <textarea
+                id="executive_summary"
+                value={formData.executive_summary || ''}
+                onChange={(e) => handleInputChange('executive_summary', e.target.value)}
+                placeholder="Enter executive summary..."
+                rows={6}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  High-level overview of audit findings for executive stakeholders
+                </p>
+                {!canGenerateSummary() && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable summary generation
+                  </p>
+                )}
+              </div>
+            </div>
 
-        {/* Data Sources */}
+            {executiveSummary && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3 mt-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">
+                    Executive Summary Generated Successfully
+                  </span>
+                </div>
+                <div className="text-xs text-green-700 space-y-1">
+                  <p>• Total Gaps Analyzed: {executiveSummary.total_gaps}</p>
+                  <p>• High Risk Gaps: {executiveSummary.high_risk_gaps}</p>
+                  <p>• Regulatory Gaps: {executiveSummary.regulatory_gaps}</p>
+                  {executiveSummary.potential_financial_impact && (
+                    <p>• Potential Financial Impact: ${executiveSummary.potential_financial_impact.toLocaleString()}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Data Sources</CardTitle>
@@ -531,7 +800,6 @@ export default function EditAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Chat History */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -578,8 +846,6 @@ export default function EditAuditReportPage() {
                 </div>
               )}
             </div>
-
-            {/* Compliance Gaps */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -627,7 +893,6 @@ export default function EditAuditReportPage() {
               )}
             </div>
 
-            {/* Documents */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -676,30 +941,103 @@ export default function EditAuditReportPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Executive Summary */}
+        
         <Card>
           <CardHeader>
-            <CardTitle>Executive Summary</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Detailed Findings</span>
+              <Button type="button" onClick={addDetailedFinding} size="sm" variant="outline">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Finding
+              </Button>
+            </CardTitle>
             <CardDescription>
-              Provide a high-level overview of the audit findings and conclusions
+              Specific findings from the audit process
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <label htmlFor="executive_summary" className="text-sm font-medium">Executive Summary</label>
-              <textarea
-                id="executive_summary"
-                value={formData.executive_summary || ''}
-                onChange={(e) => handleInputChange('executive_summary', e.target.value)}
-                placeholder="Enter executive summary..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
+          <CardContent className="space-y-4">
+            {detailedFindings.map((finding, index) => (
+              <div key={finding.id} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Finding {index + 1}</h4>
+                  <Button
+                    type="button"
+                    onClick={() => removeDetailedFinding(index)}
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <Input
+                      value={finding.title}
+                      onChange={(e) => updateDetailedFinding(index, 'title', e.target.value)}
+                      placeholder="Finding title"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Severity</label>
+                    <select
+                      value={finding.severity}
+                      onChange={(e) => updateDetailedFinding(index, 'severity', e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                    >
+                      <option value="critical">Critical</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Category</label>
+                  <Input
+                    value={finding.category}
+                    onChange={(e) => updateDetailedFinding(index, 'category', e.target.value)}
+                    placeholder="e.g., Access Control, Data Protection"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Description</label>
+                  <textarea
+                    value={finding.description}
+                    onChange={(e) => updateDetailedFinding(index, 'description', e.target.value)}
+                    placeholder="Detailed description of the finding"
+                    rows={3}
+                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Recommendation</label>
+                  <textarea
+                    value={finding.recommendation}
+                    onChange={(e) => updateDetailedFinding(index, 'recommendation', e.target.value)}
+                    placeholder="Recommended actions to address this finding"
+                    rows={2}
+                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+              </div>
+            ))}
+            
+            {detailedFindings.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Info className="h-8 w-8 mx-auto mb-2" />
+                <p>No detailed findings added yet</p>
+                <p className="text-sm">Click "Add Finding" to create specific audit findings</p>
+              </div>
+            )}
           </CardContent>
         </Card>
-
         {/* Recommendations */}
         <Card>
           <CardHeader>
@@ -797,7 +1135,6 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
-        {/* Action Items */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -908,7 +1245,6 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
-        {/* Audit Trail & References */}
         <Card>
           <CardHeader>
             <CardTitle>Audit Trail & References</CardTitle>
@@ -970,7 +1306,6 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
-        {/* Change Description */}
         <Card>
           <CardHeader>
             <CardTitle>Change Description</CardTitle>
@@ -998,7 +1333,6 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
         <div className="flex justify-center space-x-3 pt-6 border-t">
           <Button
             type="button"
