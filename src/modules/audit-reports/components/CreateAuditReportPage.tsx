@@ -242,23 +242,15 @@ export default function CreateAuditReportPage() {
     if (!selectedAuditSession) {
       return;
     }
-  
-    // Validate that gaps are selected
     const validation = validateSummaryGeneration();
     if (!validation.isValid) {
-      // You might want to show a toast or alert here
       console.error('Validation failed:', validation.errors);
       return;
     }
   
     try {
-      // Clear any previous errors
       clearSummaryError();
-  
-      // Prepare the report data with current form state
       const reportData = prepareReportData(formData);
-  
-      // Get selected gaps for summary generation
       const selectedData = getSelectedData();
       const selectedGaps: ComplianceGap[] = selectedData.selectedGaps.map(gap => ({
         id: gap.id,
@@ -286,8 +278,6 @@ export default function CreateAuditReportPage() {
         created_at: gap.detected_at || new Date().toISOString(),
         updated_at: gap.detected_at || new Date().toISOString(),
       }));
-  
-      // Generate executive summary
       await generateExecutiveSummary(
         reportData,
         selectedGaps,
