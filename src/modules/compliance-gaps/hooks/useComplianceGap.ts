@@ -7,6 +7,7 @@ import type {
   ComplianceGapReview,
   ComplianceGapStatusUpdate,
   ComplianceGapUpdate,
+  ComplianceRecommendationResponse,
 } from "../types";
 import type { SourceDocument } from "@/modules/chat/types";
 
@@ -17,9 +18,13 @@ export const useComplianceGap = () => {
     relatedChatMessage,
     isLoading,
     error,
+    isGeneratingRecommendation,
+    recommendationError,
+    lastGeneratedRecommendation,
     isModalOpen,
     modalData,
     createGapFromChatHistory,
+    generateRecommendation,
     loadGaps,
     loadGapById,
     loadGapWithChatMessage,
@@ -34,6 +39,7 @@ export const useComplianceGap = () => {
     clearError,
     clearGaps,
     clearRelatedChatMessage,
+    clearRecommendationError,
   } = useComplianceGapStore();
 
   const handleCreateGapFromMessage = useCallback(
@@ -67,6 +73,25 @@ export const useComplianceGap = () => {
       }
     },
     [createGapFromChatHistory]
+  );
+
+  // NEW: Generate recommendation handler
+  const handleGenerateRecommendation = useCallback(
+    async (
+      chatHistoryId: number,
+      recommendationType: string
+    ): Promise<ComplianceRecommendationResponse> => {
+      try {
+        const response = await generateRecommendation(
+          chatHistoryId,
+          recommendationType
+        );
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [generateRecommendation]
   );
 
   const handleLoadGaps = useCallback(
@@ -153,6 +178,10 @@ export const useComplianceGap = () => {
     clearRelatedChatMessage();
   }, [clearRelatedChatMessage]);
 
+  const handleClearRecommendationError = useCallback(() => {
+    clearRecommendationError();
+  }, [clearRecommendationError]);
+
   return {
     // State
     gaps,
@@ -160,12 +189,16 @@ export const useComplianceGap = () => {
     relatedChatMessage,
     isLoading,
     error,
+    isGeneratingRecommendation,
+    recommendationError,
+    lastGeneratedRecommendation,
     isModalOpen,
     modalData,
 
     // Actions
     createGapFromMessage: handleCreateGapFromMessage,
     submitGap: handleSubmitGap,
+    generateRecommendation: handleGenerateRecommendation,
     loadGaps: handleLoadGaps,
     loadGap: handleLoadGap,
     loadSessionGaps: handleLoadSessionGaps,
@@ -177,6 +210,7 @@ export const useComplianceGap = () => {
     clearError,
     clearGaps,
     clearRelatedChatMessage: handleClearRelatedChatMessage,
+    clearRecommendationError: handleClearRecommendationError,
 
     // Utilities
     setLoading,

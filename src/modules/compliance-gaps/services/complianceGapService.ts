@@ -7,6 +7,9 @@ import type {
   ComplianceGapReview,
   ComplianceGapStatusUpdate,
   ComplianceGapUpdate,
+  ComplianceRecommendationRequest,
+  ComplianceRecommendationResponse,
+  ChatHistoryItem,
   GapType,
   RiskLevel,
   BusinessImpactLevel,
@@ -66,6 +69,20 @@ class ComplianceGapService {
     request: ComplianceGapDirectRequest
   ): Promise<ComplianceGapResponse> {
     const response = await http.post(this.baseUrl, request);
+    return response.data;
+  }
+
+  async generateRecommendation(
+    request: ComplianceRecommendationRequest
+  ): Promise<ComplianceRecommendationResponse> {
+    const response = await http.post(`${this.baseUrl}/recommendation`, request);
+    return response.data;
+  }
+
+  async getChatHistoryItem(chatHistoryId: string): Promise<ChatHistoryItem> {
+    const response = await http.get(
+      `${this.baseVersionUrl}/history/item/${chatHistoryId}`
+    );
     return response.data;
   }
 

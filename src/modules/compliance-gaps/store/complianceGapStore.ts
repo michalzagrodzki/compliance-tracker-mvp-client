@@ -14,6 +14,9 @@ import type {
   BusinessImpactLevel,
   RecommendationType,
   DetectionMethod,
+  ComplianceRecommendationResponse,
+  ChatHistoryItem,
+  ComplianceRecommendationRequest,
 } from "../types";
 import type { ChatMessage, SourceDocument } from "@/modules/chat/types";
 import { chatService } from "@/modules/chat";
@@ -57,6 +60,9 @@ interface ComplianceGapState {
   relatedChatMessage: ChatMessage | null;
   isLoading: boolean;
   error: string | null;
+  isGeneratingRecommendation: boolean;
+  recommendationError: string | null;
+  lastGeneratedRecommendation: ComplianceRecommendationResponse | null;
 
   isModalOpen: boolean;
   modalData: {
@@ -64,7 +70,7 @@ interface ComplianceGapState {
     auditSessionId?: string;
     complianceDomain?: string;
     initialMessage?: string;
-    sources?: string[] | SourceDocument[]; // ✅ Now supports both types
+    sources?: string[] | SourceDocument[];
   } | null;
 }
 
@@ -112,6 +118,11 @@ interface ComplianceGapActions {
   clearError: () => void;
   clearGaps: () => void;
   clearRelatedChatMessage: () => void;
+  generateRecommendation: (
+    chatHistoryId: number,
+    recommendationType: string
+  ) => Promise<ComplianceRecommendationResponse>;
+  clearRecommendationError: () => void;
 }
 
 interface ComplianceGapStore extends ComplianceGapState, ComplianceGapActions {}
@@ -124,6 +135,9 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
   error: null,
   isModalOpen: false,
   modalData: null,
+  isGeneratingRecommendation: false,
+  recommendationError: null,
+  lastGeneratedRecommendation: null,
 
   createGapFromChatHistory: async (
     request: ComplianceGapFromChatHistoryRequest
@@ -308,6 +322,67 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
       });
       throw error;
     }
+  },
+
+  generateRecommendation: async (
+    chatHistoryId: number,
+    recommendationType: string
+  ) => {
+    set({
+      isGeneratingRecommendation: true,
+      recommendationError: null,
+      lastGeneratedRecommendation: null,
+    });
+
+    try {
+      const chatHistoryItem = await complianceGapService.getChatHistoryItem(
+        chatHistoryId.toString()
+      );
+
+      const chatHistoryItemFormatted: ChatHistoryItem = {
+        id: chatHistoryItem.id.toString(),
+        conversation_id: chatHistoryItem.conversation_id || "",
+        question: chatHistoryItem.question || "",
+        answer: chatHistoryItem.answer || "",
+        created_at: chatHistoryItem.created_at,
+        audit_session_id: chatHistoryItem.audit_session_id || "",
+        compliance_domain: chatHistoryItem.compliance_domain || "",
+        source_document_ids: chatHistoryItem.source_document_ids || [],
+        match_threshold: chatHistoryItem.match_threshold || 0,
+        match_count: chatHistoryItem.match_count || 0,
+        user_id: chatHistoryItem.user_id || null,
+        response_time_ms: chatHistoryItem.response_time_ms || 0,
+        total_tokens_used: chatHistoryItem.total_tokens_used || 0,
+        metadata: chatHistoryItem.metadata || {},
+      };
+
+      const request: ComplianceRecommendationRequest = {
+        chat_history_item: chatHistoryItemFormatted,
+        recommendation_type: recommendationType,
+      };
+
+      const response = await complianceGapService.generateRecommendation(
+        request
+      );
+
+      set({
+        lastGeneratedRecommendation: response,
+        isGeneratingRecommendation: false,
+      });
+
+      return response;
+    } catch (error: any) {
+      set({
+        recommendationError:
+          error.message || "Failed to generate recommendation",
+        isGeneratingRecommendation: false,
+      });
+      throw error;
+    }
+  },
+
+  clearRecommendationError: () => {
+    set({ recommendationError: null });
   },
 
   assignGap: async (gapId: string, assignmentData: ComplianceGapAssignment) => {

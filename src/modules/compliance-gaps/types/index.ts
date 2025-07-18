@@ -108,6 +108,37 @@ export interface ComplianceGapFromChatHistoryRequest {
   false_positive_likelihood: number;
 }
 
+export interface ChatHistoryItem {
+  id: string;
+  conversation_id: string;
+  question: string;
+  answer: string;
+  created_at: string;
+  audit_session_id: string;
+  compliance_domain: string;
+  source_document_ids: string[];
+  match_threshold: number;
+  match_count: number;
+  user_id: string | null;
+  response_time_ms: number;
+  total_tokens_used: number;
+  metadata: Record<string, any>;
+}
+
+export interface ComplianceRecommendationRequest {
+  chat_history_item: ChatHistoryItem;
+  recommendation_type: string;
+}
+
+export interface ComplianceRecommendationResponse {
+  recommendation_text: string;
+  recommendation_type: string;
+  chat_history_id: number;
+  audit_session_id: string;
+  compliance_domain: string;
+  generation_metadata: Record<string, any>;
+}
+
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 
 export type BusinessImpactLevel = "low" | "medium" | "high" | "critical";

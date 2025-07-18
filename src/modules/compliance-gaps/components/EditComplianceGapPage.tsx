@@ -11,7 +11,7 @@ import type {
 } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, Plus, X, XCircle, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, Plus, X, XCircle, Save, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useComplianceGap } from '../hooks/useComplianceGap';
 import Loading from '@/components/Loading';
 
@@ -57,7 +57,12 @@ export default function EditComplianceGapPage() {
     error, 
     loadGap, 
     updateGap, 
-    clearError 
+    recommendationError,
+    clearError,
+    isGeneratingRecommendation,
+    lastGeneratedRecommendation,
+    generateRecommendation,
+    clearRecommendationError
   } = useComplianceGap();
   
   const [showAboutInfo, setShowAboutInfo] = useState(false);
@@ -117,6 +122,15 @@ export default function EditComplianceGapPage() {
     }
   }, [currentGap]);
 
+  useEffect(() => {
+    if (lastGeneratedRecommendation) {
+      setFormData(prev => ({
+        ...prev,
+        recommendation_text: lastGeneratedRecommendation.recommendation_text
+      }));
+    }
+  }, [lastGeneratedRecommendation]);
+
   const handleInputChange = (field: keyof ComplianceGapUpdate, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -138,6 +152,22 @@ export default function EditComplianceGapPage() {
       ...prev,
       [field]: (prev[field] || []).filter((_, i) => i !== index)
     }));
+  };
+
+  const handleGenerateRecommendation = async () => {
+    if (!currentGap?.chat_history_id || !formData.recommendation_type) {
+      return;
+    }
+    try {
+      clearRecommendationError();
+      await generateRecommendation(currentGap.chat_history_id, formData.recommendation_type);
+    } catch (error) {
+      console.error('Failed to generate recommendation:', error);
+    }
+  };
+  
+  const isGenerateRecommendationEnabled = () => {
+    return currentGap?.chat_history_id && formData.recommendation_type && !isGeneratingRecommendation;
   };
 
   const isFormValid = () => {
@@ -508,7 +538,50 @@ export default function EditComplianceGapPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="recommendation_text" className="text-sm font-medium">Recommendation Details</label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="recommendation_text" className="text-sm font-medium">
+                  Recommendation Details
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateRecommendation}
+                  disabled={!isGenerateRecommendationEnabled()}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingRecommendation ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      <span>Generate Recommendation</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {recommendationError && (
+                <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <span className="text-sm text-red-700">{recommendationError}</span>
+                </div>
+              )}
+
+              {!isGenerateRecommendationEnabled() && (
+                <div className="text-xs text-muted-foreground">
+                  {!currentGap?.chat_history_id && !formData.recommendation_type && 
+                    "Select a recommendation type and ensure this gap has related chat history to generate AI recommendations"}
+                  {!currentGap?.chat_history_id && formData.recommendation_type && 
+                    "This gap has no related chat history for AI recommendation generation"}
+                  {currentGap?.chat_history_id && !formData.recommendation_type && 
+                    "Select a recommendation type to generate AI recommendations"}
+                </div>
+              )}
+
               <textarea
                 id="recommendation_text"
                 value={formData.recommendation_text || ''}
