@@ -11,6 +11,7 @@ export const useChat = (sessionId?: string, chatId?: string) => {
     documents,
     initializeChat,
     sendMessage,
+    loadChatHistoryItem,
     clearError,
     clearChat
   } = useChatStore();
@@ -38,6 +39,16 @@ export const useChat = (sessionId?: string, chatId?: string) => {
     }
   }, [sendMessage]);
 
+  // Function to load a specific chat history item
+  const handleLoadChatHistoryItem = useCallback(async (chatHistoryId: string) => {
+    try {
+      return await loadChatHistoryItem(chatHistoryId);
+    } catch (error) {
+      console.error('Failed to load chat history item:', error);
+      throw error;
+    }
+  }, [loadChatHistoryItem]);
+
   // Get conversation statistics
   const getConversationStats = useCallback(() => {
     const userMessages = messages.filter(m => m.type === 'user').length;
@@ -60,10 +71,16 @@ export const useChat = (sessionId?: string, chatId?: string) => {
     const sources = new Set<string>();
     messages.forEach(message => {
       if (message.sources) {
-        message.sources.forEach(source => sources.add(source));
+        message.sources.forEach(source => {
+          if (typeof source === 'string') {
+            sources.add(source);
+          } else if (source && typeof source === 'object' && 'source_filename' in source) {
+            sources.add(source.source_filename || '');
+          }
+        });
       }
     });
-    return Array.from(sources);
+    return Array.from(sources).filter(Boolean);
   }, [messages]);
 
   return {
@@ -77,6 +94,7 @@ export const useChat = (sessionId?: string, chatId?: string) => {
     
     // Actions
     sendMessage: handleSendMessage,
+    loadChatHistoryItem: handleLoadChatHistoryItem,
     clearError,
     clearChat,
     

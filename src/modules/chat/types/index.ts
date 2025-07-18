@@ -4,11 +4,28 @@ export interface ChatMessage {
   type: "user" | "ai";
   message: string;
   timestamp: Date;
-  sources?: string[];
+  sources?: string[] | SourceDocument[] | undefined;
   conversation_id?: string;
   audit_session_id?: string;
   compliance_domain?: string;
   response_time_ms?: number;
+  metadata?: Record<string, any>;
+}
+
+export interface ChatHistoryResponse {
+  id: string;
+  conversation_id: string;
+  question: string;
+  answer: string;
+  created_at: string; // ISO date string from API
+  audit_session_id?: string;
+  compliance_domain?: string;
+  source_document_ids?: string[];
+  match_threshold?: number;
+  match_count?: number;
+  user_id?: string;
+  response_time_ms?: number;
+  total_tokens_used?: number;
   metadata?: Record<string, any>;
 }
 
@@ -52,6 +69,7 @@ export interface ChatActions {
   initializeChat: (sessionId: string, chatId: string) => Promise<void>;
   sendMessage: (message: string) => Promise<void>;
   loadChatHistory: (conversationId: string) => Promise<void>;
+  loadChatHistoryItem: (chatHistoryId: string) => Promise<ChatMessage>;
   loadDocuments: (sessionId: string) => Promise<void>;
   setLoading: (loading: boolean) => void;
   setStreaming: (streaming: boolean) => void;
@@ -116,4 +134,13 @@ export interface DocumentAccessLog {
   access_type: "reference" | "view" | "search";
   chat_message_id?: string;
   accessed_at: Date;
+}
+
+export interface SourceDocument {
+  title: string;
+  author: string;
+  similarity: string;
+  document_version: string;
+  source_page_number: number;
+  source_filename?: string;
 }

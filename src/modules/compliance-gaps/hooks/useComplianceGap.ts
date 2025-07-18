@@ -8,11 +8,13 @@ import type {
   ComplianceGapStatusUpdate,
   ComplianceGapUpdate,
 } from "../types";
+import type { SourceDocument } from "@/modules/chat/types";
 
 export const useComplianceGap = () => {
   const {
     gaps,
     currentGap,
+    relatedChatMessage,
     isLoading,
     error,
     isModalOpen,
@@ -20,6 +22,7 @@ export const useComplianceGap = () => {
     createGapFromChatHistory,
     loadGaps,
     loadGapById,
+    loadGapWithChatMessage,
     loadGapsByAuditSession,
     updateGap,
     updateGapStatus,
@@ -30,6 +33,7 @@ export const useComplianceGap = () => {
     setLoading,
     clearError,
     clearGaps,
+    clearRelatedChatMessage,
   } = useComplianceGapStore();
 
   const handleCreateGapFromMessage = useCallback(
@@ -38,7 +42,7 @@ export const useComplianceGap = () => {
       auditSessionId?: string,
       complianceDomain?: string,
       initialMessage?: string,
-      sources?: string[]
+      sources?: string[] | SourceDocument[]
     ) => {
       openModal({
         chatHistoryId,
@@ -80,10 +84,14 @@ export const useComplianceGap = () => {
   );
 
   const handleLoadGap = useCallback(
-    async (id: string) => {
-      await loadGapById(id);
+    async (id: string, includeChatMessage: boolean = true) => {
+      if (includeChatMessage) {
+        await loadGapWithChatMessage(id);
+      } else {
+        await loadGapById(id);
+      }
     },
-    [loadGapById]
+    [loadGapById, loadGapWithChatMessage]
   );
 
   const handleLoadSessionGaps = useCallback(
@@ -141,10 +149,15 @@ export const useComplianceGap = () => {
     closeModal();
   }, [closeModal]);
 
+  const handleClearRelatedChatMessage = useCallback(() => {
+    clearRelatedChatMessage();
+  }, [clearRelatedChatMessage]);
+
   return {
     // State
     gaps,
     currentGap,
+    relatedChatMessage,
     isLoading,
     error,
     isModalOpen,
@@ -163,6 +176,7 @@ export const useComplianceGap = () => {
     cancelModal: handleCancelModal,
     clearError,
     clearGaps,
+    clearRelatedChatMessage: handleClearRelatedChatMessage,
 
     // Utilities
     setLoading,

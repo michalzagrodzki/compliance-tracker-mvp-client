@@ -33,8 +33,13 @@ import {
   Download,
   Share,
   Eye,
+  MessageSquare,
+  BookOpen,
+  FileIcon,
+  ChevronRight,
 } from 'lucide-react'
 import type { ComplianceGapResponse, ComplianceGapUpdate, ComplianceGapStatusUpdate, RiskLevel, BusinessImpactLevel, GapStatus } from '../types'
+import type { SourceDocument } from '../../chat/types'
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -144,10 +149,222 @@ const calculateBusinessMetrics = (gap: ComplianceGapResponse) => {
   }
 }
 
+const formatSimilarity = (similarity: string | number) => {
+  // Handle both string and number types, and convert string numbers
+  let numericSimilarity: number;
+  
+  if (typeof similarity === 'string') {
+    // Handle comma decimal format (e.g., "0,81")
+    const cleanedString = similarity.replace(',', '.');
+    numericSimilarity = parseFloat(cleanedString);
+  } else {
+    numericSimilarity = similarity;
+  }
+  
+  // Check if parsing was successful
+  if (isNaN(numericSimilarity)) {
+    return 'N/A';
+  }
+  
+  // If it's already a percentage (> 1), just round it
+  if (numericSimilarity > 1) {
+    return `${Math.round(numericSimilarity)}%`;
+  }
+  
+  // If it's a decimal (0-1), convert to percentage
+  return `${Math.round(numericSimilarity * 100)}%`;
+}
+
+const formatMessageContent = (text: string) => {
+  const numberedSections = text.split(/(?=\d+\.\s\*\*)/);
+  
+  if (numberedSections.length <= 1) {
+    return formatBasicContent(text);
+  }
+
+  return (
+    <div className="space-y-4">
+      {numberedSections.map((section, index) => {
+        if (index === 0 && !section.match(/^\d+\.\s/)) {
+          return (
+            <div key={index} className="mb-4">
+              {formatBasicContent(section.trim())}
+            </div>
+          );
+        }
+        
+        return (
+          <div key={index} className="border-l-4 border-blue-200 pl-4 py-2 bg-blue-50/30 rounded-r">
+            {formatNumberedSection(section.trim())}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const formatBasicContent = (text: string) => {
+  const parts = text.split(/(\*\*[^*]+\*\*)/);
+  
+  return (
+    <div className="leading-relaxed">
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <span key={index} className="font-semibold text-gray-900">
+              {part.slice(2, -2)}
+            </span>
+          );
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </div>
+  );
+};
+
+const formatNumberedSection = (text: string) => {
+  // Extract number, title, and content
+  const match = text.match(/^(\d+)\.\s\*\*([^*]+)\*\*:\s*(.+)$/s);
+  
+  if (match) {
+    const [, number, title, content] = match;
+    return (
+      <div>
+        <div className="flex items-start space-x-2 mb-2">
+          <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-xs font-medium rounded-full flex items-center justify-center">
+            {number}
+          </span>
+          <h4 className="font-semibold text-gray-900 text-sm leading-tight">
+            {title}
+          </h4>
+        </div>
+        <div className="ml-8 text-sm text-gray-700 leading-relaxed">
+          {formatBasicContent(content.trim())}
+        </div>
+      </div>
+    );
+  }
+  
+  return formatBasicContent(text);
+};
+
+const renderSourceDocuments = (sources: string[] | SourceDocument[] | undefined) => {
+  if (!sources || sources.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <FileSearch className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">No source documents</p>
+      </div>
+    )
+  }
+
+  // Check if sources are SourceDocument objects or just strings
+  const isSourceDocuments = sources.length > 0 && typeof sources[0] === 'object' && 'title' in sources[0]
+
+  if (isSourceDocuments) {
+    const sourceDocuments = sources as SourceDocument[]
+    
+    // Aggregate documents by title, author, and filename
+    const aggregatedDocs = sourceDocuments.reduce((acc, doc) => {
+      const key = `${doc.title}|${doc.author}|${doc.source_filename || ''}`
+      
+      if (!acc[key]) {
+        acc[key] = {
+          title: doc.title,
+          author: doc.author,
+          source_filename: doc.source_filename,
+          pages: []
+        }
+      }
+      
+      acc[key].pages.push({
+        page_number: doc.source_page_number,
+        similarity: doc.similarity
+      })
+      
+      return acc
+    }, {} as Record<string, {
+      title: string
+      author: string
+      source_filename?: string
+      pages: Array<{ page_number: number; similarity: string }>
+    }>)
+    
+    // Sort pages within each document by similarity (highest first)
+    Object.values(aggregatedDocs).forEach(doc => {
+      doc.pages.sort((a, b) => {
+        const simA = typeof a.similarity === 'string' ? parseFloat(a.similarity.replace(',', '.')) : a.similarity
+        const simB = typeof b.similarity === 'string' ? parseFloat(b.similarity.replace(',', '.')) : b.similarity
+        return simB - simA
+      })
+    })
+    
+    return (
+      <div className="space-y-3">
+        {Object.values(aggregatedDocs).map((doc, index) => (
+          <div key={index} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md border">
+            <FileIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <h5 className="font-medium text-sm truncate">{doc.title}</h5>
+              </div>
+              <div className="space-y-1 mb-2">
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium">Author:</span> {doc.author}
+                </p>
+                {doc.source_filename && (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">File:</span> {doc.source_filename}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Pages:</p>
+                <div className="flex flex-wrap gap-1">
+                  {doc.pages.map((page, pageIndex) => (
+                    <span 
+                      key={pageIndex}
+                      className="inline-flex items-center space-x-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                    >
+                      <span>{page.page_number}</span>
+                      <span className="text-blue-600">({formatSimilarity(page.similarity)})</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm">
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Fallback for string array
+  const stringSources = sources as string[]
+  return (
+    <div className="space-y-2">
+      {stringSources.map((source, index) => (
+        <div key={index} className="flex items-center space-x-2 p-2 bg-muted rounded">
+          <FileSearch className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">{source}</span>
+          <Button variant="ghost" size="sm" className="ml-auto">
+            <ExternalLink className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+
 export default function ComplianceGapDetail() {
   const { gapId } = useParams<{ gapId: string }>()
   const {
     currentGap,
+    relatedChatMessage,
     isLoading,
     error,
     loadGap,
@@ -174,7 +391,7 @@ export default function ComplianceGapDetail() {
   useEffect(() => {
     if (gapId) {
       clearError()
-      loadGap(gapId).catch((err) => {
+      loadGap(gapId, true).catch((err) => {
         console.error('Error fetching compliance gap:', err)
       })
     }
@@ -337,6 +554,7 @@ export default function ComplianceGapDetail() {
           </span>
         </div>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
@@ -438,151 +656,226 @@ export default function ComplianceGapDetail() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5" />
-                  <span>Gap Details</span>
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
-                >
-                  {isEditing ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                  <span className="ml-1">{isEditing ? 'Cancel' : 'Edit'}</span>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Gap Title</label>
-                    <Input
-                      value={editForm.gap_title || ''}
-                      onChange={(e) => setEditForm({...editForm, gap_title: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Description</label>
-                    <textarea
-                      className="w-full min-h-[100px] p-2 border rounded-md"
-                      value={editForm.gap_description || ''}
-                      onChange={(e) => setEditForm({...editForm, gap_description: e.target.value})}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Risk Level</label>
-                      <select 
-                        className="w-full p-2 border rounded-md"
-                        value={editForm.risk_level || ''}
-                        onChange={(e) => setEditForm({...editForm, risk_level: e.target.value as RiskLevel})}
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="critical">Critical</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Business Impact</label>
-                      <select 
-                        className="w-full p-2 border rounded-md"
-                        value={editForm.business_impact || ''}
-                        onChange={(e) => setEditForm({...editForm, business_impact: e.target.value as BusinessImpactLevel})}
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="critical">Critical</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button onClick={handleSaveEdit}>
-                      <Save className="h-4 w-4 mr-1" />
-                      Save Changes
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsEditing(false)}>
-                      Cancel
-                    </Button>
-                  </div>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Shield className="h-5 w-5" />
+                    <span>Gap Details</span>
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                  >
+                    {isEditing ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+                    <span className="ml-1">{isEditing ? 'Cancel' : 'Edit'}</span>
+                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-2">Description</h4>
-                    <p className="text-sm leading-relaxed">{currentGap.gap_description}</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isEditing ? (
+                  <div className="space-y-4">
                     <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Gap Type</h4>
-                      <div className="flex items-center space-x-2">
-                        <Target className="h-4 w-4 text-muted-foreground" />
-                        <span className="capitalize">{currentGap.gap_type.replace('_', ' ')}</span>
+                      <label className="text-sm font-medium">Gap Title</label>
+                      <Input
+                        value={editForm.gap_title || ''}
+                        onChange={(e) => setEditForm({...editForm, gap_title: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Description</label>
+                      <textarea
+                        className="w-full min-h-[100px] p-2 border rounded-md"
+                        value={editForm.gap_description || ''}
+                        onChange={(e) => setEditForm({...editForm, gap_description: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium">Risk Level</label>
+                        <select 
+                          className="w-full p-2 border rounded-md"
+                          value={editForm.risk_level || ''}
+                          onChange={(e) => setEditForm({...editForm, risk_level: e.target.value as RiskLevel})}
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="critical">Critical</option>
+                        </select>
                       </div>
+                      <div>
+                        <label className="text-sm font-medium">Business Impact</label>
+                        <select 
+                          className="w-full p-2 border rounded-md"
+                          value={editForm.business_impact || ''}
+                          onChange={(e) => setEditForm({...editForm, business_impact: e.target.value as BusinessImpactLevel})}
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="critical">Critical</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button onClick={handleSaveEdit}>
+                        <Save className="h-4 w-4 mr-1" />
+                        Save Changes
+                      </Button>
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Description</h4>
+                      <p className="text-sm leading-relaxed">{currentGap.gap_description}</p>
                     </div>
                     
-                    <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Category</h4>
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span>{currentGap.gap_category}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Risk Level</h4>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskLevelColor(currentGap.risk_level)}`}>
-                        {riskIcon}
-                        <span className="ml-1">{currentGap.risk_level.toUpperCase()}</span>
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Business Impact</h4>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getBusinessImpactColor(currentGap.business_impact)}`}>
-                        {currentGap.business_impact.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Confidence Score</h4>
-                      <div className="flex items-center space-x-2">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                        <span>{Math.round((currentGap.confidence_score || 0) * 100)}%</span>
-                      </div>
-                    </div>
-
-                    {currentGap.regulatory_requirement && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Regulatory Requirement</h4>
-                        <div className="flex items-center space-x-2 text-red-600">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="font-medium">Yes</span>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Gap Type</h4>
+                        <div className="flex items-center space-x-2">
+                          <Target className="h-4 w-4 text-muted-foreground" />
+                          <span className="capitalize">{currentGap.gap_type.replace('_', ' ')}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Category</h4>
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span>{currentGap.gap_category}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Risk Level</h4>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskLevelColor(currentGap.risk_level)}`}>
+                          {riskIcon}
+                          <span className="ml-1">{currentGap.risk_level.toUpperCase()}</span>
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Business Impact</h4>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getBusinessImpactColor(currentGap.business_impact)}`}>
+                          {currentGap.business_impact.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-2">Confidence Score</h4>
+                        <div className="flex items-center space-x-2">
+                          <Zap className="h-4 w-4 text-muted-foreground" />
+                          <span>{Math.round((currentGap.confidence_score || 0) * 100)}%</span>
+                        </div>
+                      </div>
+
+                      {currentGap.regulatory_requirement && (
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground mb-2">Regulatory Requirement</h4>
+                          <div className="flex items-center space-x-2 text-red-600">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="font-medium">Yes</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {currentGap.potential_fine_amount && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                        <div className="flex items-center space-x-2">
+                          <DollarSign className="h-4 w-4 text-red-600" />
+                          <span className="text-sm font-medium text-red-800">
+                            Potential Fine: ${currentGap.potential_fine_amount.toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     )}
                   </div>
-
-                  {currentGap.potential_fine_amount && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                      <div className="flex items-center space-x-2">
-                        <DollarSign className="h-4 w-4 text-red-600" />
-                        <span className="text-sm font-medium text-red-800">
-                          Potential Fine: ${currentGap.potential_fine_amount.toLocaleString()}
-                        </span>
+                )}
+              </CardContent>
+            </Card>
+          {/* Related Chat Message Card */}
+          {relatedChatMessage && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <span>Related Chat Message</span>
+                </CardTitle>
+                <CardDescription>
+                  Original conversation that led to this compliance gap identification
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gray-600 text-white flex items-center justify-center text-sm font-medium">
+                          Q
+                        </div>
                       </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm text-gray-700 mb-2">Question</h4>
+                        <p className="text-sm text-gray-800 leading-relaxed">
+                          {currentGap.original_question}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-100 border border-gray-300 rounded-md">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gray-700 text-white flex items-center justify-center text-sm font-medium">
+                          A
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-sm text-gray-700">Answer</h4>
+                        </div>
+                        <div className="text-sm text-gray-800 leading-relaxed">
+                          {formatMessageContent(relatedChatMessage.message)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm text-muted-foreground flex items-center space-x-2">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Source Documents</span>
+                    </h4>
+                    {renderSourceDocuments(relatedChatMessage.sources)}
+                  </div>
+
+                  {relatedChatMessage.metadata && (
+                    <div className="pt-3 border-t">
+                      <details className="group">
+                        <summary className="flex items-center space-x-2 cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+                          <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+                          <span>Message Metadata</span>
+                        </summary>
+                        <div className="mt-2 p-3 bg-muted/50 rounded text-xs font-mono">
+                          <pre className="whitespace-pre-wrap">
+                            {JSON.stringify(relatedChatMessage.metadata, null, 2)}
+                          </pre>
+                        </div>
+                      </details>
                     </div>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-          
+              </CardContent>
+            </Card>
+          )}
+
           {(currentGap.recommendation_text || currentGap.recommended_actions?.length > 0) && (
             <Card>
               <CardHeader>
@@ -648,13 +941,22 @@ export default function ComplianceGapDetail() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="flex items-center space-x-2 p-2 bg-muted rounded">
-                  <FileSearch className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">ISO27001 Section 4.3.2.pdf</span>
-                  <Button variant="ghost" size="sm" className="ml-auto">
-                    <ExternalLink className="h-3 w-3" />
-                  </Button>
-                </div>
+                {currentGap.related_documents && currentGap.related_documents.length > 0 ? (
+                  currentGap.related_documents.map((doc, index) => (
+                    <div key={index} className="flex items-center space-x-2 p-2 bg-muted rounded">
+                      <FileSearch className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{doc}</span>
+                      <Button variant="ghost" size="sm" className="ml-auto">
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <FileSearch className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No related documents</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -800,6 +1102,7 @@ export default function ComplianceGapDetail() {
               </div>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Technical Details</CardTitle>

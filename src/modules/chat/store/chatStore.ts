@@ -202,6 +202,23 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
+  loadChatHistoryItem: async (chatHistoryId: string) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const chatMessage = await chatService.getChatHistoryItem(chatHistoryId);
+      set({ isLoading: false });
+      return chatMessage;
+    } catch (error: any) {
+      set({
+        error:
+          error.response?.data?.detail || "Failed to load chat history item",
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
   loadDocuments: async (sessionId: string) => {
     try {
       const sessionDocuments = await chatService.getSessionDocuments(sessionId);

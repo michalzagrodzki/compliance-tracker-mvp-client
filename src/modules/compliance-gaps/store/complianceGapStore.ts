@@ -15,6 +15,8 @@ import type {
   RecommendationType,
   DetectionMethod,
 } from "../types";
+import type { ChatMessage, SourceDocument } from "@/modules/chat/types";
+import { chatService } from "@/modules/chat";
 
 // Add interface for direct creation request
 interface ComplianceGapDirectRequest {
@@ -52,6 +54,7 @@ interface ComplianceGapDirectRequest {
 interface ComplianceGapState {
   gaps: ComplianceGapResponse[];
   currentGap: ComplianceGapResponse | null;
+  relatedChatMessage: ChatMessage | null;
   isLoading: boolean;
   error: string | null;
 
@@ -61,7 +64,7 @@ interface ComplianceGapState {
     auditSessionId?: string;
     complianceDomain?: string;
     initialMessage?: string;
-    sources?: string[];
+    sources?: string[] | SourceDocument[]; // ✅ Now supports both types
   } | null;
 }
 
@@ -84,6 +87,7 @@ interface ComplianceGapActions {
     status?: string;
   }) => Promise<void>;
   loadGapById: (id: string) => Promise<void>;
+  loadGapWithChatMessage: (id: string) => Promise<void>;
   loadGapsByAuditSession: (sessionId: string) => Promise<void>;
   updateGap: (gapId: string, updateData: ComplianceGapUpdate) => Promise<void>;
   updateGapStatus: (
@@ -100,13 +104,14 @@ interface ComplianceGapActions {
     auditSessionId?: string;
     complianceDomain?: string;
     initialMessage?: string;
-    sources?: string[];
+    sources?: string[] | SourceDocument[];
   }) => void;
   closeModal: () => void;
 
   setLoading: (loading: boolean) => void;
   clearError: () => void;
   clearGaps: () => void;
+  clearRelatedChatMessage: () => void;
 }
 
 interface ComplianceGapStore extends ComplianceGapState, ComplianceGapActions {}
@@ -114,6 +119,7 @@ interface ComplianceGapStore extends ComplianceGapState, ComplianceGapActions {}
 export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
   gaps: [],
   currentGap: null,
+  relatedChatMessage: null,
   isLoading: false,
   error: null,
   isModalOpen: false,
@@ -189,6 +195,43 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
       const gap = await complianceGapService.getComplianceGapById(id);
       set({
         currentGap: gap,
+        isLoading: false,
+      });
+    } catch (error: any) {
+      set({
+        error: error.message || "Failed to load compliance gap",
+        isLoading: false,
+      });
+    }
+  },
+
+  loadGapWithChatMessage: async (id: string) => {
+    set({ isLoading: true, error: null, relatedChatMessage: null });
+
+    try {
+      // Load the compliance gap
+      const gap = await complianceGapService.getComplianceGapById(id);
+
+      let chatMessage: ChatMessage | null = null;
+
+      // If the gap has a chat_history_id, load the related chat message
+      if (gap.chat_history_id) {
+        try {
+          chatMessage = await chatService.getChatHistoryItem(
+            gap.chat_history_id.toString()
+          );
+        } catch (chatError) {
+          console.warn(
+            `Failed to load chat message for ID ${gap.chat_history_id}:`,
+            chatError
+          );
+          // Don't fail the entire operation if chat message loading fails
+        }
+      }
+
+      set({
+        currentGap: gap,
+        relatedChatMessage: chatMessage,
         isLoading: false,
       });
     } catch (error: any) {
@@ -346,5 +389,9 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
       currentGap: null,
       error: null,
     });
+  },
+
+  clearRelatedChatMessage: () => {
+    set({ relatedChatMessage: null });
   },
 }));

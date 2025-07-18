@@ -8,12 +8,15 @@ import type {
   QueryResponse,
   DocumentsByType,
   DocumentGroup,
+  SourceDocument,
+  ChatHistoryResponse,
 } from "../types";
 
 const CHAT_ENDPOINTS = {
   QUERY: "/v1/query",
   QUERY_STREAM: "/v1/query-stream",
   HISTORY: (conversationId: string) => `/v1/history/${conversationId}`,
+  HISTORY_ITEM: (messageId: string) => `/v1/history/item/${messageId}`,
   AUDIT_SESSION_HISTORY: (auditSessionId: string) =>
     `/v1/audit-sessions/${auditSessionId}/history`,
   DOCUMENTS: "/v1/documents",
@@ -178,14 +181,28 @@ class ChatService {
     };
   }
 
+  private formatSimilarity(similarity: number | undefined): string {
+    if (!similarity) return "0,00";
+    return similarity.toFixed(2).replace(".", ",");
+  }
+
   // Convert API response to AI ChatMessage format
   private formatApiResponseToAiMessage(item: any): ChatMessage {
     // Extract source filenames from metadata
-    const sources =
-      item.metadata?.source_filenames ||
-      item.metadata?.document_details?.map((doc: any) => doc.source_filename) ||
-      [];
+    const sources: SourceDocument[] = [];
 
+    if (item.metadata?.document_details) {
+      item.metadata.document_details.forEach((doc: any) => {
+        sources.push({
+          title: doc.title || "Unknown Title",
+          author: doc.author || "Unknown Author",
+          similarity: this.formatSimilarity(doc.similarity),
+          document_version: doc.document_version || "Unknown Version",
+          source_page_number: doc.source_page_number || 0,
+          source_filename: doc.source_filename,
+        });
+      });
+    }
     return {
       id: (parseInt(item.id) + 0.5).toString(), // Ensure AI message has different ID
       type: "ai",
@@ -194,7 +211,7 @@ class ChatService {
       conversation_id: item.conversation_id,
       audit_session_id: item.audit_session_id,
       compliance_domain: item.compliance_domain,
-      sources: sources.filter(Boolean), // Remove any null/undefined values
+      sources: sources,
       response_time_ms: item.response_time_ms,
       metadata: item.metadata,
     };
@@ -225,6 +242,29 @@ class ChatService {
     } catch (error: any) {
       throw new Error(
         error.response?.data?.detail || "Failed to get chat history"
+      );
+    }
+  }
+
+  async getChatHistoryItem(
+    messageId: string,
+    messageType: "user" | "ai" = "ai"
+  ): Promise<ChatMessage> {
+    try {
+      const response = await http.get<ChatHistoryResponse>(
+        CHAT_ENDPOINTS.HISTORY_ITEM(messageId)
+      );
+
+      const historyItem = response.data;
+
+      if (messageType === "user") {
+        return this.formatApiResponseToMessage(historyItem);
+      } else {
+        return this.formatApiResponseToAiMessage(historyItem);
+      }
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.detail || "Failed to get chat history item"
       );
     }
   }

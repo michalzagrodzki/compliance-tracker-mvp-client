@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useComplianceGap } from '@/modules/compliance-gaps';
-import type { ChatMessage as ChatMessageType } from '../types';
+import type { ChatMessage as ChatMessageType, SourceDocument } from '../types';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -23,6 +23,124 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap
     );
     
     onIdentifyGap?.(message.id);
+  };
+
+  const formatSimilarity = (similarity: string | number) => {
+    // Handle both string and number types, and convert string numbers
+    let numericSimilarity: number;
+    
+    if (typeof similarity === 'string') {
+      // Handle comma decimal format (e.g., "0,81")
+      const cleanedString = similarity.replace(',', '.');
+      numericSimilarity = parseFloat(cleanedString);
+    } else {
+      numericSimilarity = similarity;
+    }
+    
+    // Check if parsing was successful
+    if (isNaN(numericSimilarity)) {
+      return 'N/A';
+    }
+    
+    // If it's already a percentage (> 1), just round it
+    if (numericSimilarity > 1) {
+      return `${Math.round(numericSimilarity)}%`;
+    }
+    
+    // If it's a decimal (0-1), convert to percentage
+    return `${Math.round(numericSimilarity * 100)}%`;
+  };
+
+  const renderSources = (sources: (string | SourceDocument)[]) => {
+    // Check if sources are SourceDocument objects or just strings
+    const isSourceDocuments = sources.length > 0 && typeof sources[0] === 'object' && 'title' in sources[0];
+
+    if (isSourceDocuments) {
+      const sourceDocuments = sources as SourceDocument[];
+      
+      // Aggregate documents by title, author, and filename
+      const aggregatedDocs = sourceDocuments.reduce((acc, doc) => {
+        const key = `${doc.title}|${doc.author}|${doc.source_filename || ''}`;
+        
+        if (!acc[key]) {
+          acc[key] = {
+            title: doc.title,
+            author: doc.author,
+            source_filename: doc.source_filename,
+            pages: []
+          };
+        }
+        
+        acc[key].pages.push({
+          page_number: doc.source_page_number,
+          similarity: doc.similarity
+        });
+        
+        return acc;
+      }, {} as Record<string, {
+        title: string;
+        author: string;
+        source_filename?: string;
+        pages: Array<{ page_number: number; similarity: string }>;
+      }>);
+      
+      // Sort pages within each document by similarity (highest first)
+      Object.values(aggregatedDocs).forEach(doc => {
+        doc.pages.sort((a, b) => {
+          const simA = typeof a.similarity === 'string' ? parseFloat(a.similarity.replace(',', '.')) : a.similarity;
+          const simB = typeof b.similarity === 'string' ? parseFloat(b.similarity.replace(',', '.')) : b.similarity;
+          return simB - simA;
+        });
+      });
+
+      return (
+        <div className="space-y-2">
+          {Object.values(aggregatedDocs).map((doc, index) => (
+            <div key={index} className="bg-gray-50 border border-gray-200 rounded-md p-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-700 truncate">{doc.title}</span>
+              </div>
+              <div className="text-xs text-gray-600 mb-1">
+                <span className="font-medium">Author:</span> {doc.author}
+              </div>
+              {doc.source_filename && (
+                <div className="text-xs text-gray-600 mb-2">
+                  <span className="font-medium">File:</span> {doc.source_filename}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-1">
+                {doc.pages.map((page, pageIndex) => (
+                  <span 
+                    key={pageIndex}
+                    className="inline-flex items-center space-x-1 text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded hover:bg-blue-200 transition-colors cursor-pointer"
+                    title={`Page ${page.page_number} - ${formatSimilarity(page.similarity)} similarity`}
+                  >
+                    <span>{page.page_number}</span>
+                    <span className="text-blue-600">({formatSimilarity(page.similarity)})</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Fallback for string array
+    const stringSources = sources as string[];
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {stringSources.map((source, index) => (
+          <span 
+            key={index} 
+            className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors cursor-pointer"
+            title={`Click to view: ${source}`}
+          >
+            {source}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   const formatMessageContent = (text: string) => {
@@ -125,17 +243,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap
               <div className="text-xs font-medium text-gray-600 mb-2">
                 Sources ({message.sources.length}):
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {message.sources.map((source, index) => (
-                  <span 
-                    key={index} 
-                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors cursor-pointer"
-                    title={`Click to view: ${source}`}
-                  >
-                    {source}
-                  </span>
-                ))}
-              </div>
+              {renderSources(message.sources)}
             </div>
           )}
         </div>
