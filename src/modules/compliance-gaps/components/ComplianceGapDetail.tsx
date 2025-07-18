@@ -38,7 +38,7 @@ import {
   FileIcon,
   ChevronRight,
 } from 'lucide-react'
-import type { ComplianceGapResponse, ComplianceGapUpdate, ComplianceGapStatusUpdate, RiskLevel, BusinessImpactLevel, GapStatus } from '../types'
+import type { ComplianceGapResponse, ComplianceGapUpdate, ComplianceGapStatusUpdate, RiskLevel, BusinessImpactLevel, GapStatus, RecommendationType } from '../types'
 import type { SourceDocument } from '../../chat/types'
 
 const formatDate = (dateString: string) => {
@@ -410,7 +410,7 @@ export default function ComplianceGapDetail() {
         assigned_to: currentGap.assigned_to || undefined,
         due_date: currentGap.due_date || undefined,
         resolution_notes: currentGap.resolution_notes || undefined,
-        recommendation_type: currentGap.recommendation_type || undefined,
+        recommendation_type: currentGap.recommendation_type as RecommendationType || undefined,
         recommendation_text: currentGap.recommendation_text,
         recommended_actions: currentGap.recommended_actions,
         related_documents: currentGap.related_documents,
@@ -601,7 +601,7 @@ export default function ComplianceGapDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-        <Card>
+          <Card>
             <CardHeader>
               <CardTitle>Gap Actions</CardTitle>
               <CardDescription>
@@ -610,6 +610,17 @@ export default function ComplianceGapDetail() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
+                <Button 
+                  variant="default" 
+                  className="flex items-center space-x-2"
+                  asChild
+                >
+                  <Link to={`/compliance-gaps/${currentGap.id}/edit`}>
+                    <Edit className="h-4 w-4" />
+                    <span>Edit Gap</span>
+                  </Link>
+                </Button>
+                
                 <Button 
                   variant="outline" 
                   className="flex items-center space-x-2"

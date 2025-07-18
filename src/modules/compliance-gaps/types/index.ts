@@ -173,7 +173,7 @@ export interface ComplianceGapUpdate {
   assigned_to?: string;
   due_date?: string;
   resolution_notes?: string;
-  recommendation_type?: string;
+  recommendation_type?: RecommendationType;
   recommendation_text?: string;
   recommended_actions?: string[];
   related_documents?: string[];

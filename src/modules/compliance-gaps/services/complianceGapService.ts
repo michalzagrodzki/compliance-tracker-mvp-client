@@ -99,7 +99,7 @@ class ComplianceGapService {
     gapId: string,
     updateData: ComplianceGapUpdate
   ): Promise<ComplianceGapResponse> {
-    const response = await http.put(`${this.baseUrl}/${gapId}`, updateData);
+    const response = await http.patch(`${this.baseUrl}/${gapId}`, updateData);
     return response.data;
   }
 
