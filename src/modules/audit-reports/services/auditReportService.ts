@@ -23,7 +23,7 @@ const AUDIT_REPORT_ENDPOINTS = {
   BY_ID: (reportId: string) => `/v1/audit-reports/${reportId}`,
   BY_SESSION: (sessionId: string) => `/v1/audit-reports/session/${sessionId}`,
   DOWNLOAD: (reportId: string) => `/v1/audit-reports/${reportId}/download`,
-  EXECUTIVE_SUMMARY: "/v1/executive-summary",
+  EXECUTIVE_SUMMARY: "/v1/audit-reports/executive-summary",
   GENERATE: "/v1/audit-reports/generate",
 
   // Data source endpoints
