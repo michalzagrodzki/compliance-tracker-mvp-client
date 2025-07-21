@@ -19,7 +19,6 @@ import {
   Target,
   FileText,
   Edit,
-  Save,
   X,
   Activity,
   Zap,
@@ -38,7 +37,7 @@ import {
   FileIcon,
   ChevronRight,
 } from 'lucide-react'
-import type { ComplianceGapResponse, ComplianceGapUpdate, ComplianceGapStatusUpdate, RiskLevel, BusinessImpactLevel, GapStatus, RecommendationType } from '../types'
+import type { ComplianceGapResponse, ComplianceGapStatusUpdate, GapStatus } from '../types'
 import type { SourceDocument } from '../../chat/types'
 
 const formatDate = (dateString: string) => {
@@ -368,15 +367,12 @@ export default function ComplianceGapDetail() {
     isLoading,
     error,
     loadGap,
-    updateGap,
     updateGapStatus,
     assignGap,
     reviewGap,
     clearError
   } = useComplianceGap()
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [editForm, setEditForm] = useState<ComplianceGapUpdate>({})
   const [showStatusUpdate, setShowStatusUpdate] = useState(false)
   const [statusForm, setStatusForm] = useState<ComplianceGapStatusUpdate>({
     status: 'identified',
@@ -397,44 +393,6 @@ export default function ComplianceGapDetail() {
     }
   }, [gapId, loadGap, clearError])
 
-  useEffect(() => {
-    if (currentGap) {
-      // Convert ComplianceGapResponse to ComplianceGapUpdate format
-      setEditForm({
-        gap_title: currentGap.gap_title,
-        gap_description: currentGap.gap_description,
-        risk_level: currentGap.risk_level,
-        business_impact: currentGap.business_impact,
-        regulatory_requirement: currentGap.regulatory_requirement,
-        potential_fine_amount: currentGap.potential_fine_amount || undefined,
-        assigned_to: currentGap.assigned_to || undefined,
-        due_date: currentGap.due_date || undefined,
-        resolution_notes: currentGap.resolution_notes || undefined,
-        recommendation_type: currentGap.recommendation_type as RecommendationType || undefined,
-        recommendation_text: currentGap.recommendation_text,
-        recommended_actions: currentGap.recommended_actions,
-        related_documents: currentGap.related_documents,
-        confidence_score: currentGap.confidence_score,
-        false_positive_likelihood: currentGap.false_positive_likelihood,
-        session_context: currentGap.session_context
-      })
-      setStatusForm({
-        status: currentGap.status,
-        resolution_notes: ''
-      })
-    }
-  }, [currentGap])
-
-  const handleSaveEdit = async () => {
-    if (!currentGap) return
-    
-    try {
-      await updateGap(currentGap.id, editForm)
-      setIsEditing(false)
-    } catch (error) {
-      console.error('Error updating gap:', error)
-    }
-  }
 
   const handleStatusUpdate = async () => {
     if (!currentGap) return
@@ -673,73 +631,9 @@ export default function ComplianceGapDetail() {
                     <Shield className="h-5 w-5" />
                     <span>Gap Details</span>
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(!isEditing)}
-                  >
-                    {isEditing ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                    <span className="ml-1">{isEditing ? 'Cancel' : 'Edit'}</span>
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Gap Title</label>
-                      <Input
-                        value={editForm.gap_title || ''}
-                        onChange={(e) => setEditForm({...editForm, gap_title: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Description</label>
-                      <textarea
-                        className="w-full min-h-[100px] p-2 border rounded-md"
-                        value={editForm.gap_description || ''}
-                        onChange={(e) => setEditForm({...editForm, gap_description: e.target.value})}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium">Risk Level</label>
-                        <select 
-                          className="w-full p-2 border rounded-md"
-                          value={editForm.risk_level || ''}
-                          onChange={(e) => setEditForm({...editForm, risk_level: e.target.value as RiskLevel})}
-                        >
-                          <option value="low">Low</option>
-                          <option value="medium">Medium</option>
-                          <option value="high">High</option>
-                          <option value="critical">Critical</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Business Impact</label>
-                        <select 
-                          className="w-full p-2 border rounded-md"
-                          value={editForm.business_impact || ''}
-                          onChange={(e) => setEditForm({...editForm, business_impact: e.target.value as BusinessImpactLevel})}
-                        >
-                          <option value="low">Low</option>
-                          <option value="medium">Medium</option>
-                          <option value="high">High</option>
-                          <option value="critical">Critical</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button onClick={handleSaveEdit}>
-                        <Save className="h-4 w-4 mr-1" />
-                        Save Changes
-                      </Button>
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
                   <div className="space-y-4">
                     <div>
                       <h4 className="font-medium text-sm text-muted-foreground mb-2">Description</h4>
@@ -808,7 +702,6 @@ export default function ComplianceGapDetail() {
                       </div>
                     )}
                   </div>
-                )}
               </CardContent>
             </Card>
           {/* Related Chat Message Card */}
