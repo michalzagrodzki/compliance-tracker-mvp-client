@@ -191,11 +191,11 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
       return errorResponse;
     }
   },
-  fetchReports: async (skip: number = 0, limit: number = 10) => {
+  fetchReports: async () => {
     set({ isLoading: true, error: null });
-
     try {
-      const reports = await auditReportService.getAllReports(skip, limit);
+      const reports =
+        await auditReportService.getAllReportsByComplianceDomain();
 
       set({ reports, isLoading: false });
     } catch (error: any) {

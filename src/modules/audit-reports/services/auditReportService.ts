@@ -20,6 +20,7 @@ const AUDIT_REPORT_ENDPOINTS = {
   CREATE: "/v1/audit-reports",
   UPDATE: (reportId: string) => `/v1/audit-reports/${reportId}`,
   LIST: "/v1/audit-reports",
+  BY_COMPLIANCE_DOMAINS: "/v1/audit-reports/compliance-domain",
   BY_ID: (reportId: string) => `/v1/audit-reports/${reportId}`,
   BY_SESSION: (sessionId: string) => `/v1/audit-reports/session/${sessionId}`,
   DOWNLOAD: (reportId: string) => `/v1/audit-reports/${reportId}/download`,
@@ -129,6 +130,13 @@ class AuditReportService {
       {
         params: { skip, limit },
       }
+    );
+    return response.data;
+  }
+
+  async getAllReportsByComplianceDomain(): Promise<AuditReport[]> {
+    const response = await http.get<AuditReport[]>(
+      AUDIT_REPORT_ENDPOINTS.BY_COMPLIANCE_DOMAINS
     );
     return response.data;
   }

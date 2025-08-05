@@ -238,7 +238,7 @@ export interface AuditReportActions {
     changeDescription?: string
   ) => Promise<void>;
   clearUpdateError: () => void;
-  fetchReports: (skip?: number, limit?: number) => Promise<void>;
+  fetchReports: () => Promise<void>;
   fetchReportById: (reportId: string) => Promise<void>;
   clearError: () => void;
   clearCreateResponse: () => void;
