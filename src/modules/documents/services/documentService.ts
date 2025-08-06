@@ -16,6 +16,7 @@ const ENDPOINTS = {
   INGESTION_BY_ID: (id: string) => `/v1/ingestions/${id}`,
   INGESTIONS_BY_DOMAIN: (domain: string) =>
     `/v1/ingestions/compliance-domain/${domain}`,
+  INGESTIONS_BY_DOMAINS: `/v1/ingestions/compliance-domains`,
   INGESTIONS_BY_VERSION: (version: string) =>
     `/v1/ingestions/version/${version}`,
   INGESTIONS_BY_USER: (userId: string) => `/v1/ingestions/user/${userId}`,
@@ -43,13 +44,15 @@ class DocumentService {
   async getIngestions(
     params: IngestionListParams = {}
   ): Promise<PdfIngestion[]> {
-    const response = await http.get<PdfIngestion[]>(ENDPOINTS.INGESTIONS_LIST, {
-      params: {
-        skip: params.skip || 0,
-        limit: params.limit || 10,
-        ...params,
-      },
-    });
+    const response = await http.get<PdfIngestion[]>(
+      ENDPOINTS.INGESTIONS_BY_DOMAINS,
+      {
+        params: {
+          skip: params.skip || 0,
+          limit: params.limit || 10,
+        },
+      }
+    );
     return response.data;
   }
 

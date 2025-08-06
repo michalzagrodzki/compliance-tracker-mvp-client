@@ -98,6 +98,16 @@ class ComplianceGapService {
     return response.data;
   }
 
+  async getComplianceGapsByUserComplianceDomains(params?: {
+    skip?: number;
+    limit?: number;
+  }): Promise<ComplianceGapResponse[]> {
+    const response = await http.get(`${this.baseUrl}/compliance-domains`, {
+      params,
+    });
+    return response.data;
+  }
+
   async getComplianceGapById(id: string): Promise<ComplianceGapResponse> {
     const response = await http.get(`${this.baseUrl}/${id}`);
     return response.data;

@@ -189,7 +189,10 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const gaps = await complianceGapService.getComplianceGaps(params);
+      const gaps =
+        await complianceGapService.getComplianceGapsByUserComplianceDomains(
+          params
+        );
       set({
         gaps,
         isLoading: false,
