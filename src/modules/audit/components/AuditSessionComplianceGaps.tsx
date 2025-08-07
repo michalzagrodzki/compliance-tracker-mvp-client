@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Link } from 'react-router'
 import { 
   Shield, 
   AlertTriangle, 
@@ -18,7 +20,7 @@ import {
   Zap,
   Eye,
   ArrowRight,
-  TriangleAlert
+  TriangleAlert,
 } from 'lucide-react'
 import { useComplianceGap } from '@/modules/compliance-gaps/hooks/useComplianceGap'
 import type { BusinessImpactLevel, GapStatus, RiskLevel } from '@/modules/compliance-gaps/types'
@@ -395,20 +397,19 @@ export default function AuditSessionComplianceGaps({
                             )}
                           </div>
                           
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                // TODO: Navigate to compliance gap detail view
-                                console.log('Navigate to gap detail:', gap.id)
-                              }}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View Details
-                              <ArrowRight className="h-3 w-3 ml-1" />
-                            </Button>
-                          </div>
+                          <div className="flex items-center space-x-2 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                              >
+                                <Link to={`/compliance-gaps/${gap.id}`}>
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  View Details
+                                  <ArrowRight className="h-3 w-3 ml-1" />
+                                </Link>
+                              </Button>
+                            </div>
                         </div>
                       </div>
                     </div>
