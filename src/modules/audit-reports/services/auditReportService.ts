@@ -12,6 +12,12 @@ import {
   type DocumentItem,
   type ExecutiveSummaryRequest,
   type ExecutiveSummaryResponse,
+  type ThreatIntelligenceRequest,
+  type ThreatIntelligenceResponse,
+  type RiskPrioritizationRequest,
+  type RiskPrioritizationResponse,
+  type TargetAudienceRequest,
+  type TargetAudienceResponse,
   type SummaryTypeValue,
 } from "../types";
 import type { ComplianceGap } from "@/modules/compliance-gaps/types";
@@ -25,6 +31,9 @@ const AUDIT_REPORT_ENDPOINTS = {
   BY_SESSION: (sessionId: string) => `/v1/audit-reports/session/${sessionId}`,
   DOWNLOAD: (reportId: string) => `/v1/audit-reports/${reportId}/download`,
   EXECUTIVE_SUMMARY: "/v1/audit-reports/executive-summary",
+  THREAT_INTELLIGENCE: "/v1/audit-reports/threat-intelligence",
+  RISK_PRIORITIZATION: "/v1/audit-reports/risk-prioritization",
+  TARGET_AUDIENCE: "/v1/audit-reports/target-audience",
   GENERATE: "/v1/audit-reports/generate",
 
   // Data source endpoints
@@ -257,6 +266,85 @@ class AuditReportService {
       console.error("Failed to create executive summary:", error);
       throw new Error(
         error.response?.data?.detail || "Failed to create executive summary"
+      );
+    }
+  }
+
+  async createThreatIntelligence(
+    auditReport: AuditReportCreate,
+    complianceGaps: ComplianceGap[],
+    summaryType: SummaryTypeValue = SummaryType.STANDARD
+  ): Promise<ThreatIntelligenceResponse> {
+    try {
+      const requestData: ThreatIntelligenceRequest = {
+        audit_report: auditReport,
+        compliance_gaps: complianceGaps,
+        summary_type: summaryType,
+      };
+
+      const response = await http.post<ThreatIntelligenceResponse>(
+        AUDIT_REPORT_ENDPOINTS.THREAT_INTELLIGENCE,
+        requestData
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to create threat intelligence:", error);
+      throw new Error(
+        error.response?.data?.detail || "Failed to create threat intelligence"
+      );
+    }
+  }
+
+  async createRiskPrioritization(
+    auditReport: AuditReportCreate,
+    complianceGaps: ComplianceGap[],
+    summaryType: SummaryTypeValue = SummaryType.STANDARD
+  ): Promise<RiskPrioritizationResponse> {
+    try {
+      const requestData: RiskPrioritizationRequest = {
+        audit_report: auditReport,
+        compliance_gaps: complianceGaps,
+        summary_type: summaryType,
+      };
+
+      const response = await http.post<RiskPrioritizationResponse>(
+        AUDIT_REPORT_ENDPOINTS.RISK_PRIORITIZATION,
+        requestData
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to create risk prioritization:", error);
+      throw new Error(
+        error.response?.data?.detail || "Failed to create risk prioritization"
+      );
+    }
+  }
+
+  async createTargetAudience(
+    auditReport: AuditReportCreate,
+    complianceGaps: ComplianceGap[],
+    summaryType: SummaryTypeValue = SummaryType.STANDARD
+  ): Promise<TargetAudienceResponse> {
+    try {
+      const requestData: TargetAudienceRequest = {
+        audit_report: auditReport,
+        compliance_gaps: complianceGaps,
+        summary_type: summaryType,
+      };
+
+      const response = await http.post<TargetAudienceResponse>(
+        AUDIT_REPORT_ENDPOINTS.TARGET_AUDIENCE,
+        requestData
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Failed to create target audience summary:", error);
+      throw new Error(
+        error.response?.data?.detail ||
+          "Failed to create target audience summary"
       );
     }
   }

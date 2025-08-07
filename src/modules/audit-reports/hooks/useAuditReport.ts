@@ -11,6 +11,9 @@ import type {
   AuditReportGenerateResponse,
   AuditReportResponse,
   ExecutiveSummaryResponse,
+  ThreatIntelligenceResponse,
+  RiskPrioritizationResponse,
+  TargetAudienceResponse,
   SummaryTypeValue,
 } from "../types";
 import { SummaryType } from "../types";
@@ -29,6 +32,18 @@ export const useAuditReport = () => {
     executiveSummary,
     summaryError,
     summaryGenerationHistory,
+    isGeneratingThreatIntelligence,
+    threatIntelligence,
+    threatIntelligenceError,
+    threatIntelligenceGenerationHistory,
+    isGeneratingRiskPrioritization,
+    riskPrioritization,
+    riskPrioritizationError,
+    riskPrioritizationGenerationHistory,
+    isGeneratingTargetAudience,
+    targetAudience,
+    targetAudienceError,
+    targetAudienceGenerationHistory,
     createReport,
     fetchReports,
     fetchReportById,
@@ -53,6 +68,24 @@ export const useAuditReport = () => {
     updateExecutiveSummaryInReport,
     getSummaryHistory,
     clearSummaryHistory,
+    generateThreatIntelligence,
+    clearThreatIntelligence,
+    clearThreatIntelligenceError,
+    updateThreatIntelligenceInReport,
+    getThreatIntelligenceHistory,
+    clearThreatIntelligenceHistory,
+    generateRiskPrioritization,
+    clearRiskPrioritization,
+    clearRiskPrioritizationError,
+    updateRiskPrioritizationInReport,
+    getRiskPrioritizationHistory,
+    clearRiskPrioritizationHistory,
+    generateTargetAudience,
+    clearTargetAudience,
+    clearTargetAudienceError,
+    updateTargetAudienceInReport,
+    getTargetAudienceHistory,
+    clearTargetAudienceHistory,
     isGenerating,
     generateResponse,
     generateError,
@@ -102,12 +135,9 @@ export const useAuditReport = () => {
     [updateReport]
   );
 
-  const handleLoadReports = useCallback(
-    async (skip?: number, limit?: number) => {
-      await fetchReports(skip, limit);
-    },
-    [fetchReports]
-  );
+  const handleLoadReports = useCallback(async () => {
+    await fetchReports();
+  }, [fetchReports]);
 
   const handleLoadReport = useCallback(
     async (reportId: string) => {
@@ -228,6 +258,179 @@ export const useAuditReport = () => {
     [executiveSummary, updateExecutiveSummaryInReport]
   );
 
+  // Threat Intelligence Actions
+  const handleGenerateThreatIntelligence = useCallback(
+    async (
+      auditReport: AuditReportCreate,
+      complianceGaps?: ComplianceGap[],
+      summaryType: SummaryTypeValue = SummaryType.STANDARD
+    ): Promise<ThreatIntelligenceResponse> => {
+      try {
+        const gaps = complianceGaps;
+
+        if (!gaps || (gaps && gaps.length === 0)) {
+          throw new Error(
+            "No compliance gaps selected for threat intelligence generation"
+          );
+        }
+
+        const response = await generateThreatIntelligence(
+          auditReport,
+          gaps,
+          summaryType
+        );
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [generateThreatIntelligence]
+  );
+
+  const handleUpdateThreatIntelligenceInReport = useCallback(
+    async (reportId: string, analysis: string) => {
+      try {
+        await updateThreatIntelligenceInReport(reportId, analysis);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateThreatIntelligenceInReport]
+  );
+
+  const handleSaveAndUseThreatIntelligence = useCallback(
+    async (reportId: string, analysis?: string): Promise<void> => {
+      try {
+        const analysisToUse =
+          analysis || threatIntelligence?.threat_intelligence_analysis;
+
+        if (!analysisToUse) {
+          throw new Error("No threat intelligence analysis available to save");
+        }
+
+        await updateThreatIntelligenceInReport(reportId, analysisToUse);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [threatIntelligence, updateThreatIntelligenceInReport]
+  );
+
+  // Risk Prioritization Actions
+  const handleGenerateRiskPrioritization = useCallback(
+    async (
+      auditReport: AuditReportCreate,
+      complianceGaps?: ComplianceGap[],
+      summaryType: SummaryTypeValue = SummaryType.STANDARD
+    ): Promise<RiskPrioritizationResponse> => {
+      try {
+        const gaps = complianceGaps;
+
+        if (!gaps || (gaps && gaps.length === 0)) {
+          throw new Error(
+            "No compliance gaps selected for risk prioritization generation"
+          );
+        }
+
+        const response = await generateRiskPrioritization(
+          auditReport,
+          gaps,
+          summaryType
+        );
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [generateRiskPrioritization]
+  );
+
+  const handleUpdateRiskPrioritizationInReport = useCallback(
+    async (reportId: string, prioritization: string) => {
+      try {
+        await updateRiskPrioritizationInReport(reportId, prioritization);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateRiskPrioritizationInReport]
+  );
+
+  const handleSaveAndUseRiskPrioritization = useCallback(
+    async (reportId: string, prioritization?: string): Promise<void> => {
+      try {
+        const prioritizationToUse =
+          prioritization || riskPrioritization?.control_risk_prioritization;
+
+        if (!prioritizationToUse) {
+          throw new Error("No risk prioritization available to save");
+        }
+
+        await updateRiskPrioritizationInReport(reportId, prioritizationToUse);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [riskPrioritization, updateRiskPrioritizationInReport]
+  );
+
+  // Target Audience Actions
+  const handleGenerateTargetAudience = useCallback(
+    async (
+      auditReport: AuditReportCreate,
+      complianceGaps?: ComplianceGap[],
+      summaryType: SummaryTypeValue = SummaryType.STANDARD
+    ): Promise<TargetAudienceResponse> => {
+      try {
+        const gaps = complianceGaps;
+
+        if (!gaps || (gaps && gaps.length === 0)) {
+          throw new Error(
+            "No compliance gaps selected for target audience generation"
+          );
+        }
+
+        const response = await generateTargetAudience(
+          auditReport,
+          gaps,
+          summaryType
+        );
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [generateTargetAudience]
+  );
+
+  const handleUpdateTargetAudienceInReport = useCallback(
+    async (reportId: string, summary: string) => {
+      try {
+        await updateTargetAudienceInReport(reportId, summary);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [updateTargetAudienceInReport]
+  );
+
+  const handleSaveAndUseTargetAudience = useCallback(
+    async (reportId: string, summary?: string): Promise<void> => {
+      try {
+        const summaryToUse = summary || targetAudience?.target_audience_summary;
+
+        if (!summaryToUse) {
+          throw new Error("No target audience summary available to save");
+        }
+
+        await updateTargetAudienceInReport(reportId, summaryToUse);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [targetAudience, updateTargetAudienceInReport]
+  );
+
   const getSelectedData = useCallback(() => {
     return auditReportStoreUtils.getSelectedData();
   }, []);
@@ -345,7 +548,7 @@ export const useAuditReport = () => {
 
     if (selectionCounts.selectedGapsCount === 0) {
       errors.push(
-        "At least one compliance gap must be selected to generate an executive summary"
+        "At least one compliance gap must be selected to generate summaries"
       );
     }
 
@@ -361,18 +564,45 @@ export const useAuditReport = () => {
     clearDataSources();
     clearExecutiveSummary();
     clearSummaryError();
+    clearThreatIntelligence();
+    clearThreatIntelligenceError();
+    clearRiskPrioritization();
+    clearRiskPrioritizationError();
+    clearTargetAudience();
+    clearTargetAudienceError();
   }, [
     clearError,
     clearCreateResponse,
     clearDataSources,
     clearExecutiveSummary,
     clearSummaryError,
+    clearThreatIntelligence,
+    clearThreatIntelligenceError,
+    clearRiskPrioritization,
+    clearRiskPrioritizationError,
+    clearTargetAudience,
+    clearTargetAudienceError,
   ]);
 
   const resetSummaryState = useCallback(() => {
     clearExecutiveSummary();
     clearSummaryError();
   }, [clearExecutiveSummary, clearSummaryError]);
+
+  const resetThreatIntelligenceState = useCallback(() => {
+    clearThreatIntelligence();
+    clearThreatIntelligenceError();
+  }, [clearThreatIntelligence, clearThreatIntelligenceError]);
+
+  const resetRiskPrioritizationState = useCallback(() => {
+    clearRiskPrioritization();
+    clearRiskPrioritizationError();
+  }, [clearRiskPrioritization, clearRiskPrioritizationError]);
+
+  const resetTargetAudienceState = useCallback(() => {
+    clearTargetAudience();
+    clearTargetAudienceError();
+  }, [clearTargetAudience, clearTargetAudienceError]);
 
   const resetGenerationState = useCallback(() => {
     clearGenerateError();
@@ -386,6 +616,33 @@ export const useAuditReport = () => {
 
   const getExecutiveSummaryPreview = useCallback((maxLength?: number) => {
     return auditReportStoreUtils.getExecutiveSummaryPreview(maxLength);
+  }, []);
+
+  // Threat Intelligence utilities
+  const hasThreatIntelligence = useCallback(() => {
+    return auditReportStoreUtils.hasThreatIntelligence();
+  }, []);
+
+  const getThreatIntelligencePreview = useCallback((maxLength?: number) => {
+    return auditReportStoreUtils.getThreatIntelligencePreview(maxLength);
+  }, []);
+
+  // Risk Prioritization utilities
+  const hasRiskPrioritization = useCallback(() => {
+    return auditReportStoreUtils.hasRiskPrioritization();
+  }, []);
+
+  const getRiskPrioritizationPreview = useCallback((maxLength?: number) => {
+    return auditReportStoreUtils.getRiskPrioritizationPreview(maxLength);
+  }, []);
+
+  // Target Audience utilities
+  const hasTargetAudience = useCallback(() => {
+    return auditReportStoreUtils.hasTargetAudience();
+  }, []);
+
+  const getTargetAudiencePreview = useCallback((maxLength?: number) => {
+    return auditReportStoreUtils.getTargetAudiencePreview(maxLength);
   }, []);
 
   const canGenerateSummary = useCallback(() => {
@@ -408,6 +665,54 @@ export const useAuditReport = () => {
     };
   }, [executiveSummary]);
 
+  const getThreatIntelligenceStats = useCallback(() => {
+    if (!threatIntelligence) return null;
+
+    return {
+      totalGaps: threatIntelligence.total_gaps,
+      highRiskGaps: threatIntelligence.high_risk_gaps,
+      mediumRiskGaps: threatIntelligence.medium_risk_gaps,
+      lowRiskGaps: threatIntelligence.low_risk_gaps,
+      regulatoryGaps: threatIntelligence.regulatory_gaps,
+      threatIndicators: threatIntelligence.threat_indicators,
+      vulnerabilityScore: threatIntelligence.vulnerability_score,
+      auditSessionId: threatIntelligence.audit_session_id,
+      complianceDomain: threatIntelligence.compliance_domain,
+    };
+  }, [threatIntelligence]);
+
+  const getRiskPrioritizationStats = useCallback(() => {
+    if (!riskPrioritization) return null;
+
+    return {
+      totalGaps: riskPrioritization.total_gaps,
+      highRiskGaps: riskPrioritization.high_risk_gaps,
+      mediumRiskGaps: riskPrioritization.medium_risk_gaps,
+      lowRiskGaps: riskPrioritization.low_risk_gaps,
+      regulatoryGaps: riskPrioritization.regulatory_gaps,
+      prioritizedRisks: riskPrioritization.prioritized_risks,
+      riskScore: riskPrioritization.risk_score,
+      auditSessionId: riskPrioritization.audit_session_id,
+      complianceDomain: riskPrioritization.compliance_domain,
+    };
+  }, [riskPrioritization]);
+
+  const getTargetAudienceStats = useCallback(() => {
+    if (!targetAudience) return null;
+
+    return {
+      totalGaps: targetAudience.total_gaps,
+      highRiskGaps: targetAudience.high_risk_gaps,
+      mediumRiskGaps: targetAudience.medium_risk_gaps,
+      lowRiskGaps: targetAudience.low_risk_gaps,
+      regulatoryGaps: targetAudience.regulatory_gaps,
+      audienceFocusAreas: targetAudience.audience_focus_areas,
+      communicationLevel: targetAudience.communication_level,
+      auditSessionId: targetAudience.audit_session_id,
+      complianceDomain: targetAudience.compliance_domain,
+    };
+  }, [targetAudience]);
+
   return {
     // State
     reports,
@@ -419,10 +724,31 @@ export const useAuditReport = () => {
     dataSources,
     isUpdating,
     updateError,
+
+    // Executive Summary state
     isGeneratingSummary,
     executiveSummary,
     summaryError,
     summaryGenerationHistory,
+
+    // Threat Intelligence state
+    isGeneratingThreatIntelligence,
+    threatIntelligence,
+    threatIntelligenceError,
+    threatIntelligenceGenerationHistory,
+
+    // Risk Prioritization state
+    isGeneratingRiskPrioritization,
+    riskPrioritization,
+    riskPrioritizationError,
+    riskPrioritizationGenerationHistory,
+
+    // Target Audience state
+    isGeneratingTargetAudience,
+    targetAudience,
+    targetAudienceError,
+    targetAudienceGenerationHistory,
+
     isGenerating,
     generateResponse,
     generateError,
@@ -435,10 +761,27 @@ export const useAuditReport = () => {
     loadSessionData: handleLoadSessionData,
     updateSelections: handleUpdateSelections,
     selectAll: handleSelectAll,
+
+    // Executive Summary actions
     generateExecutiveSummary: handleGenerateExecutiveSummary,
     regenerateSummary: handleRegenerateSummary,
     updateExecutiveSummaryInReport: handleUpdateExecutiveSummaryInReport,
     saveAndUseSummary: handleSaveAndUseSummary,
+
+    // Threat Intelligence actions
+    generateThreatIntelligence: handleGenerateThreatIntelligence,
+    updateThreatIntelligenceInReport: handleUpdateThreatIntelligenceInReport,
+    saveAndUseThreatIntelligence: handleSaveAndUseThreatIntelligence,
+
+    // Risk Prioritization actions
+    generateRiskPrioritization: handleGenerateRiskPrioritization,
+    updateRiskPrioritizationInReport: handleUpdateRiskPrioritizationInReport,
+    saveAndUseRiskPrioritization: handleSaveAndUseRiskPrioritization,
+
+    // Target Audience actions
+    generateTargetAudience: handleGenerateTargetAudience,
+    updateTargetAudienceInReport: handleUpdateTargetAudienceInReport,
+    saveAndUseTargetAudience: handleSaveAndUseTargetAudience,
 
     generateReport: handleGenerateReport,
     validateGenerateRequest,
@@ -454,17 +797,41 @@ export const useAuditReport = () => {
     validateSummaryGeneration,
     resetForm,
     resetSummaryState,
+    resetThreatIntelligenceState,
+    resetRiskPrioritizationState,
+    resetTargetAudienceState,
     hasExecutiveSummary,
     getExecutiveSummaryPreview,
+    hasThreatIntelligence,
+    getThreatIntelligencePreview,
+    hasRiskPrioritization,
+    getRiskPrioritizationPreview,
+    hasTargetAudience,
+    getTargetAudiencePreview,
     canGenerateSummary,
     getSummaryStats,
+    getThreatIntelligenceStats,
+    getRiskPrioritizationStats,
+    getTargetAudienceStats,
     getSummaryHistory,
     clearSummaryHistory,
+    getThreatIntelligenceHistory,
+    clearThreatIntelligenceHistory,
+    getRiskPrioritizationHistory,
+    clearRiskPrioritizationHistory,
+    getTargetAudienceHistory,
+    clearTargetAudienceHistory,
     clearError,
     clearCreateResponse,
     clearUpdateError,
     clearExecutiveSummary,
     clearSummaryError,
+    clearThreatIntelligence,
+    clearThreatIntelligenceError,
+    clearRiskPrioritization,
+    clearRiskPrioritizationError,
+    clearTargetAudience,
+    clearTargetAudienceError,
     setLoading,
   };
 };

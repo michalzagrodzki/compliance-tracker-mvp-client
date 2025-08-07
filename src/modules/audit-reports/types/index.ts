@@ -447,6 +447,68 @@ export interface ExecutiveSummaryResponse {
   generation_metadata: Record<string, any>;
 }
 
+export interface ThreatIntelligenceRequest {
+  audit_report: AuditReportCreate;
+  compliance_gaps: ComplianceGap[];
+  summary_type?: SummaryTypeValue;
+}
+
+export interface ThreatIntelligenceResponse {
+  threat_intelligence_analysis: string;
+  audit_session_id: string;
+  compliance_domain: string;
+  total_gaps: number;
+  high_risk_gaps: number;
+  medium_risk_gaps: number;
+  low_risk_gaps: number;
+  regulatory_gaps: number;
+  threat_indicators: number;
+  vulnerability_score: number;
+  generation_metadata: Record<string, any>;
+}
+
+// New interfaces for risk prioritization
+export interface RiskPrioritizationRequest {
+  audit_report: AuditReportCreate;
+  compliance_gaps: ComplianceGap[];
+  summary_type?: SummaryTypeValue;
+}
+
+export interface RiskPrioritizationResponse {
+  control_risk_prioritization: string;
+  audit_session_id: string;
+  compliance_domain: string;
+  total_gaps: number;
+  high_risk_gaps: number;
+  medium_risk_gaps: number;
+  low_risk_gaps: number;
+  regulatory_gaps: number;
+  prioritized_risks: number;
+  risk_score: number;
+  generation_metadata: Record<string, any>;
+}
+
+// New interfaces for target audience
+export interface TargetAudienceRequest {
+  audit_report: AuditReportCreate;
+  compliance_gaps: ComplianceGap[];
+  summary_type?: SummaryTypeValue;
+}
+
+export interface TargetAudienceResponse {
+  target_audience_summary: string;
+  audit_session_id: string;
+  compliance_domain: string;
+  total_gaps: number;
+  high_risk_gaps: number;
+  medium_risk_gaps: number;
+  low_risk_gaps: number;
+  regulatory_gaps: number;
+  audience_focus_areas: string[];
+  communication_level: string;
+  generation_metadata: Record<string, any>;
+}
+
 export interface AuditReportGenerateRequest {
   audit_session_id: string;
   report_title: string;

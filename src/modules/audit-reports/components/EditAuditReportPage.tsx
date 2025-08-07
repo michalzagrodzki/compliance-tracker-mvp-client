@@ -24,6 +24,9 @@ import {
   ChevronUp,
   Info,
   Sparkles,
+  Target,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 import { useAuditReport } from '../hooks/useAuditReport';
 import { useAuthStore } from '@/modules/auth/store/authStore';
@@ -53,12 +56,34 @@ export default function EditAuditReportPage() {
     updateGapSelection,
     updateDocumentSelection,
     clearDataSources,
+    // Executive Summary
     isGeneratingSummary,
     executiveSummary,
     summaryError,
     generateExecutiveSummary,
     clearExecutiveSummary,
     clearSummaryError,
+    // Threat Intelligence
+    isGeneratingThreatIntelligence,
+    threatIntelligence,
+    threatIntelligenceError,
+    generateThreatIntelligence,
+    clearThreatIntelligence,
+    clearThreatIntelligenceError,
+    // Risk Prioritization
+    isGeneratingRiskPrioritization,
+    riskPrioritization,
+    riskPrioritizationError,
+    generateRiskPrioritization,
+    clearRiskPrioritization,
+    clearRiskPrioritizationError,
+    // Target Audience
+    isGeneratingTargetAudience,
+    targetAudience,
+    targetAudienceError,
+    generateTargetAudience,
+    clearTargetAudience,
+    clearTargetAudienceError,
   } = useAuditReportStore();
 
   const {
@@ -96,7 +121,13 @@ export default function EditAuditReportPage() {
     clearUpdateError();
     clearExecutiveSummary();
     clearSummaryError();
-  }, [reportId, loadReport, clearUpdateError, clearExecutiveSummary, clearSummaryError]);
+    clearThreatIntelligence();
+    clearThreatIntelligenceError();
+    clearRiskPrioritization();
+    clearRiskPrioritizationError();
+    clearTargetAudience();
+    clearTargetAudienceError();
+  }, [reportId, loadReport, clearUpdateError, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
 
   useEffect(() => {
     if (currentReport) {
@@ -112,6 +143,9 @@ export default function EditAuditReportPage() {
         document_ids: currentReport.document_ids,
         pdf_ingestion_ids: currentReport.pdf_ingestion_ids,
         executive_summary: currentReport.executive_summary,
+        threat_intelligence_analysis: currentReport.threat_intelligence_analysis,
+        control_risk_prioritization: currentReport.control_risk_prioritization,
+        target_audience_summary: currentReport.target_audience_summary,
         detailed_findings: currentReport.detailed_findings,
         recommendations: currentReport.recommendations,
         action_items: currentReport.action_items,
@@ -156,12 +190,48 @@ export default function EditAuditReportPage() {
   }, [executiveSummary]);
 
   useEffect(() => {
+    if (threatIntelligence?.threat_intelligence_analysis) {
+      setFormData(prev => ({
+        ...prev,
+        threat_intelligence_analysis: threatIntelligence.threat_intelligence_analysis,
+      }));
+      setHasChanges(true);
+    }
+  }, [threatIntelligence]);
+
+  useEffect(() => {
+    if (riskPrioritization?.control_risk_prioritization) {
+      setFormData(prev => ({
+        ...prev,
+        control_risk_prioritization: riskPrioritization.control_risk_prioritization,
+      }));
+      setHasChanges(true);
+    }
+  }, [riskPrioritization]);
+
+  useEffect(() => {
+    if (targetAudience?.target_audience_summary) {
+      setFormData(prev => ({
+        ...prev,
+        target_audience_summary: targetAudience.target_audience_summary,
+      }));
+      setHasChanges(true);
+    }
+  }, [targetAudience]);
+
+  useEffect(() => {
     return () => {
       clearDataSources();
       clearExecutiveSummary();
       clearSummaryError();
+      clearThreatIntelligence();
+      clearThreatIntelligenceError();
+      clearRiskPrioritization();
+      clearRiskPrioritizationError();
+      clearTargetAudience();
+      clearTargetAudienceError();
     };
-  }, [clearDataSources, clearExecutiveSummary, clearSummaryError]);
+  }, [clearDataSources, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
 
   const handleInputChange = (field: keyof AuditReport, value: any) => {
     setFormData(prev => ({
@@ -220,10 +290,64 @@ export default function EditAuditReportPage() {
     return cleanedData;
   };
 
-  const handleGenerateExecutiveSummary = async () => {
-    if (!currentReport) {
-      return;
+  const createReportData = (): AuditReportCreate => {
+    if (!currentReport || !user) {
+      throw new Error("Missing required data");
     }
+
+    return {
+      user_id: user.id,
+      audit_session_id: currentReport.audit_session_id,
+      compliance_domain: currentReport.compliance_domain,
+      report_title: formData.report_title || currentReport.report_title,
+      report_type: formData.report_type || currentReport.report_type,
+      chat_history_ids: formData.chat_history_ids || currentReport.chat_history_ids,
+      compliance_gap_ids: formData.compliance_gap_ids || currentReport.compliance_gap_ids,
+      document_ids: formData.document_ids || currentReport.document_ids,
+      pdf_ingestion_ids: formData.pdf_ingestion_ids || currentReport.pdf_ingestion_ids,
+      include_technical_details: currentReport.include_technical_details,
+      include_source_citations: currentReport.include_source_citations,
+      include_confidence_scores: currentReport.include_confidence_scores,
+      target_audience: currentReport.target_audience,
+      confidentiality_level: formData.confidentiality_level || currentReport.confidentiality_level,
+      external_auditor_access: currentReport.external_auditor_access,
+    };
+  };
+
+  const getSelectedComplianceGaps = (): ComplianceGap[] => {
+    if (!currentReport || !user) return [];
+
+    const selectedData = getSelectedData();
+    return selectedData.selectedGaps.map(gap => ({
+      id: gap.id,
+      user_id: user.id,
+      audit_session_id: currentReport.audit_session_id,
+      compliance_domain: currentReport.compliance_domain,
+      gap_type: gap.gap_type,
+      gap_category: gap.gap_category,
+      gap_title: gap.gap_title,
+      gap_description: gap.gap_description,
+      original_question: "",
+      risk_level: gap.risk_level as any,
+      business_impact: gap.business_impact as any,
+      regulatory_requirement: gap.regulatory_requirement || false,
+      potential_fine_amount: gap.potential_fine_amount ?? undefined,
+      status: "identified" as any,
+      recommendation_type: gap.recommendation_type,
+      recommendation_text: gap.recommendation_text,
+      recommended_actions: gap.recommended_actions || [],
+      detection_method: (gap.detection_method as any) || "manual",
+      confidence_score: gap.confidence_score,
+      auto_generated: true,
+      false_positive_likelihood: gap.false_positive_likelihood || 0,
+      detected_at: gap.detected_at || new Date().toISOString(),
+      created_at: gap.detected_at || new Date().toISOString(),
+      updated_at: gap.detected_at || new Date().toISOString(),
+    }));
+  };
+
+  const handleGenerateExecutiveSummary = async () => {
+    if (!currentReport) return;
 
     const validation = validateSummaryGeneration();
     if (!validation.isValid) {
@@ -233,62 +357,68 @@ export default function EditAuditReportPage() {
 
     try {
       clearSummaryError();
-      
-      // Create a report data object for summary generation
-      const reportData: AuditReportCreate = {
-        user_id: user?.id || "",
-        audit_session_id: currentReport.audit_session_id,
-        compliance_domain: currentReport.compliance_domain,
-        report_title: formData.report_title || currentReport.report_title,
-        report_type: formData.report_type || currentReport.report_type,
-        chat_history_ids: formData.chat_history_ids || currentReport.chat_history_ids,
-        compliance_gap_ids: formData.compliance_gap_ids || currentReport.compliance_gap_ids,
-        document_ids: formData.document_ids || currentReport.document_ids,
-        pdf_ingestion_ids: formData.pdf_ingestion_ids || currentReport.pdf_ingestion_ids,
-        include_technical_details: currentReport.include_technical_details,
-        include_source_citations: currentReport.include_source_citations,
-        include_confidence_scores: currentReport.include_confidence_scores,
-        target_audience: currentReport.target_audience,
-        confidentiality_level: formData.confidentiality_level || currentReport.confidentiality_level,
-        external_auditor_access: currentReport.external_auditor_access,
-      };
-
-      const selectedData = getSelectedData();
-      const selectedGaps: ComplianceGap[] = selectedData.selectedGaps.map(gap => ({
-        id: gap.id,
-        user_id: user?.id || "",
-        audit_session_id: currentReport.audit_session_id,
-        compliance_domain: currentReport.compliance_domain,
-        gap_type: gap.gap_type,
-        gap_category: gap.gap_category,
-        gap_title: gap.gap_title,
-        gap_description: gap.gap_description,
-        original_question: "",
-        risk_level: gap.risk_level as any,
-        business_impact: gap.business_impact as any,
-        regulatory_requirement: gap.regulatory_requirement || false,
-        potential_fine_amount: gap.potential_fine_amount ?? undefined,
-        status: "identified" as any,
-        recommendation_type: gap.recommendation_type,
-        recommendation_text: gap.recommendation_text,
-        recommended_actions: gap.recommended_actions || [],
-        detection_method: (gap.detection_method as any) || "manual",
-        confidence_score: gap.confidence_score,
-        auto_generated: true,
-        false_positive_likelihood: gap.false_positive_likelihood || 0,
-        detected_at: gap.detected_at || new Date().toISOString(),
-        created_at: gap.detected_at || new Date().toISOString(),
-        updated_at: gap.detected_at || new Date().toISOString(),
-      }));
-
-      await generateExecutiveSummary(
-        reportData,
-        selectedGaps,
-        SummaryType.STANDARD
-      );
-
+      const reportData = createReportData();
+      const selectedGaps = getSelectedComplianceGaps();
+      await generateExecutiveSummary(reportData, selectedGaps, SummaryType.STANDARD);
     } catch (error) {
       console.error('Failed to generate executive summary:', error);
+    }
+  };
+
+  const handleGenerateThreatIntelligence = async () => {
+    if (!currentReport) return;
+
+    const validation = validateSummaryGeneration();
+    if (!validation.isValid) {
+      console.error('Validation failed:', validation.errors);
+      return;
+    }
+
+    try {
+      clearThreatIntelligenceError();
+      const reportData = createReportData();
+      const selectedGaps = getSelectedComplianceGaps();
+      await generateThreatIntelligence(reportData, selectedGaps, SummaryType.STANDARD);
+    } catch (error) {
+      console.error('Failed to generate threat intelligence:', error);
+    }
+  };
+
+  const handleGenerateRiskPrioritization = async () => {
+    if (!currentReport) return;
+
+    const validation = validateSummaryGeneration();
+    if (!validation.isValid) {
+      console.error('Validation failed:', validation.errors);
+      return;
+    }
+
+    try {
+      clearRiskPrioritizationError();
+      const reportData = createReportData();
+      const selectedGaps = getSelectedComplianceGaps();
+      await generateRiskPrioritization(reportData, selectedGaps, SummaryType.STANDARD);
+    } catch (error) {
+      console.error('Failed to generate risk prioritization:', error);
+    }
+  };
+
+  const handleGenerateTargetAudience = async () => {
+    if (!currentReport) return;
+
+    const validation = validateSummaryGeneration();
+    if (!validation.isValid) {
+      console.error('Validation failed:', validation.errors);
+      return;
+    }
+
+    try {
+      clearTargetAudienceError();
+      const reportData = createReportData();
+      const selectedGaps = getSelectedComplianceGaps();
+      await generateTargetAudience(reportData, selectedGaps, SummaryType.STANDARD);
+    } catch (error) {
+      console.error('Failed to generate target audience summary:', error);
     }
   };
 
@@ -535,11 +665,11 @@ export default function EditAuditReportPage() {
         </div>
       </div>
 
-      {(error || updateError || summaryError) && (
+      {(error || updateError || summaryError || threatIntelligenceError || riskPrioritizationError || targetAudienceError) && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="flex items-center space-x-2 pt-6">
             <XCircle className="h-4 w-4 text-red-600" />
-            <span className="text-red-700">{error || updateError || summaryError}</span>
+            <span className="text-red-700">{error || updateError || summaryError || threatIntelligenceError || riskPrioritizationError || targetAudienceError}</span>
           </CardContent>
         </Card>
       )}
@@ -722,6 +852,7 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
         
+        {/* Executive Summary */}
         <Card>
           <CardHeader>
             <CardTitle>Executive Summary</CardTitle>
@@ -792,6 +923,214 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
+        {/* Threat Intelligence Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Threat Intelligence Analysis</CardTitle>
+            <CardDescription>
+              Generate or provide threat intelligence insights based on compliance gaps and risk factors
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="threat_intelligence_analysis" className="text-sm font-medium">Threat Intelligence Analysis</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateThreatIntelligence}
+                  disabled={!canGenerateSummary() || isGeneratingThreatIntelligence}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingThreatIntelligence ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Target className="h-4 w-4" />
+                  )}
+                  <span>
+                    {isGeneratingThreatIntelligence ? 'Generating...' : 'Generate Threat Intelligence'}
+                  </span>
+                </Button>
+              </div>
+              <textarea
+                id="threat_intelligence_analysis"
+                value={formData.threat_intelligence_analysis || ''}
+                onChange={(e) => handleInputChange('threat_intelligence_analysis', e.target.value)}
+                placeholder="Enter threat intelligence analysis..."
+                rows={6}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Analysis of potential threats and vulnerabilities based on identified gaps
+                </p>
+                {!canGenerateSummary() && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable analysis generation
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {threatIntelligence && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">
+                    Threat Intelligence Analysis Generated Successfully
+                  </span>
+                </div>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p>• Total Gaps Analyzed: {threatIntelligence.total_gaps}</p>
+                  <p>• Threat Indicators: {threatIntelligence.threat_indicators}</p>
+                  <p>• Vulnerability Score: {threatIntelligence.vulnerability_score}</p>
+                  <p>• High Risk Gaps: {threatIntelligence.high_risk_gaps}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Risk Prioritization */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Risk Prioritization</CardTitle>
+            <CardDescription>
+              Generate or provide control risk prioritization based on compliance gaps and business impact
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="control_risk_prioritization" className="text-sm font-medium">Control Risk Prioritization</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateRiskPrioritization}
+                  disabled={!canGenerateSummary() || isGeneratingRiskPrioritization}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingRiskPrioritization ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <TrendingUp className="h-4 w-4" />
+                  )}
+                  <span>
+                    {isGeneratingRiskPrioritization ? 'Generating...' : 'Generate Risk Prioritization'}
+                  </span>
+                </Button>
+              </div>
+              <textarea
+                id="control_risk_prioritization"
+                value={formData.control_risk_prioritization || ''}
+                onChange={(e) => handleInputChange('control_risk_prioritization', e.target.value)}
+                placeholder="Enter control risk prioritization..."
+                rows={6}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Prioritized risk assessment and control recommendations
+                </p>
+                {!canGenerateSummary() && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable prioritization generation
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {riskPrioritization && (
+              <div className="bg-orange-50 border border-orange-200 rounded-md p-3 mt-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-medium text-orange-800">
+                    Risk Prioritization Generated Successfully
+                  </span>
+                </div>
+                <div className="text-xs text-orange-700 space-y-1">
+                  <p>• Total Gaps Analyzed: {riskPrioritization.total_gaps}</p>
+                  <p>• Prioritized Risks: {riskPrioritization.prioritized_risks}</p>
+                  <p>• Risk Score: {riskPrioritization.risk_score}</p>
+                  <p>• High Risk Gaps: {riskPrioritization.high_risk_gaps}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Target Audience Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Target Audience Summary</CardTitle>
+            <CardDescription>
+              Generate or provide audience-specific summary tailored to the report's target stakeholders
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="target_audience_summary" className="text-sm font-medium">Target Audience Summary</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateTargetAudience}
+                  disabled={!canGenerateSummary() || isGeneratingTargetAudience}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingTargetAudience ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Users className="h-4 w-4" />
+                  )}
+                  <span>
+                    {isGeneratingTargetAudience ? 'Generating...' : 'Generate Target Audience Summary'}
+                  </span>
+                </Button>
+              </div>
+              <textarea
+                id="target_audience_summary"
+                value={formData.target_audience_summary || ''}
+                onChange={(e) => handleInputChange('target_audience_summary', e.target.value)}
+                placeholder="Enter target audience summary..."
+                rows={6}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Summary tailored specifically for the target audience ({currentReport.target_audience})
+                </p>
+                {!canGenerateSummary() && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable summary generation
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {targetAudience && (
+              <div className="bg-purple-50 border border-purple-200 rounded-md p-3 mt-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium text-purple-800">
+                    Target Audience Summary Generated Successfully
+                  </span>
+                </div>
+                <div className="text-xs text-purple-700 space-y-1">
+                  <p>• Total Gaps Analyzed: {targetAudience.total_gaps}</p>
+                  <p>• Communication Level: {targetAudience.communication_level}</p>
+                  <p>• Focus Areas: {targetAudience.audience_focus_areas?.join(', ')}</p>
+                  <p>• High Risk Gaps: {targetAudience.high_risk_gaps}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Data Sources */}
         <Card>
           <CardHeader>
             <CardTitle>Data Sources</CardTitle>
@@ -942,6 +1281,7 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
         
+        {/* Detailed Findings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -1038,6 +1378,7 @@ export default function EditAuditReportPage() {
             )}
           </CardContent>
         </Card>
+
         {/* Recommendations */}
         <Card>
           <CardHeader>
@@ -1135,6 +1476,7 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
+        {/* Action Items */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -1245,6 +1587,7 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
+        {/* Audit Trail & References */}
         <Card>
           <CardHeader>
             <CardTitle>Audit Trail & References</CardTitle>
@@ -1306,6 +1649,7 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
 
+        {/* Change Description */}
         <Card>
           <CardHeader>
             <CardTitle>Change Description</CardTitle>
