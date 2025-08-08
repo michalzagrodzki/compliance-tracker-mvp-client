@@ -33,6 +33,7 @@ import {
   Database,
   Key as KeyIcon,
 } from 'lucide-react';
+import AuditSessionComplianceGaps from '@/modules/audit/components/AuditSessionComplianceGaps';
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -434,7 +435,9 @@ export default function AuditReportItem() {
   const ConfidentialityIcon = confidentialityInfo.icon;
   const AudienceIcon = audienceInfo.icon;
 
-  const totalGaps = currentReport.total_gaps_identified;
+  const totalGaps = currentReport.total_gaps_identified === 0 
+    ? (currentReport.compliance_gap_ids?.length || 0)
+    : (currentReport.total_gaps_identified || 0);
 
   const hasMetrics = totalGaps > 0 || currentReport.total_questions_asked > 0;
 
@@ -742,7 +745,10 @@ export default function AuditReportItem() {
               </CardContent>
             </Card>
           )}
-
+          <AuditSessionComplianceGaps 
+            sessionId={currentReport.audit_session_id}
+            complianceDomain={currentReport.compliance_domain}
+          />
           {currentReport.control_risk_prioritization && (
             <Card>
               <CardHeader>
@@ -858,20 +864,16 @@ export default function AuditReportItem() {
                 </Link>
               </Button>
               
-              <Button variant="outline" className="w-full">
+              <Button disabled variant="outline" className="w-full">
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
               
-              <Button variant="outline" className="w-full">
+              <Button disabled variant="outline" className="w-full">
                 <Mail className="h-4 w-4 mr-2" />
                 Email Report
               </Button>
               
-              <Button variant="outline" className="w-full">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Report
-              </Button>
             </CardContent>
           </Card>
 

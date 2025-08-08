@@ -277,7 +277,6 @@ export default function AuditSessionDetail() {
           </Card>
           <AuditSessionComplianceGaps 
             sessionId={currentSession.id}
-            sessionName={currentSession.session_name}
             complianceDomain={currentSession.compliance_domain}
           />
           <AuditSessionChats 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,13 +27,11 @@ import type { BusinessImpactLevel, GapStatus, RiskLevel } from '@/modules/compli
 
 interface AuditSessionComplianceGapsProps {
   sessionId: string
-  sessionName: string
   complianceDomain: string
 }
 
 export default function AuditSessionComplianceGaps({ 
-  sessionId, 
-  sessionName, 
+  sessionId,
   complianceDomain 
 }: AuditSessionComplianceGapsProps) {
   const {
@@ -216,7 +213,7 @@ export default function AuditSessionComplianceGaps({
               </span>
             </CardTitle>
             <CardDescription>
-              Identified compliance gaps and risk assessments for this audit session
+              Identified compliance gaps and risk assessments
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
