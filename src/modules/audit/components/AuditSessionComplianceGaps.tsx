@@ -20,6 +20,8 @@ import {
   Eye,
   ArrowRight,
   TriangleAlert,
+  BookOpen,
+  Lightbulb,
 } from 'lucide-react'
 import { useComplianceGap } from '@/modules/compliance-gaps/hooks/useComplianceGap'
 import type { BusinessImpactLevel, GapStatus, RiskLevel } from '@/modules/compliance-gaps/types'
@@ -181,6 +183,10 @@ export default function AuditSessionComplianceGaps({
     }
   }
 
+  const hasRecommendation = (recommendationText: string | null) => {
+    return recommendationText && recommendationText.trim() !== '';
+  }
+
   if (isLoading) {
     return (
       <Card>
@@ -330,6 +336,16 @@ export default function AuditSessionComplianceGaps({
                                 </span>
                               </div>
                             </div>
+
+                            {/* ISO Control - displayed under the title */}
+                            {gap.iso_control && (
+                              <div className="flex items-center space-x-1 mb-2">
+                                <BookOpen className="h-3 w-3 text-blue-600" />
+                                <span className="text-sm text-blue-600 font-medium">
+                                  ISO Control: {gap.iso_control}
+                                </span>
+                              </div>
+                            )}
                             
                             <p className="text-sm text-muted-foreground mb-2">
                               {gap.gap_description}
@@ -355,32 +371,39 @@ export default function AuditSessionComplianceGaps({
                                 <Zap className="h-3 w-3" />
                                 <span>Confidence: {Math.round((gap.confidence_score || 0) * 100)}%</span>
                               </div>
+
                             </div>
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between pl-11">
                           <div className="flex items-center space-x-4">
-                            {gap.regulatory_requirement && (
-                              <div className="flex items-center space-x-1 text-red-600">
-                                <Shield className="h-4 w-4" />
-                                <span className="text-sm font-medium">Regulatory Requirement</span>
-                              </div>
-                            )}
-                            
-                            {gap.potential_fine_amount && (
-                              <div className="flex items-center space-x-1 text-orange-600">
-                                <DollarSign className="h-4 w-4" />
-                                <span className="text-sm font-medium">
-                                  Potential Fine: ${gap.potential_fine_amount.toLocaleString()}
+                            {hasRecommendation(gap.recommendation_text) && (
+                              <div className="flex items-center space-x-1">
+                                <span className="px-2 py-1 rounded border border-gray-300 text-gray-500 bg-grey-50 text-xs font-medium">
+                                  Recommendation is available
                                 </span>
                               </div>
                             )}
-                            
+
+                            {gap.recommendation_type && (
+                              <div className="flex items-center space-x-1">
+                                <Lightbulb className="h-3 w-3" />
+                                <span className="px-2 py-1 text-xs font-medium text-gray-500" >Recommendation type: {gap.recommendation_type.replace('_', ' ')}</span>
+                              </div>
+                            )}
+
+                            {gap.regulatory_requirement && (
+                              <div className="flex items-center space-x-1 text-red-600">
+                                <Shield className="h-4 w-4" />
+                                <span className="text-sm font-medium">Regulatory Requirement: { gap.regulatory_requirement }</span>
+                              </div>
+                            )}
+                                                        
                             {gap.assigned_to && (
                               <div className="flex items-center space-x-1 text-blue-600">
                                 <User className="h-4 w-4" />
-                                <span className="text-sm font-medium">Assigned</span>
+                                <span className="text-sm font-medium">Assigned: { gap.assigned_to }</span>
                               </div>
                             )}
                             
