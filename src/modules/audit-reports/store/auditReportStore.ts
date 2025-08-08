@@ -862,9 +862,9 @@ export const auditReportStoreUtils = {
 
   getRiskPrioritizationPreview: (maxLength: number = 200) => {
     const { riskPrioritization } = useAuditReportStore.getState();
-    if (!riskPrioritization?.control_risk_prioritization) return null;
+    if (!riskPrioritization?.risk_prioritization_analysis) return null;
 
-    const prioritization = riskPrioritization.control_risk_prioritization;
+    const prioritization = riskPrioritization.risk_prioritization_analysis;
     return prioritization.length > maxLength
       ? prioritization.substring(0, maxLength) + "..."
       : prioritization;
