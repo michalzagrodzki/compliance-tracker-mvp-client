@@ -68,6 +68,8 @@ export default function AuditSessionDetail() {
     }
   }, [sessionId, fetchSessionById])
 
+
+  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -121,7 +123,11 @@ export default function AuditSessionDetail() {
 
   const domainInfo = DOMAIN_INFO[currentSession.compliance_domain as keyof typeof DOMAIN_INFO]
   const isActive = currentSession.is_active
-
+  const isAuditReportEmpty =
+    currentSession.audit_report !== null ||
+    currentSession.audit_report !== undefined ||
+    currentSession.audit_report !== "";
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -245,21 +251,33 @@ export default function AuditSessionDetail() {
                   complianceDomain={currentSession.compliance_domain}
                 />
                 <GenerateAuditReportDialog
+                  disabled={isAuditReportEmpty}
                   sessionId={currentSession.id}
                   sessionName={currentSession.session_name}
                   complianceDomain={currentSession.compliance_domain}
                   startedAt={currentSession.started_at}
                 />
-                <Button
-                  variant="outline"
-                  className="flex items-center space-x-2"
-                  asChild
-                >
-                  <Link to={`/audit-sessions/${currentSession.id}/create-report`}>
+                {isAuditReportEmpty ? (
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                    disabled
+                  >
                     <Download className="h-4 w-4" />
                     <span>Create Manually Audit Report</span>
-                  </Link>
-                </Button>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                    asChild
+                  >
+                    <Link to={`/audit-sessions/${currentSession.id}/create-report`}>
+                      <Download className="h-4 w-4" />
+                      <span>Create Manually Audit Report</span>
+                    </Link>
+                  </Button>
+                )}
                 { isActive ? (
                   <CompleteSessionDialog sessionId={currentSession.id} />
                 ) : (

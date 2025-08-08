@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 
 interface GenerateAuditReportDialogProps {
+  disabled: boolean;
   sessionId: string;
   sessionName: string;
   complianceDomain: string;
@@ -46,6 +47,7 @@ interface GenerateAuditReportDialogProps {
 type DialogState = 'form' | 'generating' | 'success' | 'error';
 
 export const GenerateAuditReportDialog: React.FC<GenerateAuditReportDialogProps> = ({
+  disabled,
   sessionId,
   sessionName,
   complianceDomain,
@@ -434,10 +436,11 @@ export const GenerateAuditReportDialog: React.FC<GenerateAuditReportDialogProps>
       <DialogTrigger asChild>
         <Button
           variant="outline"
+          disabled={disabled}
           className={`flex items-center gap-2 ${triggerClassName || ''}`}
         >
           <Sparkle className="h-4 w-4" />
-          Generate Audit Report
+          {disabled ? "Audit report already exists" : "Generate Audit Report"}
         </Button>
       </DialogTrigger>
       

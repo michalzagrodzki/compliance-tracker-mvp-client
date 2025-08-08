@@ -14,6 +14,7 @@ export interface AuditSession {
   user_agent?: string;
   created_at: string;
   updated_at: string;
+  audit_report: string;
 }
 
 export interface AuditSessionCreate {
