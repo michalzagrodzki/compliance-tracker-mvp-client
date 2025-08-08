@@ -124,9 +124,7 @@ export default function AuditSessionDetail() {
   const domainInfo = DOMAIN_INFO[currentSession.compliance_domain as keyof typeof DOMAIN_INFO]
   const isActive = currentSession.is_active
   const isAuditReportEmpty =
-    currentSession.audit_report !== null ||
-    currentSession.audit_report !== undefined ||
-    currentSession.audit_report !== "";
+    currentSession.audit_report !== null
   
   return (
     <div className="space-y-6">
