@@ -439,8 +439,6 @@ export default function AuditReportItem() {
     ? (currentReport.compliance_gap_ids?.length || 0)
     : (currentReport.total_gaps_identified || 0);
 
-  const hasMetrics = totalGaps > 0 || currentReport.total_questions_asked > 0;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -615,63 +613,6 @@ export default function AuditReportItem() {
               )}
             </CardContent>
           </Card>
-
-          {hasMetrics && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  <span>Risk Analysis</span>
-                </CardTitle>
-                <CardDescription>
-                  Breakdown of compliance gaps by risk level
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 border border-red-200 bg-red-50 rounded-lg">
-                    <p className="text-2xl font-bold text-red-600">
-                      {currentReport.critical_gaps_count}
-                    </p>
-                    <p className="text-sm font-medium text-red-800">Critical</p>
-                  </div>
-                  <div className="text-center p-3 border border-orange-200 bg-orange-50 rounded-lg">
-                    <p className="text-2xl font-bold text-orange-600">
-                      {currentReport.high_risk_gaps_count}
-                    </p>
-                    <p className="text-sm font-medium text-orange-800">High Risk</p>
-                  </div>
-                  <div className="text-center p-3 border border-yellow-200 bg-yellow-50 rounded-lg">
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {currentReport.medium_risk_gaps_count}
-                    </p>
-                    <p className="text-sm font-medium text-yellow-800">Medium Risk</p>
-                  </div>
-                  <div className="text-center p-3 border border-green-200 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">
-                      {currentReport.low_risk_gaps_count}
-                    </p>
-                    <p className="text-sm font-medium text-green-800">Low Risk</p>
-                  </div>
-                </div>
-
-                {(currentReport.critical_gaps_count > 0 || currentReport.high_risk_gaps_count > 0) && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                    <div className="flex items-start space-x-2">
-                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-red-800">Immediate Action Required</h4>
-                        <p className="text-sm text-red-700 mt-1">
-                          {currentReport.critical_gaps_count + currentReport.high_risk_gaps_count} high-priority 
-                          compliance gaps require immediate executive attention and resource allocation.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           <Card>
             <CardHeader>
