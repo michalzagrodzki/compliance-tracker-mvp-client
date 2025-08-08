@@ -301,8 +301,7 @@ export const useAuditReport = () => {
   const handleSaveAndUseThreatIntelligence = useCallback(
     async (reportId: string, analysis?: string): Promise<void> => {
       try {
-        const analysisToUse =
-          analysis || threatIntelligence?.threat_intelligence_analysis;
+        const analysisToUse = analysis || threatIntelligence?.threat_analysis;
 
         if (!analysisToUse) {
           throw new Error("No threat intelligence analysis available to save");
@@ -360,7 +359,7 @@ export const useAuditReport = () => {
     async (reportId: string, prioritization?: string): Promise<void> => {
       try {
         const prioritizationToUse =
-          prioritization || riskPrioritization?.control_risk_prioritization;
+          prioritization || riskPrioritization?.risk_prioritization_analysis;
 
         if (!prioritizationToUse) {
           throw new Error("No risk prioritization available to save");

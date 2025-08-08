@@ -535,6 +535,50 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
     }
   },
 
+  // Threat Intelligence actions
+  generateThreatIntelligence: async (
+    auditReport: AuditReportCreate,
+    complianceGaps: ComplianceGap[],
+    summaryType: SummaryTypeValue = SummaryType.STANDARD
+  ): Promise<ThreatIntelligenceResponse> => {
+    set({
+      isGeneratingThreatIntelligence: true,
+      threatIntelligenceError: null,
+    });
+
+    try {
+      const threatIntelligenceResponse =
+        await auditReportService.createThreatIntelligence(
+          auditReport,
+          complianceGaps,
+          summaryType
+        );
+
+      // Add to history
+      const currentHistory = get().threatIntelligenceGenerationHistory;
+      const updatedHistory = [
+        threatIntelligenceResponse,
+        ...currentHistory.slice(0, 4),
+      ];
+
+      set({
+        threatIntelligence: threatIntelligenceResponse,
+        threatIntelligenceGenerationHistory: updatedHistory,
+        isGeneratingThreatIntelligence: false,
+      });
+
+      return threatIntelligenceResponse;
+    } catch (error: any) {
+      const errorMessage =
+        error.message || "Failed to generate threat intelligence";
+      set({
+        threatIntelligenceError: errorMessage,
+        isGeneratingThreatIntelligence: false,
+      });
+      throw error;
+    }
+  },
+
   clearExecutiveSummary: () => {
     set({
       executiveSummary: null,
@@ -563,50 +607,6 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
 
   clearSummaryHistory: () => {
     set({ summaryGenerationHistory: [] });
-  },
-
-  // Threat Intelligence actions
-  generateThreatIntelligence: async (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType: SummaryTypeValue = SummaryType.STANDARD
-  ): Promise<ThreatIntelligenceResponse> => {
-    set({
-      isGeneratingThreatIntelligence: true,
-      threatIntelligenceError: null,
-    });
-
-    try {
-      const threatIntelligenceResponse =
-        await auditReportService.createThreatIntelligence(
-          auditReport,
-          complianceGaps,
-          summaryType
-        );
-
-      // Add to history
-      const currentHistory = get().threatIntelligenceGenerationHistory;
-      const updatedHistory = [
-        threatIntelligenceResponse,
-        ...currentHistory.slice(0, 4),
-      ]; // Keep last 5
-
-      set({
-        threatIntelligence: threatIntelligenceResponse,
-        threatIntelligenceGenerationHistory: updatedHistory,
-        isGeneratingThreatIntelligence: false,
-      });
-
-      return threatIntelligenceResponse;
-    } catch (error: any) {
-      const errorMessage =
-        error.message || "Failed to generate threat intelligence";
-      set({
-        threatIntelligenceError: errorMessage,
-        isGeneratingThreatIntelligence: false,
-      });
-      throw error;
-    }
   },
 
   clearThreatIntelligence: () => {
@@ -846,9 +846,9 @@ export const auditReportStoreUtils = {
 
   getThreatIntelligencePreview: (maxLength: number = 200) => {
     const { threatIntelligence } = useAuditReportStore.getState();
-    if (!threatIntelligence?.threat_intelligence_analysis) return null;
+    if (!threatIntelligence?.threat_analysis) return null;
 
-    const analysis = threatIntelligence.threat_intelligence_analysis;
+    const analysis = threatIntelligence.threat_analysis;
     return analysis.length > maxLength
       ? analysis.substring(0, maxLength) + "..."
       : analysis;

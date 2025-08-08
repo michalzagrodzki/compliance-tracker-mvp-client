@@ -454,7 +454,7 @@ export interface ThreatIntelligenceRequest {
 }
 
 export interface ThreatIntelligenceResponse {
-  threat_intelligence_analysis: string;
+  threat_analysis: string;
   audit_session_id: string;
   compliance_domain: string;
   total_gaps: number;
@@ -475,7 +475,7 @@ export interface RiskPrioritizationRequest {
 }
 
 export interface RiskPrioritizationResponse {
-  control_risk_prioritization: string;
+  risk_prioritization_analysis: string;
   audit_session_id: string;
   compliance_domain: string;
   total_gaps: number;

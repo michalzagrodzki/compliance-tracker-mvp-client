@@ -190,20 +190,20 @@ export default function EditAuditReportPage() {
   }, [executiveSummary]);
 
   useEffect(() => {
-    if (threatIntelligence?.threat_intelligence_analysis) {
+    if (threatIntelligence?.threat_analysis) {
       setFormData(prev => ({
         ...prev,
-        threat_intelligence_analysis: threatIntelligence.threat_intelligence_analysis,
+        threat_intelligence_analysis: threatIntelligence.threat_analysis,
       }));
       setHasChanges(true);
     }
   }, [threatIntelligence]);
 
   useEffect(() => {
-    if (riskPrioritization?.control_risk_prioritization) {
+    if (riskPrioritization?.risk_prioritization_analysis) {
       setFormData(prev => ({
         ...prev,
-        control_risk_prioritization: riskPrioritization.control_risk_prioritization,
+        control_risk_prioritization: riskPrioritization.risk_prioritization_analysis,
       }));
       setHasChanges(true);
     }
