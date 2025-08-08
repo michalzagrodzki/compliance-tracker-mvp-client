@@ -376,7 +376,7 @@ export default function AuditSessionComplianceGaps({
                           </div>
                         </div>
                         
-                        <div className="flex items-center justify-between pl-11">
+                        <div className="flex items-center justify-between pl-11 text-xs text-muted-foreground">
                           <div className="flex items-center space-x-4">
                             {hasRecommendation(gap.recommendation_text) && (
                               <div className="flex items-center space-x-1">
@@ -389,7 +389,7 @@ export default function AuditSessionComplianceGaps({
                             {gap.recommendation_type && (
                               <div className="flex items-center space-x-1">
                                 <Lightbulb className="h-3 w-3" />
-                                <span className="px-2 py-1 text-xs font-medium text-gray-500" >Recommendation type: {gap.recommendation_type.replace('_', ' ')}</span>
+                                <span>Recommendation type: {gap.recommendation_type.replace('_', ' ')}</span>
                               </div>
                             )}
 

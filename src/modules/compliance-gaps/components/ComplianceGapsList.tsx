@@ -21,10 +21,12 @@ import {
   Zap,
   Eye,
   ArrowRight,
-  Activity,
   Clock,
   Building,
-  Plus
+  Plus,
+  FileText,
+  BookOpen,
+  Lightbulb
 } from 'lucide-react'
 import type { ComplianceGapResponse, RiskLevel, GapStatus } from '../types'
 
@@ -47,23 +49,33 @@ const getRelativeTime = (dateString: string) => {
 
 const getRiskLevelColor = (level: string) => {
   switch (level) {
-    case 'low': return 'bg-green-100 text-green-700 border-green-200'
-    case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-    case 'high': return 'bg-orange-100 text-orange-700 border-orange-200'
-    case 'critical': return 'bg-red-100 text-red-700 border-red-200'
-    default: return 'bg-gray-100 text-gray-700 border-gray-200'
+    case 'low': return 'text-green-600 bg-green-50 border-green-200'
+    case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+    case 'high': return 'text-orange-600 bg-orange-50 border-orange-200'
+    case 'critical': return 'text-red-600 bg-red-50 border-red-200'
+    default: return 'text-gray-600 bg-gray-50 border-gray-200'
+  }
+}
+
+const getBusinessImpactColor = (level: string) => {
+  switch (level) {
+    case 'low': return 'text-blue-600 bg-blue-50 border-blue-200'
+    case 'medium': return 'text-indigo-600 bg-indigo-50 border-indigo-200'
+    case 'high': return 'text-purple-600 bg-purple-50 border-purple-200'
+    case 'critical': return 'text-pink-600 bg-pink-50 border-pink-200'
+    default: return 'text-gray-600 bg-gray-50 border-gray-200'
   }
 }
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'identified': return 'bg-orange-100 text-orange-700 border-orange-200'
-    case 'acknowledged': return 'bg-blue-100 text-blue-700 border-blue-200'
-    case 'in_progress': return 'bg-purple-100 text-purple-700 border-purple-200'
-    case 'resolved': return 'bg-green-100 text-green-700 border-green-200'
-    case 'false_positive': return 'bg-gray-100 text-gray-700 border-gray-200'
-    case 'accepted_risk': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-    default: return 'bg-gray-100 text-gray-700 border-gray-200'
+    case 'identified': return 'text-orange-600 bg-orange-50 border-orange-200'
+    case 'acknowledged': return 'text-blue-600 bg-blue-50 border-blue-200'
+    case 'in_progress': return 'text-purple-600 bg-purple-50 border-purple-200'
+    case 'resolved': return 'text-green-600 bg-green-50 border-green-200'
+    case 'false_positive': return 'text-gray-600 bg-gray-50 border-gray-200'
+    case 'accepted_risk': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+    default: return 'text-gray-600 bg-gray-50 border-gray-200'
   }
 }
 
@@ -77,25 +89,18 @@ const getRiskIcon = (level: string) => {
   }
 }
 
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'identified': return <AlertTriangle className="h-4 w-4" />
-    case 'acknowledged': return <Eye className="h-4 w-4" />
-    case 'in_progress': return <Activity className="h-4 w-4" />
-    case 'resolved': return <CheckCircle className="h-4 w-4" />
-    case 'false_positive': return <XCircle className="h-4 w-4" />
-    case 'accepted_risk': return <Shield className="h-4 w-4" />
-    default: return <AlertCircle className="h-4 w-4" />
-  }
+const hasRecommendation = (recommendationText: string | null) => {
+  return recommendationText && recommendationText.trim() !== '';
 }
 
-const DOMAIN_COLORS = {
-  'ISO27001': 'bg-green-100 text-green-700 border-green-200',
-  'GDPR': 'bg-blue-100 text-blue-700 border-blue-200',
-  'SOX': 'bg-purple-100 text-purple-700 border-purple-200',
-  'HIPAA': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  'PCI_DSS': 'bg-orange-100 text-orange-700 border-orange-200',
-  'DEFAULT': 'bg-gray-100 text-gray-700 border-gray-200'
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const groupGapsByAuditSession = (gaps: ComplianceGapResponse[]) => {
@@ -411,107 +416,142 @@ export default function ComplianceGapsList() {
                 </CardHeader>
                 
                 <CardContent className="p-0">
-                  <div className="space-y-0">
-                    {sessionGaps.map((gap, index) => {
-                      const domainColor = DOMAIN_COLORS[gap.compliance_domain as keyof typeof DOMAIN_COLORS] || DOMAIN_COLORS.DEFAULT
-                      const riskColor = getRiskLevelColor(gap.risk_level)
-                      const statusColor = getStatusColor(gap.status)
-                      const riskIcon = getRiskIcon(gap.risk_level)
-                      const statusIcon = getStatusIcon(gap.status)
-
-                      return (
-                        <div
-                          key={gap.id}
-                          className={`p-4 hover:bg-muted/20 transition-colors ${
-                            index < sessionGaps.length - 1 ? 'border-b' : ''
-                          }`}
-                        >
+                  <div className="space-y-3">
+                    {sessionGaps.map((gap) => (
+                      <Card key={gap.id} className="hover:shadow-md transition-shadow mx-4 my-3">
+                        <CardContent className="p-4">
                           <div className="flex items-start justify-between">
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center space-x-3">
-                                <div className="flex-shrink-0">
+                            <div className="flex-1 space-y-3">
+                              <div className="flex items-start space-x-3">
+                                <div className="flex-shrink-0 mt-1">
                                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                    {riskIcon}
+                                    {getRiskIcon(gap.risk_level)}
                                   </div>
                                 </div>
                                 
                                 <div className="flex-1">
-                                  <Link 
-                                    to={`/compliance-gaps/${gap.id}`}
-                                    className="hover:text-primary transition-colors"
-                                  >
-                                    <h4 className="font-medium text-foreground hover:underline">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <h4 className="font-medium text-foreground">
                                       {gap.gap_title}
                                     </h4>
-                                  </Link>
-                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                    <div className="flex items-center space-x-1">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskLevelColor(gap.risk_level)}`}>
+                                        {gap.risk_level.toUpperCase()} RISK
+                                      </span>
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBusinessImpactColor(gap.business_impact)}`}>
+                                        {gap.business_impact?.toUpperCase()} IMPACT
+                                      </span>
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(gap.status)}`}>
+                                        {gap.status.replace('_', ' ').toUpperCase()}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* ISO Control - displayed under the title */}
+                                  {gap.iso_control && (
+                                    <div className="flex items-center space-x-1 mb-2">
+                                      <BookOpen className="h-3 w-3 text-blue-600" />
+                                      <span className="text-sm text-blue-600 font-medium">
+                                        ISO Control: {gap.iso_control}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  <p className="text-sm text-muted-foreground mb-2">
                                     {gap.gap_description}
                                   </p>
-                                </div>
-                                
-                                <div className="flex items-center space-x-2">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${riskColor}`}>
-                                    {gap.risk_level.toUpperCase()}
-                                  </span>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
-                                    {statusIcon}
-                                    <span className="ml-1">{gap.status.replace('_', ' ').toUpperCase()}</span>
-                                  </span>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${domainColor}`}>
-                                    {gap.compliance_domain}
-                                  </span>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs text-muted-foreground">
+                                    <div className="flex items-center space-x-1">
+                                      <FileText className="h-3 w-3" />
+                                      <span>Category: {gap.gap_category}</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center space-x-1">
+                                      <Clock className="h-3 w-3" />
+                                      <span>Detected: {getRelativeTime(gap.detected_at)}</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center space-x-1">
+                                      <Target className="h-3 w-3" />
+                                      <span>Type: {gap.gap_type.replace('_', ' ')}</span>
+                                    </div>
+
+                                    <div className="flex items-center space-x-1">
+                                      <Zap className="h-3 w-3" />
+                                      <span>Confidence: {Math.round((gap.confidence_score || 0) * 100)}%</span>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                               
-                              <div className="flex items-center space-x-6 text-xs text-muted-foreground ml-11">
-                                <div className="flex items-center space-x-1">
-                                  <Target className="h-3 w-3" />
-                                  <span>Type: {gap.gap_type.replace('_', ' ')}</span>
+                              <div className="flex items-center justify-between pl-11 text-xs text-muted-foreground">
+                                <div className="flex items-center space-x-4">
+                                  {hasRecommendation(gap.recommendation_text) && (
+                                    <div className="flex items-center space-x-1">
+                                      <span className="px-2 py-1 rounded border border-gray-300 text-gray-500 bg-grey-50 text-xs font-medium">
+                                        Recommendation is available
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {gap.recommendation_type && (
+                                    <div className="flex items-center space-x-1">
+                                      <Lightbulb className="h-3 w-3" />
+                                      <span>Recommendation type: {gap.recommendation_type.replace('_', ' ')}</span>
+                                    </div>
+                                  )}
+
+                                  {gap.regulatory_requirement && (
+                                    <div className="flex items-center space-x-1 text-red-600">
+                                      <Shield className="h-4 w-4" />
+                                      <span className="text-sm font-medium">Regulatory Requirement: {gap.regulatory_requirement}</span>
+                                    </div>
+                                  )}
+                                                                  
+                                  {gap.assigned_to && (
+                                    <div className="flex items-center space-x-1 text-blue-600">
+                                      <User className="h-4 w-4" />
+                                      <span className="text-sm font-medium">Assigned: {gap.assigned_to}</span>
+                                    </div>
+                                  )}
+                                  
+                                  {gap.due_date && (
+                                    <div className="flex items-center space-x-1 text-purple-600">
+                                      <Calendar className="h-4 w-4" />
+                                      <span className="text-sm font-medium">
+                                        Due: {formatDate(gap.due_date)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {gap.potential_fine_amount && (
+                                    <div className="flex items-center space-x-1 text-red-600">
+                                      <DollarSign className="h-4 w-4" />
+                                      <span className="text-sm font-medium">Fine: ${gap.potential_fine_amount.toLocaleString()}</span>
+                                    </div>
+                                  )}
                                 </div>
                                 
-                                <div className="flex items-center space-x-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>Detected: {getRelativeTime(gap.detected_at)}</span>
+                                <div className="flex items-center space-x-2 ml-4">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                  >
+                                    <Link to={`/compliance-gaps/${gap.id}`}>
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      View Details
+                                      <ArrowRight className="h-3 w-3 ml-1" />
+                                    </Link>
+                                  </Button>
                                 </div>
-                                
-                                <div className="flex items-center space-x-1">
-                                  <Zap className="h-3 w-3" />
-                                  <span>Confidence: {Math.round((gap.confidence_score || 0) * 100)}%</span>
-                                </div>
-                                
-                                {gap.potential_fine_amount && (
-                                  <div className="flex items-center space-x-1 text-red-600">
-                                    <DollarSign className="h-3 w-3" />
-                                    <span>Fine: ${gap.potential_fine_amount.toLocaleString()}</span>
-                                  </div>
-                                )}
-                                
-                                {gap.assigned_to && (
-                                  <div className="flex items-center space-x-1 text-blue-600">
-                                    <User className="h-3 w-3" />
-                                    <span>Assigned</span>
-                                  </div>
-                                )}
                               </div>
                             </div>
-                            
-                            <div className="flex items-center space-x-2 ml-4">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                              >
-                                <Link to={`/compliance-gaps/${gap.id}`}>
-                                  <Eye className="h-3 w-3 mr-1" />
-                                  View Details
-                                  <ArrowRight className="h-3 w-3 ml-1" />
-                                </Link>
-                              </Button>
-                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
