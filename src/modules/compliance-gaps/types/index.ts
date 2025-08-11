@@ -192,6 +192,7 @@ export interface ComplianceGapResponse {
   ip_address: string | null;
   user_agent: string | null;
   session_context: Record<string, any>;
+  iso_control: string | null;
 }
 
 export interface ComplianceGapUpdate {

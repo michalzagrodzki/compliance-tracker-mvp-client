@@ -14,7 +14,6 @@ import {
   Clock,
   AlertCircle,
   User,
-  Calendar,
   DollarSign,
   Target,
   FileText,
@@ -22,7 +21,6 @@ import {
   X,
   Activity,
   Zap,
-  TrendingUp,
   Users,
   FileSearch,
   History,
@@ -36,8 +34,9 @@ import {
   BookOpen,
   FileIcon,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react'
-import type { ComplianceGapResponse, ComplianceGapStatusUpdate, GapStatus } from '../types'
+import type { ComplianceGapStatusUpdate, GapStatus } from '../types'
 import type { SourceDocument } from '../../chat/types'
 
 const formatDate = (dateString: string) => {
@@ -119,32 +118,6 @@ const getStatusIcon = (status: string) => {
     case 'false_positive': return <X className="h-4 w-4" />
     case 'accepted_risk': return <Shield className="h-4 w-4" />
     default: return <AlertCircle className="h-4 w-4" />
-  }
-}
-
-const calculateBusinessMetrics = (gap: ComplianceGapResponse) => {
-  // Calculate estimated cost of non-compliance
-  const costOfNonCompliance = gap.potential_fine_amount || 
-    (gap.risk_level === 'critical' ? 100000 : 
-     gap.risk_level === 'high' ? 50000 :
-     gap.risk_level === 'medium' ? 25000 : 10000)
-
-  // Estimate remediation effort in days
-  const remediationEffort = 
-    gap.risk_level === 'critical' ? 30 :
-    gap.risk_level === 'high' ? 21 :
-    gap.risk_level === 'medium' ? 14 : 7
-
-  // Business process impact score
-  const processImpact = 
-    gap.business_impact === 'critical' ? 90 :
-    gap.business_impact === 'high' ? 70 :
-    gap.business_impact === 'medium' ? 50 : 30
-
-  return {
-    costOfNonCompliance,
-    remediationEffort,
-    processImpact
   }
 }
 
@@ -660,7 +633,6 @@ export default function ComplianceGapDetail() {
     )
   }
 
-  const businessMetrics = calculateBusinessMetrics(currentGap)
   const statusIcon = getStatusIcon(currentGap.status)
   const riskIcon = getRiskIcon(currentGap.risk_level)
 
@@ -694,50 +666,6 @@ export default function ComplianceGapDetail() {
             <span className="ml-1">{currentGap.status.replace('_', ' ').toUpperCase()}</span>
           </span>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <DollarSign className="h-8 w-8 text-red-600" />
-              <div>
-                <p className="text-sm font-medium text-red-800">Cost of Non-Compliance</p>
-                <p className="text-2xl font-bold text-red-600">
-                  ${businessMetrics.costOfNonCompliance.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <Calendar className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium text-blue-800">Remediation Effort</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {businessMetrics.remediationEffort} days
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-200 bg-purple-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="text-sm font-medium text-purple-800">Process Impact</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {businessMetrics.processImpact}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -823,7 +751,7 @@ export default function ComplianceGapDetail() {
                       <p className="text-sm leading-relaxed">{currentGap.gap_description}</p>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <h4 className="font-medium text-sm text-muted-foreground mb-2">Gap Type</h4>
                         <div className="flex items-center space-x-2">
@@ -837,6 +765,14 @@ export default function ComplianceGapDetail() {
                         <div className="flex items-center space-x-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <span>{currentGap.gap_category}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-2">ISO Control:</h4>
+                        <div className="flex items-center space-x-2">
+                          <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                          <span>{currentGap.iso_control}</span>
                         </div>
                       </div>
 
