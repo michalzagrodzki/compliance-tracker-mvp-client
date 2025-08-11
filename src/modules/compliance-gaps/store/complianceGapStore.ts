@@ -52,6 +52,7 @@ interface ComplianceGapDirectRequest {
   ip_address?: string;
   user_agent: string;
   session_context: Record<string, any>;
+  iso_control: string | null;
 }
 
 interface ComplianceGapState {

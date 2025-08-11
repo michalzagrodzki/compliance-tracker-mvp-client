@@ -212,6 +212,7 @@ export interface ComplianceGapUpdate {
   confidence_score?: number;
   false_positive_likelihood?: number;
   session_context?: Record<string, any>;
+  iso_control: string | null;
 }
 
 export interface ComplianceGapStatusUpdate {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -11,8 +11,9 @@ import type {
 } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, Plus, X, XCircle, Save, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, Plus, X, XCircle, Save, Sparkles, AlertCircle, Loader2, Search } from 'lucide-react';
 import { useComplianceGap } from '../hooks/useComplianceGap';
+import { useIsoControlSearch } from '../../iso-control/hooks/useIsoControl';
 import Loading from '@/components/Loading';
 
 const RISK_LEVEL_OPTIONS: Array<{
@@ -48,6 +49,16 @@ const RECOMMENDATION_TYPE_OPTIONS: Array<{
   { value: 'system_configuration', label: 'System Configuration' }
 ];
 
+interface FlattenedControl {
+  id: string;
+  frameworkName: string;
+  controlCode: string;
+  title: string;
+  control: string;
+  category: string;
+  displayText: string;
+}
+
 export default function EditComplianceGapPage() {
   const navigate = useNavigate();
   const { gapId } = useParams<{ gapId: string }>();
@@ -64,14 +75,27 @@ export default function EditComplianceGapPage() {
     generateRecommendation,
     clearRecommendationError
   } = useComplianceGap();
+
+  // ISO Controls search hook
+  const {
+    searchTerm: isoSearchTerm,
+    search: searchIsoControls,
+    clearSearch: clearIsoSearch,
+    controls: isoControls,
+    isLoading: isLoadingIsoControls,
+    error: isoControlsError,
+  } = useIsoControlSearch(300);
   
   const [showAboutInfo, setShowAboutInfo] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showIsoDropdown, setShowIsoDropdown] = useState(false);
+  // No separate state needed - use formData.iso_control as source of truth
   
   const [formData, setFormData] = useState<ComplianceGapUpdate>({
     gap_title: '',
     gap_description: '',
+    iso_control: '',
     risk_level: 'medium',
     business_impact: 'medium',
     regulatory_requirement: false,
@@ -90,6 +114,48 @@ export default function EditComplianceGapPage() {
 
   const [newAction, setNewAction] = useState('');
   const [newDocument, setNewDocument] = useState('');
+
+  const flattenedControls = useMemo(() => {
+    const flattened: FlattenedControl[] = [];
+    
+    isoControls.forEach(framework => {
+      Object.entries(framework.controls || {}).forEach(([controlCode, controlData]) => {
+        flattened.push({
+          id: `${framework.id}-${controlCode}`,
+          frameworkName: framework.name,
+          controlCode,
+          title: controlData.title,
+          control: controlData.control,
+          category: controlData.category,
+          displayText: `${controlCode} - ${controlData.title} (${controlData.category})`
+        });
+      });
+    });
+    
+    return flattened;
+  }, [isoControls]);
+
+  // Get selected control from formData.iso_control
+  const selectedIsoControl = useMemo(() => {
+    if (!formData.iso_control) return null;
+    
+    return flattenedControls.find(
+      control => `${control.frameworkName}:${control.controlCode}` === formData.iso_control
+    ) || null;
+  }, [formData.iso_control, flattenedControls]);
+
+  // Filter controls based on search term
+  const filteredIsoControls = useMemo(() => {
+    if (!isoSearchTerm) return flattenedControls;
+    
+    const term = isoSearchTerm.toLowerCase();
+    return flattenedControls.filter(control => 
+      control.controlCode.toLowerCase().includes(term) ||
+      control.title.toLowerCase().includes(term) ||
+      control.category.toLowerCase().includes(term) ||
+      control.frameworkName.toLowerCase().includes(term)
+    );
+  }, [flattenedControls, isoSearchTerm]);
 
   useEffect(() => {
     if (gapId) {
@@ -117,7 +183,8 @@ export default function EditComplianceGapPage() {
         related_documents: currentGap.related_documents || [],
         confidence_score: currentGap.confidence_score || 0.80,
         false_positive_likelihood: currentGap.false_positive_likelihood || 0.20,
-        session_context: currentGap.session_context || {}
+        session_context: currentGap.session_context || {},
+        iso_control: currentGap.iso_control || ''
       });
     }
   }, [currentGap]);
@@ -136,6 +203,18 @@ export default function EditComplianceGapPage() {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleIsoControlSelect = (control: FlattenedControl) => {
+    const isoControlValue = `${control.frameworkName}:${control.controlCode}`;
+    handleInputChange('iso_control', isoControlValue);
+    setShowIsoDropdown(false);
+    clearIsoSearch();
+  };
+
+  const handleClearIsoControl = () => {
+    handleInputChange('iso_control', '');
+    clearIsoSearch();
   };
 
   const handleAddToArray = (field: 'recommended_actions' | 'related_documents', value: string) => {
@@ -361,21 +440,132 @@ export default function EditComplianceGapPage() {
                   </span>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label htmlFor="gap_description" className="text-sm font-medium">Gap Description *</label>
-              <textarea
-                id="gap_description"
-                value={formData.gap_description || ''}
-                onChange={(e) => handleInputChange('gap_description', e.target.value)}
-                placeholder="Detailed description of the compliance gap..."
-                className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Detailed explanation of what is missing or inadequate in current compliance posture
-              </p>
+              <div className="space-y-2">
+                <label htmlFor="gap_description" className="text-sm font-medium">Gap Description *</label>
+                <textarea
+                  id="gap_description"
+                  value={formData.gap_description || ''}
+                  onChange={(e) => handleInputChange('gap_description', e.target.value)}
+                  placeholder="Detailed description of the compliance gap..."
+                  className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Detailed explanation of what is missing or inadequate in current compliance posture
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="iso_control" className="text-sm font-medium">Related ISO Control</label>
+
+                {/* Trigger button (same element in both states) */}
+                <div className="relative">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start items-start h-auto min-h-[3rem] py-3 gap-3"
+                    onClick={() => setShowIsoDropdown((v) => !v)}
+                  >
+                    {selectedIsoControl ? (
+                      <div className="flex w-full items-start gap-3">
+                        <div className="pt-0.5">
+                          <Search className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0 text-left leading-tight">
+                        <div className="text-sm font-medium truncate">
+                          {selectedIsoControl.controlCode} – {selectedIsoControl.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {selectedIsoControl.frameworkName} • {selectedIsoControl.category}
+                        </div>
+                      </div>
+
+                        {/* Clear selected control without toggling dropdown */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearIsoControl();
+                          }}
+                          aria-label="Clear ISO control"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+
+                        <ChevronDown className="h-4 w-4 ml-1 text-muted-foreground shrink-0" />
+                      </div>
+                    ) : (
+                      <div className="flex w-full items-center">
+                        <Search className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className={formData.iso_control ? "text-foreground" : "text-muted-foreground"}>
+                          {formData.iso_control || "Select ISO control..."}
+                        </span>
+                        <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground" />
+                      </div>
+                    )}
+                  </Button>
+
+                  {/* Dropdown */}
+                  {showIsoDropdown && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-input rounded-md shadow-lg max-h-72 overflow-y-auto">
+                      {/* Embedded search input */}
+                      <div className="p-2 border-b">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <input
+                            placeholder="Search ISO controls..."
+                            value={isoSearchTerm}
+                            onChange={(e) => searchIsoControls(e.target.value)}
+                            className="pl-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          />
+                        </div>
+                      </div>
+
+                      {isLoadingIsoControls ? (
+                        <div className="p-3 text-center">
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                          <span className="text-sm text-muted-foreground mt-1 block">Loading controls...</span>
+                        </div>
+                      ) : isoControlsError ? (
+                        <div className="p-3 text-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mx-auto mb-1" />
+                          Failed to load ISO controls
+                        </div>
+                      ) : filteredIsoControls.length === 0 ? (
+                        <div className="p-3 text-center text-muted-foreground text-sm">No controls found</div>
+                      ) : (
+                        <div className="py-1">
+                          {filteredIsoControls.slice(0, 12).map((control) => (
+                            <button
+                              key={control.id}
+                              type="button"
+                              onClick={() => {
+                                handleIsoControlSelect(control); // should set selectedIsoControl + formData.iso_control
+                                setShowIsoDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                            >
+                              <div className="font-medium text-sm">{control.controlCode}</div>
+                              <div className="text-sm text-muted-foreground truncate">{control.title}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {control.frameworkName} • {control.category}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Select the most relevant ISO control that this compliance gap relates to
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -750,6 +940,14 @@ export default function EditComplianceGapPage() {
           </Button>
         </div>
       </form>
+
+      {/* Click outside handler for dropdown */}
+      {showIsoDropdown && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowIsoDropdown(false)}
+        />
+      )}
 
       {/* Update Tips */}
       <Card className="bg-muted/50">
