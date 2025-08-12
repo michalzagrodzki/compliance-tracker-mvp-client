@@ -128,6 +128,7 @@ export interface ChatHistoryItem {
 export interface ComplianceRecommendationRequest {
   chat_history_item: ChatHistoryItem;
   recommendation_type: string;
+  iso_control?: string;
 }
 
 export interface ComplianceRecommendationResponse {
@@ -243,6 +244,28 @@ export interface ComplianceGapFormData {
   recommended_actions: string[];
   confidence_score: number;
   false_positive_likelihood: number;
+}
+
+export interface FlattenedControl {
+  id: string;
+  frameworkName: string;
+  controlCode: string;
+  title: string;
+  control: string;
+  category: string;
+  displayText: string;
+}
+
+interface ISOControlData {
+  title: string;
+  control: string;
+  category: string;
+}
+
+export interface ISOFramework {
+  id: string;
+  name: string;
+  controls?: Record<string, ISOControlData>;
 }
 
 export const GAP_TYPE_OPTIONS: Array<{

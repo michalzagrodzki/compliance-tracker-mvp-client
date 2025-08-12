@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
-import { CheckCircle, XCircle, Plus, X, ChevronDown, Search, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Plus, X, ChevronDown, Search, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +14,13 @@ import type {
   GapType,
   RiskLevel,
   BusinessImpactLevel,
-  RecommendationType
+  RecommendationType,
+  FlattenedControl,
+  ISOFramework,
 } from '../types';
+import { useComplianceGap } from '../hooks/useComplianceGap';
 import { useIsoControlSearch } from '@/modules/iso-control/hooks/useIsoControl';
-import type { IsoControl } from '@/modules/iso-control/types';
+import { stringToInt } from '@/lib/utils';
 
 // Type definitions
 export interface ComplianceGapFormData {
@@ -37,17 +40,6 @@ export interface ComplianceGapFormData {
   false_positive_likelihood: number;
 }
 
-interface FlattenedControl {
-  id: string;
-  frameworkName: string;
-  controlCode: string;
-  title: string;
-  control: string;
-  category: string;
-  displayText: string;
-}
-
-// Mock options for demonstration - should match the types from index.ts
 const GAP_TYPE_OPTIONS: Array<{
   value: GapType;
   label: string;
@@ -137,6 +129,13 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
   const [newAction, setNewAction] = useState('');
   const [showIsoDropdown, setShowIsoDropdown] = useState(false);
 
+  const { 
+      recommendationError,
+      isGeneratingRecommendation,
+      generateRecommendation,
+      clearRecommendationError
+    } = useComplianceGap();
+
   const {
     searchTerm: isoSearchTerm,
     search: searchIsoControls,
@@ -166,7 +165,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
   const flattenedControls = useMemo(() => {
       const flattened: FlattenedControl[] = [];
       
-      isoControls.forEach(framework => {
+      isoControls.forEach((framework: ISOFramework) => {
         Object.entries(framework.controls || {}).forEach(([controlCode, controlData]) => {
           flattened.push({
             id: `${framework.id}-${controlCode}`,
@@ -255,6 +254,22 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
       ...prev,
       recommended_actions: prev.recommended_actions.filter((_, i) => i !== index)
     }));
+  };
+
+  const handleGenerateRecommendation = async () => {
+    if (!chatHistoryId || !formData.recommendation_type) {
+      return;
+    }
+    try {
+      clearRecommendationError();
+      await generateRecommendation(stringToInt(chatHistoryId), formData.recommendation_type, formData.iso_control || undefined);
+    } catch (error) {
+      console.error('Failed to generate recommendation:', error);
+    }
+  };
+  
+  const isGenerateRecommendationEnabled = () => {
+    return chatHistoryId && formData.recommendation_type && !isGeneratingRecommendation;
   };
 
   const handleSubmit = async () => {
@@ -590,13 +605,56 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             </div>
 
             <div className="grid gap-3">
-              <Label htmlFor="recommendation_text">Recommendation Details</Label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="recommendation_text" className="text-sm font-medium">
+                  Recommendation Details
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateRecommendation}
+                  disabled={!isGenerateRecommendationEnabled()}
+                  className="flex items-center space-x-2"
+                >
+                  {isGeneratingRecommendation ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      <span>Generate Recommendation</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {recommendationError && (
+                <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <span className="text-sm text-red-700">{recommendationError}</span>
+                </div>
+              )}
+
+              {!isGenerateRecommendationEnabled() && (
+                <div className="text-xs text-muted-foreground">
+                  {!chatHistoryId && !formData.recommendation_type && 
+                    "Select a recommendation type and ensure this gap has related chat history to generate AI recommendations"}
+                  {!chatHistoryId && formData.recommendation_type && 
+                    "This gap has no related chat history for AI recommendation generation"}
+                  {chatHistoryId && !formData.recommendation_type && 
+                    "Select a recommendation type to generate AI recommendations"}
+                </div>
+              )}
+
               <textarea
                 id="recommendation_text"
-                value={formData.recommendation_text}
+                value={formData.recommendation_text || ''}
                 onChange={(e) => handleInputChange('recommendation_text', e.target.value)}
                 placeholder="Detailed recommendation for addressing this gap..."
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 

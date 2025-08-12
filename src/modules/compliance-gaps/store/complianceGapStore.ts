@@ -121,7 +121,8 @@ interface ComplianceGapActions {
   clearRelatedChatMessage: () => void;
   generateRecommendation: (
     chatHistoryId: number,
-    recommendationType: string
+    recommendationType: string,
+    isoControl?: string
   ) => Promise<ComplianceRecommendationResponse>;
   clearRecommendationError: () => void;
 }
@@ -330,7 +331,8 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
 
   generateRecommendation: async (
     chatHistoryId: number,
-    recommendationType: string
+    recommendationType: string,
+    isoControl?: string
   ) => {
     set({
       isGeneratingRecommendation: true,
@@ -363,6 +365,7 @@ export const useComplianceGapStore = create<ComplianceGapStore>((set, get) => ({
       const request: ComplianceRecommendationRequest = {
         chat_history_item: chatHistoryItemFormatted,
         recommendation_type: recommendationType,
+        iso_control: isoControl || undefined,
       };
 
       const response = await complianceGapService.generateRecommendation(

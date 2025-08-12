@@ -7,7 +7,9 @@ import type {
   RiskLevel,
   BusinessImpactLevel,
   RecommendationType,
-  ComplianceGapUpdate
+  ComplianceGapUpdate,
+  FlattenedControl,
+  ISOFramework
 } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,16 +50,6 @@ const RECOMMENDATION_TYPE_OPTIONS: Array<{
   { value: 'process_improvement', label: 'Process Improvement' },
   { value: 'system_configuration', label: 'System Configuration' }
 ];
-
-interface FlattenedControl {
-  id: string;
-  frameworkName: string;
-  controlCode: string;
-  title: string;
-  control: string;
-  category: string;
-  displayText: string;
-}
 
 export default function EditComplianceGapPage() {
   const navigate = useNavigate();
@@ -118,7 +110,7 @@ export default function EditComplianceGapPage() {
   const flattenedControls = useMemo(() => {
     const flattened: FlattenedControl[] = [];
     
-    isoControls.forEach(framework => {
+    isoControls.forEach((framework: ISOFramework) => {
       Object.entries(framework.controls || {}).forEach(([controlCode, controlData]) => {
         flattened.push({
           id: `${framework.id}-${controlCode}`,
@@ -239,7 +231,7 @@ export default function EditComplianceGapPage() {
     }
     try {
       clearRecommendationError();
-      await generateRecommendation(currentGap.chat_history_id, formData.recommendation_type);
+      await generateRecommendation(currentGap.chat_history_id, formData.recommendation_type, formData.iso_control || undefined);
     } catch (error) {
       console.error('Failed to generate recommendation:', error);
     }

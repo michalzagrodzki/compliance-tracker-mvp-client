@@ -75,16 +75,17 @@ export const useComplianceGap = () => {
     [createGapFromChatHistory]
   );
 
-  // NEW: Generate recommendation handler
   const handleGenerateRecommendation = useCallback(
     async (
       chatHistoryId: number,
-      recommendationType: string
+      recommendationType: string,
+      isoControl?: string
     ): Promise<ComplianceRecommendationResponse> => {
       try {
         const response = await generateRecommendation(
           chatHistoryId,
-          recommendationType
+          recommendationType,
+          isoControl
         );
         return response;
       } catch (error) {
