@@ -132,6 +132,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
   const { 
       recommendationError,
       isGeneratingRecommendation,
+      lastGeneratedRecommendation,
       generateRecommendation,
       clearRecommendationError
     } = useComplianceGap();
@@ -220,6 +221,15 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
     }
   }, [initialMessage, complianceDomain]);
 
+  useEffect(() => {
+      if (lastGeneratedRecommendation) {
+        setFormData(prev => ({
+          ...prev,
+          recommendation_text: lastGeneratedRecommendation.recommendation_text
+        }));
+      }
+  }, [lastGeneratedRecommendation]);
+  
   const handleInputChange = (field: keyof ComplianceGapFormData, value: any) => {
     setFormData(prev => ({
       ...prev,
