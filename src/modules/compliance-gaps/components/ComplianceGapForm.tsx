@@ -86,9 +86,15 @@ const RECOMMENDATION_TYPE_OPTIONS: Array<{
   { value: 'system_configuration', label: 'System Configuration' }
   ];
 
-  const extractWholeNumberFromId = (id: string): number => {
-    const wholePart = id.split('.')[0];
-    return parseInt(wholePart, 10);
+  const extractWholeNumberFromId = (id: string): string => {
+    return id.split('.')[0];
+  };
+
+  const extractIsoControlCode = (input: string): string => {
+    if (!input) return "";
+    const s = input.trim();
+    const i = s.indexOf(":");
+    return i >= 0 ? s.slice(i + 1).trim() : s;
   };
 
 // Mock service for this example
@@ -304,9 +310,9 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
         recommendation_text: formData.recommendation_text,
         recommended_actions: formData.recommended_actions,
         confidence_score: formData.confidence_score,
-        false_positive_likelihood: formData.false_positive_likelihood
+        false_positive_likelihood: formData.false_positive_likelihood,
+        iso_control: extractIsoControlCode(formData.iso_control)
       };
-
       await onSubmitRequest(request);
     } catch (err: any) {
       setError(err.message || 'Failed to create compliance gap');
