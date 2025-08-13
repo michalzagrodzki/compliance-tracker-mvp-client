@@ -8,7 +8,8 @@ import type {
   RiskLevel,
   BusinessImpactLevel,
   RecommendationType,
-  DetectionMethod
+  DetectionMethod,
+  ISOFramework
 } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,6 +80,13 @@ const DETECTION_METHOD_OPTIONS: Array<{
   const COMPLIANCE_DOMAINS = [
     { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
   ]
+
+  const extractIsoControlCode = (input: string): string => {
+    if (!input) return "";
+    const s = input.trim();
+    const i = s.indexOf(":");
+    return i >= 0 ? s.slice(i + 1).trim() : s;
+  };
 
 interface FlattenedControl {
   id: string;
@@ -181,7 +189,7 @@ export default function ComplianceGapCreatePage() {
   const flattenedControls = useMemo(() => {
       const flattened: FlattenedControl[] = [];
       
-      isoControls.forEach(framework => {
+      isoControls.forEach((framework: ISOFramework) => {
         Object.entries(framework.controls || {}).forEach(([controlCode, controlData]) => {
           flattened.push({
             id: `${framework.id}-${controlCode}`,
@@ -295,7 +303,41 @@ export default function ComplianceGapCreatePage() {
     if (!isFormValid()) return;
 
     try {
-      await createGapDirect(formData);
+
+      const request: ComplianceGapDirectRequest = {
+        user_id: formData.user_id,
+        audit_session_id: formData.audit_session_id,
+        compliance_domain: formData.compliance_domain,
+        gap_type: formData.gap_type,
+        gap_category: formData.gap_category,
+        gap_title: formData.gap_title,
+        gap_description: formData.gap_description,
+        iso_control: extractIsoControlCode(formData.iso_control || ""),
+        original_question: formData.original_question,
+        creation_method: 'direct',
+        chat_history_id: formData.chat_history_id,
+        pdf_ingestion_id: formData.pdf_ingestion_id,
+        expected_answer_type: formData.expected_answer_type,
+        search_terms_used: formData.search_terms_used,
+        similarity_threshold_used: formData.similarity_threshold_used,
+        best_match_score: formData.best_match_score,
+        risk_level: formData.risk_level,
+        business_impact: formData.business_impact,
+        regulatory_requirement: formData.regulatory_requirement,
+        potential_fine_amount: formData.potential_fine_amount,
+        recommendation_type: formData.recommendation_type,
+        recommendation_text: formData.recommendation_text,
+        recommended_actions: formData.recommended_actions,
+        related_documents: formData.related_documents,
+        detection_method: formData.detection_method,
+        confidence_score: formData.confidence_score,
+        false_positive_likelihood: formData.false_positive_likelihood,
+        ip_address: formData.ip_address,
+        user_agent: formData.user_agent,
+        session_context: formData.session_context
+      };
+      
+      await createGapDirect(request);
       setSuccess(true);
       
       // Reset form and redirect after success
