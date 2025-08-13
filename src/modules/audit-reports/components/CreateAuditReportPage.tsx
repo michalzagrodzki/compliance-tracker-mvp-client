@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -20,6 +21,9 @@ import {
   AlertCircle,
   Shield,
   Sparkles,
+  Target,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 import { useAuditSessionStore } from '@/modules/audit/store/auditSessionStore';
 import { useAuthStore } from '@/modules/auth/store/authStore';
@@ -47,30 +51,52 @@ export default function CreateAuditReportPage() {
   const { user } = useAuthStore();
   const { currentSession, sessions, fetchSessionById, fetchSessionsByDomain } = useAuditSessionStore();
   const {
-    isCreating,
-    error,
-    createResponse,
-    dataSources,
     loadSessionDataSources,
     updateChatSelection,
     updateGapSelection,
     updateDocumentSelection,
     selectAllChats,
     selectAllGaps,
-    selectAllDocuments,
-    createReport,
-    clearError,
-    clearCreateResponse,
-    clearDataSources
-  } = useAuditReportStore();
-
-  const {
+    selectAllDocuments, 
+    clearDataSources,
+    // Executive Summary
     isGeneratingSummary,
     executiveSummary,
     summaryError,
     generateExecutiveSummary,
     clearExecutiveSummary,
     clearSummaryError,
+    // Threat Intelligence
+    isGeneratingThreatIntelligence,
+    threatIntelligence,
+    threatIntelligenceError,
+    generateThreatIntelligence,
+    clearThreatIntelligence,
+    clearThreatIntelligenceError,
+    // Risk Prioritization
+    isGeneratingRiskPrioritization,
+    riskPrioritization,
+    riskPrioritizationError,
+    generateRiskPrioritization,
+    clearRiskPrioritization,
+    clearRiskPrioritizationError,
+    // Target Audience
+    isGeneratingTargetAudience,
+    targetAudience,
+    targetAudienceError,
+    generateTargetAudience,
+    clearTargetAudience,
+    clearTargetAudienceError,
+  } = useAuditReportStore();
+
+  const {
+    isCreating,
+    error,
+    createResponse,
+    dataSources,
+    createReport,
+    clearError,
+    clearCreateResponse,
     canGenerateSummary,
     getSelectedData,
     prepareReportData,
@@ -119,22 +145,9 @@ export default function CreateAuditReportPage() {
     medium_risk_gaps_count: 0,
     low_risk_gaps_count: 0
   });
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  useEffect(() => {
-    clearError();
-    clearCreateResponse();
-  
-    if (sessionId) {
-      fetchSessionById(sessionId);
-      loadSessionData(sessionId);
-    }
-  
-    return () => {
-      clearDataSources();
-      clearExecutiveSummary();
-      clearSummaryError();
-    };
-  }, [sessionId, fetchSessionById, loadSessionData, clearError, clearCreateResponse, clearDataSources, clearExecutiveSummary, clearSummaryError]);
   
   useEffect(() => {
     // Update form when session is loaded (for sessionId flow)
@@ -159,6 +172,57 @@ export default function CreateAuditReportPage() {
     }
   }, [executiveSummary]);
 
+  useEffect(() => {
+    if (threatIntelligence?.threat_analysis) {
+      setFormData(prev => ({
+        ...prev,
+        threat_intelligence_analysis: threatIntelligence.threat_analysis,
+      }));
+      setHasChanges(true);
+    }
+  }, [threatIntelligence]);
+
+  useEffect(() => {
+    if (riskPrioritization?.risk_prioritization_analysis) {
+      setFormData(prev => ({
+        ...prev,
+        control_risk_prioritization: riskPrioritization.risk_prioritization_analysis,
+      }));
+      setHasChanges(true);
+    }
+  }, [riskPrioritization]);
+
+  useEffect(() => {
+    if (targetAudience?.target_audience_summary) {
+      setFormData(prev => ({
+        ...prev,
+        target_audience_summary: targetAudience.target_audience_summary,
+      }));
+      setHasChanges(true);
+    }
+  }, [targetAudience]);
+  useEffect(() => {
+    clearError();
+    clearCreateResponse();
+  
+    if (sessionId) {
+      fetchSessionById(sessionId);
+      loadSessionData(sessionId);
+    }
+  
+    return () => {
+      clearDataSources();
+      clearExecutiveSummary();
+      clearSummaryError();
+      clearThreatIntelligence();
+      clearThreatIntelligenceError();
+      clearRiskPrioritization();
+      clearRiskPrioritizationError();
+      clearTargetAudience();
+      clearTargetAudienceError();
+    };
+  }, [sessionId, fetchSessionById, loadSessionData, clearError, clearCreateResponse, clearDataSources, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
+  
   const handleComplianceDomainChange = async (domain: string) => {
     setSelectedComplianceDomain(domain);
     setSelectedAuditSession(''); // Reset audit session selection
@@ -211,6 +275,7 @@ export default function CreateAuditReportPage() {
       ...prev,
       [field]: value
     }));
+    setHasChanges(true);
   };
 
   const handleReportTypeChange = (reportType: ReportType) => {
@@ -234,9 +299,37 @@ export default function CreateAuditReportPage() {
     }));
   };
 
-  const handleGenerateSummary = async (input: any) => {
-    return console.log("generate summary for:" + input)
-  }
+  const getSelectedComplianceGaps = (): ComplianceGap[] => {
+    if (!formData || !user) return [];
+
+    const selectedData = getSelectedData();
+    return selectedData.selectedGaps.map(gap => ({
+      id: gap.id,
+      user_id: user.id,
+      audit_session_id: formData.audit_session_id,
+      compliance_domain: formData.compliance_domain,
+      gap_type: gap.gap_type,
+      gap_category: gap.gap_category,
+      gap_title: gap.gap_title,
+      gap_description: gap.gap_description,
+      original_question: "",
+      risk_level: gap.risk_level as any,
+      business_impact: gap.business_impact as any,
+      regulatory_requirement: gap.regulatory_requirement || false,
+      potential_fine_amount: gap.potential_fine_amount ?? undefined,
+      status: "identified" as any,
+      recommendation_type: gap.recommendation_type,
+      recommendation_text: gap.recommendation_text,
+      recommended_actions: gap.recommended_actions || [],
+      detection_method: (gap.detection_method as any) || "manual",
+      confidence_score: gap.confidence_score,
+      auto_generated: true,
+      false_positive_likelihood: gap.false_positive_likelihood || 0,
+      detected_at: gap.detected_at || new Date().toISOString(),
+      created_at: gap.detected_at || new Date().toISOString(),
+      updated_at: gap.detected_at || new Date().toISOString(),
+    }));
+  };
 
   const handleGenerateExecutiveSummary = async () => {
     if (!selectedAuditSession) {
@@ -251,33 +344,7 @@ export default function CreateAuditReportPage() {
     try {
       clearSummaryError();
       const reportData = prepareReportData(formData);
-      const selectedData = getSelectedData();
-      const selectedGaps: ComplianceGap[] = selectedData.selectedGaps.map(gap => ({
-        id: gap.id,
-        user_id: user?.id || "",
-        audit_session_id: selectedAuditSession,
-        compliance_domain: formData.compliance_domain,
-        gap_type: gap.gap_type,
-        gap_category: gap.gap_category,
-        gap_title: gap.gap_title,
-        gap_description: gap.gap_description,
-        original_question: "",
-        risk_level: gap.risk_level as any,
-        business_impact: gap.business_impact as any,
-        regulatory_requirement: gap.regulatory_requirement || false,
-        potential_fine_amount: gap.potential_fine_amount ?? undefined,
-        status: "identified" as any,
-        recommendation_type: gap.recommendation_type,
-        recommendation_text: gap.recommendation_text,
-        recommended_actions: gap.recommended_actions || [],
-        detection_method: (gap.detection_method as any) || "manual",
-        confidence_score: gap.confidence_score,
-        auto_generated: true,
-        false_positive_likelihood: gap.false_positive_likelihood || 0,
-        detected_at: gap.detected_at || new Date().toISOString(),
-        created_at: gap.detected_at || new Date().toISOString(),
-        updated_at: gap.detected_at || new Date().toISOString(),
-      }));
+      const selectedGaps = getSelectedComplianceGaps();
       await generateExecutiveSummary(
         reportData,
         selectedGaps,
@@ -288,6 +355,65 @@ export default function CreateAuditReportPage() {
       console.error('Failed to generate executive summary:', error);
     }
   };
+
+  const handleGenerateThreatIntelligence = async () => {
+    if (!selectedAuditSession) {
+      return;
+    }
+
+    const validation = validateSummaryGeneration();
+    if (!validation.isValid) {
+      console.error('Validation failed:', validation.errors);
+      return;
+    }
+
+    try {
+      clearThreatIntelligenceError();
+      const reportData = prepareReportData(formData);
+      const selectedGaps = getSelectedComplianceGaps();
+      await generateThreatIntelligence(reportData, selectedGaps, SummaryType.STANDARD);
+    } catch (error) {
+      console.error('Failed to generate threat intelligence:', error);
+    }
+  };
+
+  const handleGenerateRiskPrioritization = async () => {
+      if (!formData) return;
+  
+      const validation = validateSummaryGeneration();
+      if (!validation.isValid) {
+        console.error('Validation failed:', validation.errors);
+        return;
+      }
+  
+      try {
+        clearRiskPrioritizationError();
+        const reportData = prepareReportData(formData);
+        const selectedGaps = getSelectedComplianceGaps();
+        await generateRiskPrioritization(reportData, selectedGaps, SummaryType.STANDARD);
+      } catch (error) {
+        console.error('Failed to generate risk prioritization:', error);
+      }
+    };
+  
+    const handleGenerateTargetAudience = async () => {
+      if (!formData) return;
+  
+      const validation = validateSummaryGeneration();
+      if (!validation.isValid) {
+        console.error('Validation failed:', validation.errors);
+        return;
+      }
+  
+      try {
+        clearTargetAudienceError();
+        const reportData = prepareReportData(formData);
+        const selectedGaps = getSelectedComplianceGaps();
+        await generateTargetAudience(reportData, selectedGaps, SummaryType.STANDARD);
+      } catch (error) {
+        console.error('Failed to generate target audience summary:', error);
+      }
+    };
 
   const toggleDataSourcesDetail = (source: 'chats' | 'gaps' | 'documents') => {
     setShowDataSourcesDetails(prev => ({
@@ -309,8 +435,16 @@ export default function CreateAuditReportPage() {
     e.preventDefault();
     if (!isFormValid()) return;
 
-    const reportData = prepareReportData(formData);
-    await createReport(reportData);
+    try {
+      const reportData = prepareReportData(formData);
+      await createReport(reportData);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    } catch (error) {
+      // Error handled by store
+    }
+
+    
   };
 
   const handleCancel = () => {
@@ -464,11 +598,11 @@ export default function CreateAuditReportPage() {
         </CardContent>
       </Card>
 
-      {(error || summaryError) && (
+      {(error  || summaryError || threatIntelligenceError || riskPrioritizationError || targetAudienceError) && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="flex items-center space-x-2 pt-6">
             <XCircle className="h-4 w-4 text-red-600" />
-            <span className="text-red-700">{error || summaryError}</span>
+            <span className="text-red-700">{error || summaryError || threatIntelligenceError || riskPrioritizationError || targetAudienceError}</span>
           </CardContent>
         </Card>
       )}
@@ -718,30 +852,56 @@ export default function CreateAuditReportPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handleGenerateSummary('control_risk_prioritization')}
-                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  onClick={handleGenerateRiskPrioritization}
+                  disabled={!canGenerateSummary() || isGeneratingRiskPrioritization}
                   className="flex items-center space-x-2"
                 >
-                  {isGeneratingSummary ? (
+                  {isGeneratingRiskPrioritization ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4" />
+                    <TrendingUp className="h-4 w-4" />
                   )}
-                  <span>Generate summary</span>
+                  <span>
+                    {isGeneratingRiskPrioritization ? 'Generating...' : 'Generate Risk Prioritization'}
+                  </span>
                 </Button>
               </div>
               <textarea
                 id="control_risk_prioritization"
                 value={formData.control_risk_prioritization || ''}
                 onChange={(e) => handleInputChange('control_risk_prioritization', e.target.value)}
-                placeholder="Control risk prioritization analysis and recommendations..."
-                rows={4}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
+                placeholder="Enter control risk prioritization..."
+                rows={6}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
-              <p className="text-xs text-muted-foreground">
-                Prioritization of control risks based on impact and likelihood
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Prioritized risk assessment and control recommendations
+                </p>
+                {!canGenerateSummary() && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable prioritization generation
+                  </p>
+                )}
+              </div>
             </div>
+
+            {riskPrioritization && (
+                <div className="bg-orange-50 border border-orange-200 rounded-md p-3 mt-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <CheckCircle className="h-4 w-4 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-800">
+                      Risk Prioritization Generated Successfully
+                    </span>
+                  </div>
+                  <div className="text-xs text-orange-700 space-y-1">
+                    <p>• Total Gaps Analyzed: {riskPrioritization.total_gaps}</p>
+                    <p>• Prioritized Risks: {riskPrioritization.prioritized_risks}</p>
+                    <p>• Risk Score: {riskPrioritization.risk_score}</p>
+                    <p>• High Risk Gaps: {riskPrioritization.high_risk_gaps}</p>
+                  </div>
+                </div>
+              )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -750,30 +910,56 @@ export default function CreateAuditReportPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handleGenerateSummary('threat_intelligence_analysis')}
-                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  onClick={handleGenerateThreatIntelligence}
+                  disabled={!canGenerateSummary() || isGeneratingThreatIntelligence}
                   className="flex items-center space-x-2"
                 >
-                  {isGeneratingSummary ? (
+                  {isGeneratingThreatIntelligence ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4" />
+                    <Target className="h-4 w-4" />
                   )}
-                  <span>Generate summary</span>
+                  <span>
+                    {isGeneratingThreatIntelligence ? 'Generating...' : 'Generate Threat Intelligence'}
+                  </span>
                 </Button>
               </div>
               <textarea
                 id="threat_intelligence_analysis"
                 value={formData.threat_intelligence_analysis || ''}
                 onChange={(e) => handleInputChange('threat_intelligence_analysis', e.target.value)}
-                placeholder="Threat intelligence analysis and current threat landscape..."
-                rows={4}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
+                placeholder="Enter threat intelligence analysis..."
+                rows={6}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
-              <p className="text-xs text-muted-foreground">
-                Analysis of current threats and their relevance to the organization
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Analysis of potential threats and vulnerabilities based on identified gaps
+                </p>
+                {!canGenerateSummary() && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable analysis generation
+                  </p>
+                )}
+              </div>
             </div>
+
+            {threatIntelligence && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">
+                    Threat Intelligence Analysis Generated Successfully
+                  </span>
+                </div>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p>• Total Gaps Analyzed: {threatIntelligence.total_gaps}</p>
+                  <p>• Threat Indicators: {threatIntelligence.threat_indicators}</p>
+                  <p>• Vulnerability Score: {threatIntelligence.vulnerability_score}</p>
+                  <p>• High Risk Gaps: {threatIntelligence.high_risk_gaps}</p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -782,30 +968,56 @@ export default function CreateAuditReportPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => handleGenerateSummary('target_audience_summary')}
-                  disabled={!selectedAuditSession || isGeneratingSummary}
+                  onClick={handleGenerateTargetAudience}
+                  disabled={!canGenerateSummary() || isGeneratingTargetAudience}
                   className="flex items-center space-x-2"
                 >
-                  {isGeneratingSummary ? (
+                  {isGeneratingTargetAudience ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4" />
+                    <Users className="h-4 w-4" />
                   )}
-                  <span>Generate summary</span>
+                  <span>
+                    {isGeneratingTargetAudience ? 'Generating...' : 'Generate Target Audience Summary'}
+                  </span>
                 </Button>
               </div>
               <textarea
                 id="target_audience_summary"
                 value={formData.target_audience_summary || ''}
                 onChange={(e) => handleInputChange('target_audience_summary', e.target.value)}
-                placeholder="Summary tailored to the specific target audience..."
-                rows={4}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
+                placeholder="Enter target audience summary..."
+                rows={6}
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
-              <p className="text-xs text-muted-foreground">
-                Summary specifically tailored to the selected target audience
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Summary tailored specifically for the target audience ({formData.target_audience})
+                </p>
+                {!canGenerateSummary() && (
+                  <p className="text-xs text-yellow-600">
+                    Select compliance gaps to enable summary generation
+                  </p>
+                )}
+              </div>
             </div>
+
+            {targetAudience && (
+              <div className="bg-purple-50 border border-purple-200 rounded-md p-3 mt-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium text-purple-800">
+                    Target Audience Summary Generated Successfully
+                  </span>
+                </div>
+                <div className="text-xs text-purple-700 space-y-1">
+                  <p>• Total Gaps Analyzed: {targetAudience.total_gaps}</p>
+                  <p>• Communication Level: {targetAudience.communication_level}</p>
+                  <p>• Focus Areas: {targetAudience.audience_focus_areas?.join(', ')}</p>
+                  <p>• High Risk Gaps: {targetAudience.high_risk_gaps}</p>
+                </div>
+              </div>
+            )}
 
             {!selectedAuditSession && (
               <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg">
