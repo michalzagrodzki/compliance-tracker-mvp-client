@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { http } from "@/modules/api/http";
+import { authService } from "@/modules/auth/services/authService";
 import type {
   ChatMessage,
   QueryRequest,
@@ -64,19 +63,31 @@ class ChatService {
       );
 
       if (!response.ok) {
-        // Handle 401 errors consistently with the http interceptor
         if (response.status === 401) {
-          try {
-            await this.handleAuthRefresh();
-            // Retry the request with new token
-            return this.sendStreamingQuery(
-              queryRequest,
-              onToken,
-              onComplete,
-              onError
+          await this.handleAuthRefresh();
+          const newToken = this.getAuthToken();
+          const retry = await fetch(
+            `${http.defaults.baseURL}${CHAT_ENDPOINTS.QUERY_STREAM}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(newToken && { Authorization: `Bearer ${newToken}` }),
+              },
+              body: JSON.stringify(queryRequest),
+            }
+          );
+          if (!retry.ok) {
+            throw new Error(
+              `HTTP ${retry.status}: ${await retry.text().catch(() => "")}`
             );
-          } catch (authError) {
-            throw new Error("Authentication failed");
+          }
+          const reader = retry.body!.getReader();
+          const decoder = new TextDecoder();
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) onToken(decoder.decode(value, { stream: true }));
           }
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -383,7 +394,6 @@ class ChatService {
 
   private getAuthToken(): string {
     try {
-      const { authService } = require("@/modules/auth/services/authService");
       return authService.getAccessToken() || "";
     } catch (error) {
       console.warn("Failed to get auth token:", error);
@@ -393,7 +403,6 @@ class ChatService {
 
   private async handleAuthRefresh(): Promise<void> {
     try {
-      const { authService } = require("@/modules/auth/services/authService");
       const refreshToken = authService.getRefreshToken();
 
       if (!refreshToken) {
@@ -406,7 +415,6 @@ class ChatService {
 
       authService.setAuthTokens(tokenResponse);
     } catch (error) {
-      const { authService } = require("@/modules/auth/services/authService");
       authService.clearTokens();
       window.location.href = "/login";
       throw error;

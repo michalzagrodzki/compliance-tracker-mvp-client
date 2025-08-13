@@ -60,6 +60,7 @@ export const ChatSession: React.FC = () => {
     try {
       // Mark as interacted to trigger the transition
       setHasInteracted(true);
+      console.log("sending message from chat")
       await sendMessage(message);
     } catch (error) {
       console.error('Failed to send message:', error);
