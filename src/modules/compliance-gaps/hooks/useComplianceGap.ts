@@ -9,7 +9,6 @@ import type {
   ComplianceGapUpdate,
   ComplianceRecommendationResponse,
 } from "../types";
-import type { SourceDocument } from "@/modules/chat/types";
 
 export const useComplianceGap = () => {
   const {
@@ -48,7 +47,7 @@ export const useComplianceGap = () => {
       auditSessionId?: string,
       complianceDomain?: string,
       initialMessage?: string,
-      sources?: string[] | SourceDocument[]
+      sources?: string[]
     ) => {
       openModal({
         chatHistoryId,

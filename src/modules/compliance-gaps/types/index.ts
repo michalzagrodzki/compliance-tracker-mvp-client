@@ -83,7 +83,7 @@ export interface ComplianceGap {
 
 export interface ComplianceGapFromChatHistoryRequest {
   creation_method: "from_chat_history";
-  chat_history_id: string;
+  chat_history_id: number;
 
   gap_type: GapType;
   gap_category: string;

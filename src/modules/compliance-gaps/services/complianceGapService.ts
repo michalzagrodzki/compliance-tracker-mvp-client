@@ -58,10 +58,7 @@ class ComplianceGapService {
   async createFromChatHistory(
     request: ComplianceGapFromChatHistoryRequest
   ): Promise<ComplianceGapResponse> {
-    const response = await http.post(
-      `${this.baseUrl}/from-chat-history`,
-      request
-    );
+    const response = await http.post(this.baseUrl, request);
     return response.data;
   }
 

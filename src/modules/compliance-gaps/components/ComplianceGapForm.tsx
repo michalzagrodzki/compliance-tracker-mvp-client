@@ -86,8 +86,9 @@ const RECOMMENDATION_TYPE_OPTIONS: Array<{
   { value: 'system_configuration', label: 'System Configuration' }
   ];
 
-  const extractWholeNumberFromId = (id: string): string => {
-    return id.split('.')[0];
+  const extractWholeNumberFromId = (id: string): number => {
+    const wholePart = id.split('.')[0];
+    return parseInt(wholePart, 10);
   };
 
 // Mock service for this example
@@ -98,11 +99,6 @@ const complianceGapService = {
   }),
   suggestGapCategory: (domain: string) => domain || 'General Compliance',
   extractSearchTerms: (message: string) => message.split(' ').slice(0, 5),
-  createFromChatHistory: async (request: ComplianceGapFromChatHistoryRequest) => {
-    // Mock API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return { id: `GAP-${Date.now()}` };
-  }
 };
 
 interface ComplianceGapFormProps {

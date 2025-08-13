@@ -18,7 +18,7 @@ import type {
   ChatHistoryItem,
   ComplianceRecommendationRequest,
 } from "../types";
-import type { ChatMessage, SourceDocument } from "@/modules/chat/types";
+import type { ChatMessage } from "@/modules/chat/types";
 import { chatService } from "@/modules/chat";
 
 // Add interface for direct creation request
@@ -71,7 +71,7 @@ interface ComplianceGapState {
     auditSessionId?: string;
     complianceDomain?: string;
     initialMessage?: string;
-    sources?: string[] | SourceDocument[];
+    sources?: string[];
   } | null;
 }
 
@@ -111,7 +111,7 @@ interface ComplianceGapActions {
     auditSessionId?: string;
     complianceDomain?: string;
     initialMessage?: string;
-    sources?: string[] | SourceDocument[];
+    sources?: string[];
   }) => void;
   closeModal: () => void;
 

@@ -9,17 +9,42 @@ interface ChatMessageProps {
   onIdentifyGap?: (messageId: string) => void;
 }
 
+const extractUniqueTitles = (
+  sources?: string[] | SourceDocument[]
+): string[] | undefined => {
+  if (!sources || sources.length === 0) {
+    return undefined;
+  }
+
+  // If already string[]
+  if (typeof sources[0] === "string") {
+    return Array.from(new Set(sources as string[]));
+  }
+
+  // If SourceDocument[]
+  if (
+    typeof sources[0] === "object" &&
+    sources[0] !== null &&
+    "title" in (sources[0] as SourceDocument)
+  ) {
+    const titles = (sources as SourceDocument[]).map((src) => src.title);
+    return titles.length > 0 ? Array.from(new Set(titles)) : undefined;
+  }
+
+  return undefined;
+};
+
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap }) => {
   const [showGapIcon, setShowGapIcon] = useState(false);
   const { createGapFromMessage } = useComplianceGap();
   
   const handleIdentifyGap = () => {
     createGapFromMessage(
-      message.id, // chatHistoryId
+      message.id,
       message.audit_session_id,
       message.compliance_domain,
       message.message,
-      message.sources
+      extractUniqueTitles(message.sources)
     );
     
     onIdentifyGap?.(message.id);
