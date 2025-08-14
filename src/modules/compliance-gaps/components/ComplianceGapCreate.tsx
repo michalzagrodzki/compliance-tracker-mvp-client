@@ -1,153 +1,45 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-import type {
-  GapType,
-  RiskLevel,
-  BusinessImpactLevel,
-  RecommendationType,
-  DetectionMethod,
-  ISOFramework
-} from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AlertCircle, ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, XCircle } from 'lucide-react';
 import { useAuditSessionStore } from '@/modules/audit/store/auditSessionStore';
 import { useAuthStore } from '@/modules/auth/store/authStore'
-import { useComplianceGapStore } from '../store/complianceGapStore';
-import { useIsoControlSearch } from '../../iso-control/hooks/useIsoControl';
+import { useComplianceGap, type ComplianceGapDirectRequest } from '../hooks/useComplianceGap';
+// Using shared sections for ISO and gap type
+import { extractIsoControlCode } from '@/lib/utils';
+import RiskAssessmentFields from './form-sections/RiskAssessmentFields';
+import RecommendationTypeChips from './form-sections/RecommendationTypeChips';
+import RecommendationTextArea from './form-sections/RecommendationTextArea';
+import RecommendedActionsList from './form-sections/RecommendedActionsList';
+import RelatedDocumentsList from './form-sections/RelatedDocumentsList';
+import ConfidenceFields from './form-sections/ConfidenceFields';
+import GapTypeChips from './form-sections/GapTypeChips';
+import GapCoreFields from './form-sections/GapCoreFields';
+import AuditSessionSelect from './form-sections/AuditSessionSelect';
+import ComplianceDomainSelect from './form-sections/ComplianceDomainSelect';
+import ContextInfoFields from './form-sections/ContextInfoFields';
 
-// Enhanced options from ComplianceGapForm
-const GAP_TYPE_OPTIONS: Array<{
-  value: GapType;
-  label: string;
-  description: string;
-}> = [
-  { value: 'missing_policy', label: 'Missing Policy', description: 'Required policy document is missing' },
-  { value: 'outdated_policy', label: 'Outdated Policy', description: 'Existing policy is obsolete or out of date' },
-  { value: 'low_confidence', label: 'Low Confidence', description: 'Available information has low confidence level' },
-  { value: 'conflicting_policies', label: 'Conflicting Policies', description: 'Multiple policies provide contradictory guidance' },
-  { value: 'incomplete_coverage', label: 'Incomplete Coverage', description: 'Policy exists but does not cover all required areas' },
-  { value: 'no_evidence', label: 'No Evidence', description: 'No documentation found to support compliance' }
-];
+// options imported from ../types
 
-const RISK_LEVEL_OPTIONS: Array<{
-  value: RiskLevel;
-  label: string;
-  color: string;
-}> = [
-  { value: 'low', label: 'Low Risk', color: 'bg-green-100 text-green-800' },
-  { value: 'medium', label: 'Medium Risk', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'high', label: 'High Risk', color: 'bg-orange-100 text-orange-800' },
-  { value: 'critical', label: 'Critical Risk', color: 'bg-red-100 text-red-800' }
-];
+const COMPLIANCE_DOMAINS = [
+  { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
+]
 
-const BUSINESS_IMPACT_OPTIONS: Array<{
-  value: BusinessImpactLevel;
-  label: string;
-}> = [
-  { value: 'low', label: 'Low Impact' },
-  { value: 'medium', label: 'Medium Impact' },
-  { value: 'high', label: 'High Impact' },
-  { value: 'critical', label: 'Critical Impact' }
-];
+// ISO selection handled via shared component
 
-const RECOMMENDATION_TYPE_OPTIONS: Array<{
-  value: RecommendationType;
-  label: string;
-}> = [
-  { value: 'create_policy', label: 'Create New Policy' },
-  { value: 'update_policy', label: 'Update Existing Policy' },
-  { value: 'upload_document', label: 'Upload Documentation' },
-  { value: 'training_needed', label: 'Training Required' },
-  { value: 'process_improvement', label: 'Process Improvement' },
-  { value: 'system_configuration', label: 'System Configuration' }
-];
-
-const DETECTION_METHOD_OPTIONS: Array<{
-  value: DetectionMethod;
-  label: string;
-}> = [
-  { value: 'query_analysis', label: 'Query Analysis' },
-  { value: 'periodic_scan', label: 'Periodic Scan' },
-  { value: 'document_upload', label: 'Document Upload' },
-  { value: 'manual_review', label: 'Manual Review' },
-  { value: 'external_audit', label: 'External Audit' }
-  ];
-
-  const COMPLIANCE_DOMAINS = [
-    { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
-  ]
-
-  const extractIsoControlCode = (input: string): string => {
-    if (!input) return "";
-    const s = input.trim();
-    const i = s.indexOf(":");
-    return i >= 0 ? s.slice(i + 1).trim() : s;
-  };
-
-interface FlattenedControl {
-  id: string;
-  frameworkName: string;
-  controlCode: string;
-  title: string;
-  control: string;
-  category: string;
-  displayText: string;
-}
-
-interface ComplianceGapDirectRequest {
-  user_id: string;
-  audit_session_id: string;
-  compliance_domain: string;
-  gap_type: GapType;
-  gap_category: string;
-  gap_title: string;
-  gap_description: string;
-  iso_control: string | null;
-  original_question: string;
-  creation_method: 'direct';
-  chat_history_id?: number;
-  pdf_ingestion_id?: string;
-  expected_answer_type?: string;
-  search_terms_used: string[];
-  similarity_threshold_used: number;
-  best_match_score: number;
-  risk_level: RiskLevel;
-  business_impact: BusinessImpactLevel;
-  regulatory_requirement: boolean;
-  potential_fine_amount: number;
-  recommendation_type?: RecommendationType;
-  recommendation_text: string;
-  recommended_actions: string[];
-  related_documents: string[];
-  detection_method: DetectionMethod;
-  confidence_score: number;
-  false_positive_likelihood: number;
-  ip_address?: string;
-  user_agent: string;
-  session_context: Record<string, any>;
-}
 
 export default function ComplianceGapCreatePage() {
   const navigate = useNavigate();
-  const { createGapDirect, isLoading, error, clearError } = useComplianceGapStore();
+  const { createGapDirect, isLoading, error, clearError } = useComplianceGap();
   const { sessions, isLoading: isLoadingSessions, error: sessionsError, fetchUserSessions } = useAuditSessionStore();
   const { user } = useAuthStore()
   const [showAboutInfo, setShowAboutInfo] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [showIsoDropdown, setShowIsoDropdown] = useState(false);
-
-  const {
-      searchTerm: isoSearchTerm,
-      search: searchIsoControls,
-      clearSearch: clearIsoSearch,
-      controls: isoControls,
-      isLoading: isLoadingIsoControls,
-      error: isoControlsError,
-    } = useIsoControlSearch(300);
+  // ISO selection handled within IsoControlSelector
   
   const [formData, setFormData] = useState<ComplianceGapDirectRequest>({
     user_id: user?.id || "",
@@ -182,50 +74,8 @@ export default function ComplianceGapCreatePage() {
     session_context: {}
   });
 
-  const [newAction, setNewAction] = useState('');
-  const [newSearchTerm, setNewSearchTerm] = useState('');
-  const [newDocument, setNewDocument] = useState('');
 
-  const flattenedControls = useMemo(() => {
-      const flattened: FlattenedControl[] = [];
-      
-      isoControls.forEach((framework: ISOFramework) => {
-        Object.entries(framework.controls || {}).forEach(([controlCode, controlData]) => {
-          flattened.push({
-            id: `${framework.id}-${controlCode}`,
-            frameworkName: framework.name,
-            controlCode,
-            title: controlData.title,
-            control: controlData.control,
-            category: controlData.category,
-            displayText: `${controlCode} - ${controlData.title} (${controlData.category})`
-          });
-        });
-      });
-      
-      return flattened;
-    }, [isoControls]);
-  
-    // Get selected control from formData.iso_control
-  const selectedIsoControl = useMemo(() => {
-    if (!formData.iso_control) return null;
-    
-    return flattenedControls.find(
-      control => `${control.frameworkName}:${control.controlCode}` === formData.iso_control
-    ) || null;
-  }, [formData.iso_control, flattenedControls]);
-  
-  const filteredIsoControls = useMemo(() => {
-      if (!isoSearchTerm) return flattenedControls;
-      
-      const term = isoSearchTerm.toLowerCase();
-      return flattenedControls.filter(control => 
-        control.controlCode.toLowerCase().includes(term) ||
-        control.title.toLowerCase().includes(term) ||
-        control.category.toLowerCase().includes(term) ||
-        control.frameworkName.toLowerCase().includes(term)
-      );
-    }, [flattenedControls, isoSearchTerm]);
+  // removed ISO manual search logic
   
   useEffect(() => {
     clearError();
@@ -239,32 +89,22 @@ export default function ComplianceGapCreatePage() {
     fetch('https://api.ipify.org?format=json')
       .then(response => response.json())
       .then(data => {
-        setFormData(prev => ({ ...prev, ip_address: data.ip }));
+        setFormData((prev: any) => ({ ...prev, ip_address: data.ip }));
       })
       .catch(() => {
         // Fallback to placeholder
-        setFormData(prev => ({ ...prev, ip_address: '127.0.0.1' }));
+        setFormData((prev: any) => ({ ...prev, ip_address: '127.0.0.1' }));
       });
   }, [clearError, user?.id, fetchUserSessions]);
 
   const handleInputChange = (field: keyof ComplianceGapDirectRequest, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleIsoControlSelect = (control: FlattenedControl) => {
-    const isoControlValue = `${control.frameworkName}:${control.controlCode}`;
-    handleInputChange('iso_control', isoControlValue);
-    setShowIsoDropdown(false);
-    clearIsoSearch();
-  };
-
-  const handleClearIsoControl = () => {
-    handleInputChange('iso_control', '');
-    clearIsoSearch();
-  };
+  // selection handled via IsoControlSelector
 
   const handleDomainChange = (field: keyof ComplianceGapDirectRequest, value: any) => {
     setFormData(prev => ({
@@ -273,21 +113,6 @@ export default function ComplianceGapCreatePage() {
     }));
   };
 
-  const handleAddToArray = (field: 'recommended_actions' | 'search_terms_used' | 'related_documents', value: string) => {
-    if (value.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: [...prev[field], value.trim()]
-      }));
-    }
-  };
-
-  const handleRemoveFromArray = (field: 'recommended_actions' | 'search_terms_used' | 'related_documents', index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
-    }));
-  };
 
   const isFormValid = () => {
     return formData.audit_session_id &&
@@ -456,226 +281,40 @@ export default function ComplianceGapCreatePage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Audit Session *</label>
-                <select
-                  value={formData.audit_session_id}
-                  onChange={(e) => handleInputChange('audit_session_id', e.target.value)}
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
-                  disabled={isLoadingSessions}
-                >
-                  <option value="">
-                    {isLoadingSessions ? 'Loading audit sessions...' : 'Select audit session'}
-                  </option>
-                  {sessions.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {session.session_name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Associate this gap with an existing audit session for tracking purposes
-                </p>
-              </div>
+              <AuditSessionSelect
+                value={formData.audit_session_id}
+                onChange={(v) => handleInputChange('audit_session_id', v)}
+                sessions={sessions as any}
+                loading={isLoadingSessions}
+              />
 
-              <div className="space-y-2">
-              <label className="text-sm font-medium">Compliance Domain *</label>
-                <select
-                  id="compliance-domain"
-                  value={formData.compliance_domain}
-                  onChange={(e) => handleDomainChange('compliance_domain', e.target.value)}
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-                  disabled={isLoading}
-                  required
-                >
-                  <option value="">Select a compliance framework...</option>
-                  {COMPLIANCE_DOMAINS.map((domain) => (
-                    <option key={domain.value} value={domain.value}>
-                      {domain.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <ComplianceDomainSelect
+                value={formData.compliance_domain}
+                onChange={(v) => handleDomainChange('compliance_domain', v)}
+                options={COMPLIANCE_DOMAINS}
+                disabled={isLoading}
+              />
             </div>
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Gap Type *</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {GAP_TYPE_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('gap_type', option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.gap_type === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <GapTypeChips
+              value={formData.gap_type}
+              onChange={(v) => handleInputChange('gap_type', v)}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="gap_category" className="text-sm font-medium">Gap Category *</label>
-                <Input
-                  id="gap_category"
-                  value={formData.gap_category}
-                  onChange={(e) => handleInputChange('gap_category', e.target.value)}
-                  placeholder="e.g., A.12.6.1 - Management of technical vulnerabilities"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Specific control or requirement category this gap relates to
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="gap_title" className="text-sm font-medium">Gap Title *</label>
-                <Input
-                  id="gap_title"
-                  value={formData.gap_title}
-                  onChange={(e) => handleInputChange('gap_title', e.target.value)}
-                  placeholder="Brief, descriptive title for the gap"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Clear, concise title that summarizes the compliance gap
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="gap_description" className="text-sm font-medium">Gap Description *</label>
-                <textarea
-                  id="gap_description"
-                  value={formData.gap_description}
-                  onChange={(e) => handleInputChange('gap_description', e.target.value)}
-                  placeholder="Detailed description of the compliance gap..."
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Detailed explanation of what is missing or inadequate in current compliance posture
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="iso_control" className="text-sm font-medium">Related ISO Control</label>
-
-                {/* Trigger button (same element in both states) */}
-                <div className="relative">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-start items-start h-auto min-h-[3rem] py-3 gap-3"
-                    onClick={() => setShowIsoDropdown((v) => !v)}
-                  >
-                    {selectedIsoControl ? (
-                      <div className="flex w-full items-start gap-3">
-                        <div className="pt-0.5">
-                          <Search className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0 text-left leading-tight">
-                        <div className="text-sm font-medium truncate">
-                          {selectedIsoControl.controlCode} – {selectedIsoControl.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {selectedIsoControl.frameworkName} • {selectedIsoControl.category}
-                        </div>
-                      </div>
-
-                        {/* Clear selected control without toggling dropdown */}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleClearIsoControl();
-                          }}
-                          aria-label="Clear ISO control"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-
-                        <ChevronDown className="h-4 w-4 ml-1 text-muted-foreground shrink-0" />
-                      </div>
-                    ) : (
-                      <div className="flex w-full items-center">
-                        <Search className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className={formData.iso_control ? "text-foreground" : "text-muted-foreground"}>
-                          {formData.iso_control || "Select ISO control..."}
-                        </span>
-                        <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground" />
-                      </div>
-                    )}
-                  </Button>
-
-                  {/* Dropdown */}
-                  {showIsoDropdown && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-input rounded-md shadow-lg max-h-72 overflow-y-auto">
-                      {/* Embedded search input */}
-                      <div className="p-2 border-b">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <input
-                            placeholder="Search ISO controls..."
-                            value={isoSearchTerm}
-                            onChange={(e) => searchIsoControls(e.target.value)}
-                            className="pl-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          />
-                        </div>
-                      </div>
-
-                      {isLoadingIsoControls ? (
-                        <div className="p-3 text-center">
-                          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                          <span className="text-sm text-muted-foreground mt-1 block">Loading controls...</span>
-                        </div>
-                      ) : isoControlsError ? (
-                        <div className="p-3 text-center text-red-600 text-sm">
-                          <AlertCircle className="h-4 w-4 mx-auto mb-1" />
-                          Failed to load ISO controls
-                        </div>
-                      ) : filteredIsoControls.length === 0 ? (
-                        <div className="p-3 text-center text-muted-foreground text-sm">No controls found</div>
-                      ) : (
-                        <div className="py-1">
-                          {filteredIsoControls.slice(0, 12).map((control) => (
-                            <button
-                              key={control.id}
-                              type="button"
-                              onClick={() => {
-                                handleIsoControlSelect(control); // should set selectedIsoControl + formData.iso_control
-                                setShowIsoDropdown(false);
-                              }}
-                              className="w-full text-left px-3 py-2 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
-                            >
-                              <div className="font-medium text-sm">{control.controlCode}</div>
-                              <div className="text-sm text-muted-foreground truncate">{control.title}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {control.frameworkName} • {control.category}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Select the most relevant ISO control that this compliance gap relates to
-                </p>
-              </div>
-            </div>
+            <GapCoreFields
+              showTitle
+              showCategory
+              showDescription
+              showIsoSelector
+              gapTitle={formData.gap_title}
+              onTitleChange={(v) => handleInputChange('gap_title', v)}
+              gapCategory={formData.gap_category}
+              onCategoryChange={(v) => handleInputChange('gap_category', v)}
+              gapDescription={formData.gap_description}
+              onDescriptionChange={(v) => handleInputChange('gap_description', v)}
+              isoControl={formData.iso_control}
+              onIsoControlChange={(v) => handleInputChange('iso_control', v)}
+            />
           </CardContent>
         </Card>
 
@@ -687,99 +326,15 @@ export default function ComplianceGapCreatePage() {
               Additional context about how this gap was identified and what was expected
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="original_question" className="text-sm font-medium">Original Question</label>
-                <Input
-                  id="original_question"
-                  value={formData.original_question}
-                  onChange={(e) => handleInputChange('original_question', e.target.value)}
-                  placeholder="Question that led to gap discovery (optional)"
-                />
-                <p className="text-xs text-muted-foreground">
-                  The original question or query that revealed this gap
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="expected_answer_type" className="text-sm font-medium">Expected Answer Type</label>
-                <Input
-                  id="expected_answer_type"
-                  value={formData.expected_answer_type || ''}
-                  onChange={(e) => handleInputChange('expected_answer_type', e.target.value)}
-                  placeholder="e.g., policy, procedure, control, documentation"
-                />
-                <p className="text-xs text-muted-foreground">
-                  What type of information or documentation was expected to exist
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Detection Method</label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                {DETECTION_METHOD_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('detection_method', option.value)}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.detection_method === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                How this compliance gap was initially discovered or identified
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Search Terms Used</label>
-              <div className="space-y-2">
-                {formData.search_terms_used.map((term, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Input value={term} readOnly className="flex-1" />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveFromArray('search_terms_used', index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={newSearchTerm}
-                    onChange={(e) => setNewSearchTerm(e.target.value)}
-                    placeholder="Add search term..."
-                    className="flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddToArray('search_terms_used', newSearchTerm), setNewSearchTerm(''))}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {handleAddToArray('search_terms_used', newSearchTerm); setNewSearchTerm('');}}
-                    disabled={!newSearchTerm.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Keywords or terms that were searched but yielded insufficient results
-              </p>
-            </div>
+          <CardContent>
+            <ContextInfoFields
+              originalQuestion={formData.original_question}
+              expectedAnswerType={formData.expected_answer_type}
+              detectionMethod={formData.detection_method}
+              searchTermsUsed={formData.search_terms_used}
+              onChange={(field, value) => handleInputChange(field as any, value)}
+              disabled={isLoading}
+            />
           </CardContent>
         </Card>
 
@@ -792,88 +347,16 @@ export default function ComplianceGapCreatePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Risk Level *</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {RISK_LEVEL_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('risk_level', option.value)}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.risk_level === option.value
-                        ? `border-blue-400 ${option.color}`
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Assessment of the security or compliance risk this gap poses to the organization
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Business Impact *</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {BUSINESS_IMPACT_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('business_impact', option.value)}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.business_impact === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Potential impact on business operations if this gap is not addressed
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="regulatory_requirement"
-                  checked={formData.regulatory_requirement}
-                  onChange={(e) => handleInputChange('regulatory_requirement', e.target.checked)}
-                  className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                />
-                <label htmlFor="regulatory_requirement" className="text-sm font-medium">
-                  This is a regulatory requirement
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="potential_fine_amount" className="text-sm font-medium">Potential Fine Amount</label>
-                <Input
-                  id="potential_fine_amount"
-                  type="number"
-                  value={formData.potential_fine_amount}
-                  onChange={(e) => handleInputChange('potential_fine_amount', parseFloat(e.target.value) || 0)}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Estimated potential fine or penalty amount if this gap leads to violations
-                </p>
-              </div>
-            </div>
+            <RiskAssessmentFields
+              riskLevel={formData.risk_level}
+              businessImpact={formData.business_impact}
+              regulatoryRequirement={formData.regulatory_requirement}
+              potentialFineAmount={formData.potential_fine_amount}
+              onChange={(field, value) => handleInputChange(field as any, value)}
+            />
           </CardContent>
         </Card>
 
-        {/* Recommendations */}
         <Card>
           <CardHeader>
             <CardTitle>Recommendations</CardTitle>
@@ -882,127 +365,27 @@ export default function ComplianceGapCreatePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Recommendation Type</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {RECOMMENDATION_TYPE_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('recommendation_type', 
-                      formData.recommendation_type === option.value ? undefined : option.value
-                    )}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.recommendation_type === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Primary type of action recommended to address this gap
-              </p>
-            </div>
+            <RecommendationTypeChips
+              value={formData.recommendation_type}
+              onChange={(v) => handleInputChange('recommendation_type', v)}
+            />
 
-            <div className="space-y-2">
-              <label htmlFor="recommendation_text" className="text-sm font-medium">Recommendation Details</label>
-              <textarea
-                id="recommendation_text"
-                value={formData.recommendation_text}
-                onChange={(e) => handleInputChange('recommendation_text', e.target.value)}
-                placeholder="Detailed recommendation for addressing this gap..."
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <p className="text-xs text-muted-foreground">
-                Detailed explanation of recommended approach to resolve this gap
-              </p>
-            </div>
+            <RecommendationTextArea
+              value={formData.recommendation_text}
+              onChange={(v) => handleInputChange('recommendation_text', v)}
+            />
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Recommended Actions</label>
-              <div className="space-y-2">
-                {formData.recommended_actions.map((action, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Input value={action} readOnly className="flex-1" />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveFromArray('recommended_actions', index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={newAction}
-                    onChange={(e) => setNewAction(e.target.value)}
-                    placeholder="Add recommended action..."
-                    className="flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddToArray('recommended_actions', newAction), setNewAction(''))}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {handleAddToArray('recommended_actions', newAction); setNewAction('');}}
-                    disabled={!newAction.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Specific, actionable steps that should be taken to address this gap
-              </p>
-            </div>
+            <RecommendedActionsList
+              actions={formData.recommended_actions}
+              onChange={(next) => handleInputChange('recommended_actions', next)}
+              addPlaceholder="Add recommended action..."
+            />
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Related Documents</label>
-              <div className="space-y-2">
-                {formData.related_documents.map((doc, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Input value={doc} readOnly className="flex-1" />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveFromArray('related_documents', index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={newDocument}
-                    onChange={(e) => setNewDocument(e.target.value)}
-                    placeholder="Add related document..."
-                    className="flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddToArray('related_documents', newDocument), setNewDocument(''))}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {handleAddToArray('related_documents', newDocument); setNewDocument('');}}
-                    disabled={!newDocument.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Existing documents that are relevant to this gap or its resolution
-              </p>
-            </div>
+            <RelatedDocumentsList
+              documents={formData.related_documents}
+              onChange={(next) => handleInputChange('related_documents', next)}
+              addPlaceholder="Add related document..."
+            />
           </CardContent>
         </Card>
 
@@ -1060,49 +443,11 @@ export default function ComplianceGapCreatePage() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="confidence_score" className="text-sm font-medium">Confidence Score</label>
-                <div className="space-y-2">
-                  <input
-                    id="confidence_score"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={formData.confidence_score}
-                    onChange={(e) => handleInputChange('confidence_score', parseFloat(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm text-muted-foreground">
-                    {(formData.confidence_score * 100).toFixed(0)}%
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Confidence level that this represents a genuine compliance gap
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="false_positive_likelihood" className="text-sm font-medium">False Positive Likelihood</label>
-                <div className="space-y-2">
-                  <input
-                    id="false_positive_likelihood"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={formData.false_positive_likelihood}
-                    onChange={(e) => handleInputChange('false_positive_likelihood', parseFloat(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm text-muted-foreground">
-                    {(formData.false_positive_likelihood * 100).toFixed(0)}%
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Likelihood that this gap identification is incorrect
-                </p>
-              </div>
+              <ConfidenceFields
+                confidenceScore={formData.confidence_score}
+                falsePositiveLikelihood={formData.false_positive_likelihood}
+                onChange={(field, value) => handleInputChange(field as any, value)}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -8,48 +8,21 @@ import type {
   BusinessImpactLevel,
   RecommendationType,
   ComplianceGapUpdate,
-  FlattenedControl,
-  ISOFramework
 } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, Plus, X, XCircle, Save, Sparkles, AlertCircle, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, XCircle, Save, Loader2 } from 'lucide-react';
 import { useComplianceGap } from '../hooks/useComplianceGap';
-import { useIsoControlSearch } from '../../iso-control/hooks/useIsoControl';
+// ISO selector handled by shared GapCoreFields
+// constants now used inside shared sections
 import Loading from '@/components/Loading';
-
-const RISK_LEVEL_OPTIONS: Array<{
-  value: RiskLevel;
-  label: string;
-  color: string;
-}> = [
-  { value: 'low', label: 'Low Risk', color: 'bg-green-100 text-green-800' },
-  { value: 'medium', label: 'Medium Risk', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'high', label: 'High Risk', color: 'bg-orange-100 text-orange-800' },
-  { value: 'critical', label: 'Critical Risk', color: 'bg-red-100 text-red-800' }
-];
-
-const BUSINESS_IMPACT_OPTIONS: Array<{
-  value: BusinessImpactLevel;
-  label: string;
-}> = [
-  { value: 'low', label: 'Low Impact' },
-  { value: 'medium', label: 'Medium Impact' },
-  { value: 'high', label: 'High Impact' },
-  { value: 'critical', label: 'Critical Impact' }
-];
-
-const RECOMMENDATION_TYPE_OPTIONS: Array<{
-  value: RecommendationType;
-  label: string;
-}> = [
-  { value: 'create_policy', label: 'Create New Policy' },
-  { value: 'update_policy', label: 'Update Existing Policy' },
-  { value: 'upload_document', label: 'Upload Documentation' },
-  { value: 'training_needed', label: 'Training Required' },
-  { value: 'process_improvement', label: 'Process Improvement' },
-  { value: 'system_configuration', label: 'System Configuration' }
-];
+import RiskAssessmentFields from './form-sections/RiskAssessmentFields';
+import RecommendationTypeChips from './form-sections/RecommendationTypeChips';
+import RecommendationTextArea from './form-sections/RecommendationTextArea';
+import RecommendedActionsList from './form-sections/RecommendedActionsList';
+import RelatedDocumentsList from './form-sections/RelatedDocumentsList';
+import ConfidenceFields from './form-sections/ConfidenceFields';
+import GapCoreFields from './form-sections/GapCoreFields';
 
 export default function EditComplianceGapPage() {
   const navigate = useNavigate();
@@ -58,7 +31,7 @@ export default function EditComplianceGapPage() {
     currentGap, 
     isLoading, 
     error, 
-    loadGap, 
+    loadGapById, 
     updateGap, 
     recommendationError,
     clearError,
@@ -68,21 +41,9 @@ export default function EditComplianceGapPage() {
     clearRecommendationError
   } = useComplianceGap();
 
-  // ISO Controls search hook
-  const {
-    searchTerm: isoSearchTerm,
-    search: searchIsoControls,
-    clearSearch: clearIsoSearch,
-    controls: isoControls,
-    isLoading: isLoadingIsoControls,
-    error: isoControlsError,
-  } = useIsoControlSearch(300);
-  
   const [showAboutInfo, setShowAboutInfo] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showIsoDropdown, setShowIsoDropdown] = useState(false);
-  // No separate state needed - use formData.iso_control as source of truth
   
   const [formData, setFormData] = useState<ComplianceGapUpdate>({
     gap_title: '',
@@ -104,57 +65,16 @@ export default function EditComplianceGapPage() {
     session_context: {}
   });
 
-  const [newAction, setNewAction] = useState('');
-  const [newDocument, setNewDocument] = useState('');
+  // local add/remove handlers moved into shared sections
 
-  const flattenedControls = useMemo(() => {
-    const flattened: FlattenedControl[] = [];
-    
-    isoControls.forEach((framework: ISOFramework) => {
-      Object.entries(framework.controls || {}).forEach(([controlCode, controlData]) => {
-        flattened.push({
-          id: `${framework.id}-${controlCode}`,
-          frameworkName: framework.name,
-          controlCode,
-          title: controlData.title,
-          control: controlData.control,
-          category: controlData.category,
-          displayText: `${controlCode} - ${controlData.title} (${controlData.category})`
-        });
-      });
-    });
-    
-    return flattened;
-  }, [isoControls]);
-
-  // Get selected control from formData.iso_control
-  const selectedIsoControl = useMemo(() => {
-    if (!formData.iso_control) return null;
-    
-    return flattenedControls.find(
-      control => `${control.frameworkName}:${control.controlCode}` === formData.iso_control
-    ) || null;
-  }, [formData.iso_control, flattenedControls]);
-
-  // Filter controls based on search term
-  const filteredIsoControls = useMemo(() => {
-    if (!isoSearchTerm) return flattenedControls;
-    
-    const term = isoSearchTerm.toLowerCase();
-    return flattenedControls.filter(control => 
-      control.controlCode.toLowerCase().includes(term) ||
-      control.title.toLowerCase().includes(term) ||
-      control.category.toLowerCase().includes(term) ||
-      control.frameworkName.toLowerCase().includes(term)
-    );
-  }, [flattenedControls, isoSearchTerm]);
+  // ISO control options managed in shared selector
 
   useEffect(() => {
     if (gapId) {
       clearError();
-      loadGap(gapId, false);
+      loadGapById(gapId);
     }
-  }, [gapId, loadGap, clearError]);
+  }, [gapId, loadGapById, clearError]);
 
   useEffect(() => {
     if (currentGap) {
@@ -197,33 +117,9 @@ export default function EditComplianceGapPage() {
     }));
   };
 
-  const handleIsoControlSelect = (control: FlattenedControl) => {
-    const isoControlValue = `${control.frameworkName}:${control.controlCode}`;
-    handleInputChange('iso_control', isoControlValue);
-    setShowIsoDropdown(false);
-    clearIsoSearch();
-  };
+  // Selection handled in shared selector
 
-  const handleClearIsoControl = () => {
-    handleInputChange('iso_control', '');
-    clearIsoSearch();
-  };
-
-  const handleAddToArray = (field: 'recommended_actions' | 'related_documents', value: string) => {
-    if (value.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: [...(prev[field] || []), value.trim()]
-      }));
-    }
-  };
-
-  const handleRemoveFromArray = (field: 'recommended_actions' | 'related_documents', index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: (prev[field] || []).filter((_, i) => i !== index)
-    }));
-  };
+  // array management now handled by RecommendedActionsList and RelatedDocumentsList
 
   const handleGenerateRecommendation = async () => {
     if (!currentGap?.chat_history_id || !formData.recommendation_type) {
@@ -432,133 +328,18 @@ export default function EditComplianceGapPage() {
                   </span>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="gap_description" className="text-sm font-medium">Gap Description *</label>
-                <textarea
-                  id="gap_description"
-                  value={formData.gap_description || ''}
-                  onChange={(e) => handleInputChange('gap_description', e.target.value)}
-                  placeholder="Detailed description of the compliance gap..."
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Detailed explanation of what is missing or inadequate in current compliance posture
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="iso_control" className="text-sm font-medium">Related ISO Control</label>
-
-                {/* Trigger button (same element in both states) */}
-                <div className="relative">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-start items-start h-auto min-h-[3rem] py-3 gap-3"
-                    onClick={() => setShowIsoDropdown((v) => !v)}
-                  >
-                    {selectedIsoControl ? (
-                      <div className="flex w-full items-start gap-3">
-                        <div className="pt-0.5">
-                          <Search className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0 text-left leading-tight">
-                        <div className="text-sm font-medium truncate">
-                          {selectedIsoControl.controlCode} – {selectedIsoControl.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {selectedIsoControl.frameworkName} • {selectedIsoControl.category}
-                        </div>
-                      </div>
-
-                        {/* Clear selected control without toggling dropdown */}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleClearIsoControl();
-                          }}
-                          aria-label="Clear ISO control"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-
-                        <ChevronDown className="h-4 w-4 ml-1 text-muted-foreground shrink-0" />
-                      </div>
-                    ) : (
-                      <div className="flex w-full items-center">
-                        <Search className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className={formData.iso_control ? "text-foreground" : "text-muted-foreground"}>
-                          {formData.iso_control || "Select ISO control..."}
-                        </span>
-                        <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground" />
-                      </div>
-                    )}
-                  </Button>
-
-                  {/* Dropdown */}
-                  {showIsoDropdown && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-input rounded-md shadow-lg max-h-72 overflow-y-auto">
-                      {/* Embedded search input */}
-                      <div className="p-2 border-b">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <input
-                            placeholder="Search ISO controls..."
-                            value={isoSearchTerm}
-                            onChange={(e) => searchIsoControls(e.target.value)}
-                            className="pl-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          />
-                        </div>
-                      </div>
-
-                      {isLoadingIsoControls ? (
-                        <div className="p-3 text-center">
-                          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                          <span className="text-sm text-muted-foreground mt-1 block">Loading controls...</span>
-                        </div>
-                      ) : isoControlsError ? (
-                        <div className="p-3 text-center text-red-600 text-sm">
-                          <AlertCircle className="h-4 w-4 mx-auto mb-1" />
-                          Failed to load ISO controls
-                        </div>
-                      ) : filteredIsoControls.length === 0 ? (
-                        <div className="p-3 text-center text-muted-foreground text-sm">No controls found</div>
-                      ) : (
-                        <div className="py-1">
-                          {filteredIsoControls.slice(0, 12).map((control) => (
-                            <button
-                              key={control.id}
-                              type="button"
-                              onClick={() => {
-                                handleIsoControlSelect(control); // should set selectedIsoControl + formData.iso_control
-                                setShowIsoDropdown(false);
-                              }}
-                              className="w-full text-left px-3 py-2 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
-                            >
-                              <div className="font-medium text-sm">{control.controlCode}</div>
-                              <div className="text-sm text-muted-foreground truncate">{control.title}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {control.frameworkName} • {control.category}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Select the most relevant ISO control that this compliance gap relates to
-                </p>
-              </div>
             </div>
+
+            <GapCoreFields
+              showTitle={false}
+              showCategory={false}
+              showDescription
+              showIsoSelector
+              gapDescription={formData.gap_description || ''}
+              onDescriptionChange={(v) => handleInputChange('gap_description', v)}
+              isoControl={formData.iso_control || ''}
+              onIsoControlChange={(v) => handleInputChange('iso_control', v)}
+            />
           </CardContent>
         </Card>
 
@@ -571,75 +352,13 @@ export default function EditComplianceGapPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Risk Level *</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {RISK_LEVEL_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('risk_level', option.value)}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.risk_level === option.value
-                        ? `border-blue-400 ${option.color}`
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Business Impact *</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {BUSINESS_IMPACT_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('business_impact', option.value)}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.business_impact === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="regulatory_requirement"
-                  checked={formData.regulatory_requirement || false}
-                  onChange={(e) => handleInputChange('regulatory_requirement', e.target.checked)}
-                  className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                />
-                <label htmlFor="regulatory_requirement" className="text-sm font-medium">
-                  This is a regulatory requirement
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="potential_fine_amount" className="text-sm font-medium">Potential Fine Amount</label>
-                <Input
-                  id="potential_fine_amount"
-                  type="number"
-                  value={formData.potential_fine_amount || 0}
-                  onChange={(e) => handleInputChange('potential_fine_amount', parseFloat(e.target.value) || 0)}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-            </div>
+            <RiskAssessmentFields
+              riskLevel={formData.risk_level as RiskLevel}
+              businessImpact={formData.business_impact as BusinessImpactLevel}
+              regulatoryRequirement={formData.regulatory_requirement || false}
+              potentialFineAmount={formData.potential_fine_amount || 0}
+              onChange={(field, value) => handleInputChange(field as any, value)}
+            />
           </CardContent>
         </Card>
 
@@ -687,7 +406,6 @@ export default function EditComplianceGapPage() {
           </CardContent>
         </Card>
 
-        {/* Recommendations */}
         <Card>
           <CardHeader>
             <CardTitle>Recommendations</CardTitle>
@@ -696,158 +414,38 @@ export default function EditComplianceGapPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Recommendation Type</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {RECOMMENDATION_TYPE_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('recommendation_type', 
-                      formData.recommendation_type === option.value ? undefined : option.value
-                    )}
-                    className={`text-center text-sm px-3 py-2 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.recommendation_type === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <RecommendationTypeChips
+              value={formData.recommendation_type as RecommendationType}
+              onChange={(v) => handleInputChange('recommendation_type', v)}
+            />
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="recommendation_text" className="text-sm font-medium">
-                  Recommendation Details
-                </label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateRecommendation}
-                  disabled={!isGenerateRecommendationEnabled()}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingRecommendation ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      <span>Generate Recommendation</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-              
-              {recommendationError && (
-                <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <AlertCircle className="h-4 w-4 text-red-600" />
-                  <span className="text-sm text-red-700">{recommendationError}</span>
-                </div>
-              )}
+            <RecommendationTextArea
+              value={formData.recommendation_text || ''}
+              onChange={(v) => handleInputChange('recommendation_text', v)}
+              onGenerate={isGenerateRecommendationEnabled() ? handleGenerateRecommendation : undefined}
+              isGenerating={isGeneratingRecommendation}
+              error={recommendationError}
+              helperText={!isGenerateRecommendationEnabled() ? (
+                !currentGap?.chat_history_id && !formData.recommendation_type ?
+                  'Select a recommendation type and ensure this gap has related chat history to generate AI recommendations' :
+                (!currentGap?.chat_history_id && formData.recommendation_type ?
+                  'This gap has no related chat history for AI recommendation generation' :
+                  (currentGap?.chat_history_id && !formData.recommendation_type ?
+                    'Select a recommendation type to generate AI recommendations' : undefined))
+              ) : undefined}
+            />
 
-              {!isGenerateRecommendationEnabled() && (
-                <div className="text-xs text-muted-foreground">
-                  {!currentGap?.chat_history_id && !formData.recommendation_type && 
-                    "Select a recommendation type and ensure this gap has related chat history to generate AI recommendations"}
-                  {!currentGap?.chat_history_id && formData.recommendation_type && 
-                    "This gap has no related chat history for AI recommendation generation"}
-                  {currentGap?.chat_history_id && !formData.recommendation_type && 
-                    "Select a recommendation type to generate AI recommendations"}
-                </div>
-              )}
+            <RecommendedActionsList
+              actions={formData.recommended_actions || []}
+              onChange={(next) => handleInputChange('recommended_actions', next)}
+              addPlaceholder="Add recommended action..."
+            />
 
-              <textarea
-                id="recommendation_text"
-                value={formData.recommendation_text || ''}
-                onChange={(e) => handleInputChange('recommendation_text', e.target.value)}
-                placeholder="Detailed recommendation for addressing this gap..."
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Recommended Actions</label>
-              <div className="space-y-2">
-                {(formData.recommended_actions || []).map((action, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Input value={action} readOnly className="flex-1" />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveFromArray('recommended_actions', index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={newAction}
-                    onChange={(e) => setNewAction(e.target.value)}
-                    placeholder="Add recommended action..."
-                    className="flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddToArray('recommended_actions', newAction), setNewAction(''))}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {handleAddToArray('recommended_actions', newAction); setNewAction('');}}
-                    disabled={!newAction.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Related Documents</label>
-              <div className="space-y-2">
-                {(formData.related_documents || []).map((doc, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Input value={doc} readOnly className="flex-1" />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveFromArray('related_documents', index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={newDocument}
-                    onChange={(e) => setNewDocument(e.target.value)}
-                    placeholder="Add related document..."
-                    className="flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddToArray('related_documents', newDocument), setNewDocument(''))}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {handleAddToArray('related_documents', newDocument); setNewDocument('');}}
-                    disabled={!newDocument.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <RelatedDocumentsList
+              documents={formData.related_documents || []}
+              onChange={(next) => handleInputChange('related_documents', next)}
+              addPlaceholder="Add related document..."
+            />
           </CardContent>
         </Card>
 
@@ -860,45 +458,11 @@ export default function EditComplianceGapPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="confidence_score" className="text-sm font-medium">Confidence Score</label>
-                <div className="space-y-2">
-                  <input
-                    id="confidence_score"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={formData.confidence_score || 0}
-                    onChange={(e) => handleInputChange('confidence_score', parseFloat(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm text-muted-foreground">
-                    {Math.round((formData.confidence_score || 0) * 100)}%
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="false_positive_likelihood" className="text-sm font-medium">False Positive Likelihood</label>
-                <div className="space-y-2">
-                  <input
-                    id="false_positive_likelihood"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={formData.false_positive_likelihood || 0}
-                    onChange={(e) => handleInputChange('false_positive_likelihood', parseFloat(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm text-muted-foreground">
-                    {Math.round((formData.false_positive_likelihood || 0) * 100)}%
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ConfidenceFields
+              confidenceScore={formData.confidence_score || 0}
+              falsePositiveLikelihood={formData.false_positive_likelihood || 0}
+              onChange={(field, value) => handleInputChange(field as any, value)}
+            />
           </CardContent>
         </Card>
 
@@ -933,13 +497,7 @@ export default function EditComplianceGapPage() {
         </div>
       </form>
 
-      {/* Click outside handler for dropdown */}
-      {showIsoDropdown && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowIsoDropdown(false)}
-        />
-      )}
+      {/* ISO dropdown handled internally in shared selector */}
 
       {/* Update Tips */}
       <Card className="bg-muted/50">

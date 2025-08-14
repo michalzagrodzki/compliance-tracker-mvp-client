@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { http } from "@/modules/api/http";
+import { normalizeError } from "@/lib/error";
 import type {
   ComplianceGapResponse,
   ComplianceGapFromChatHistoryRequest,
@@ -17,7 +18,32 @@ import type {
   DetectionMethod,
 } from "../types";
 
-// Add interface for direct creation request
+const ENDPOINTS = {
+  COMPLIANCE_GAPS: "/v1/compliance-gaps",
+  COMPLIANCE_GAPS_BY_ID: (id: string) => `/v1/compliance-gaps/${id}`,
+  COMPLIANCE_GAPS_BY_DOMAINS: "/v1/compliance-gaps/compliance-domains",
+  COMPLIANCE_GAPS_STATUS: (id: string) => `/v1/compliance-gaps/${id}/status`,
+  COMPLIANCE_GAPS_ASSIGN: (id: string) => `/v1/compliance-gaps/${id}/assign`,
+  COMPLIANCE_GAPS_REVIEW: (id: string) => `/v1/compliance-gaps/${id}/review`,
+  COMPLIANCE_RECOMMENDATION: "/v1/compliance-gaps/recommendation",
+  AUDIT_SESSION_GAPS: (sessionId: string) =>
+    `/v1/audit-sessions/${sessionId}/gaps`,
+  CHAT_HISTORY_ITEM: (id: string) => `/v1/history/item/${id}`,
+} as const;
+
+interface ComplianceGapListParams {
+  skip?: number;
+  limit?: number;
+  compliance_domain?: string;
+  gap_type?: string;
+  risk_level?: string;
+  status?: string;
+  audit_session_id?: string;
+  assigned_to?: string;
+  created_after?: string;
+  created_before?: string;
+}
+
 interface ComplianceGapDirectRequest {
   user_id: string;
   audit_session_id: string;
@@ -52,121 +78,197 @@ interface ComplianceGapDirectRequest {
 }
 
 class ComplianceGapService {
-  private baseUrl = "/v1/compliance-gaps";
-  private baseVersionUrl = "/v1";
-
   async createFromChatHistory(
     request: ComplianceGapFromChatHistoryRequest
   ): Promise<ComplianceGapResponse> {
-    const response = await http.post(this.baseUrl, request);
-    return response.data;
+    try {
+      const response = await http.post<ComplianceGapResponse>(
+        ENDPOINTS.COMPLIANCE_GAPS,
+        request
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
-  // Add method for direct creation
   async createDirect(
     request: ComplianceGapDirectRequest
   ): Promise<ComplianceGapResponse> {
-    const response = await http.post(this.baseUrl, request);
-    return response.data;
+    try {
+      const response = await http.post<ComplianceGapResponse>(
+        ENDPOINTS.COMPLIANCE_GAPS,
+        request
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async generateRecommendation(
     request: ComplianceRecommendationRequest
   ): Promise<ComplianceRecommendationResponse> {
-    const response = await http.post(`${this.baseUrl}/recommendation`, request);
-    return response.data;
+    try {
+      const response = await http.post<ComplianceRecommendationResponse>(
+        ENDPOINTS.COMPLIANCE_RECOMMENDATION,
+        request
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getChatHistoryItem(chatHistoryId: string): Promise<ChatHistoryItem> {
-    const response = await http.get(
-      `${this.baseVersionUrl}/history/item/${chatHistoryId}`
-    );
-    return response.data;
+    try {
+      const response = await http.get<ChatHistoryItem>(
+        ENDPOINTS.CHAT_HISTORY_ITEM(chatHistoryId)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
-  async getComplianceGaps(params?: {
-    skip?: number;
-    limit?: number;
-    compliance_domain?: string;
-    gap_type?: string;
-    risk_level?: string;
-    status?: string;
-  }): Promise<ComplianceGapResponse[]> {
-    const response = await http.get(this.baseUrl, { params });
-    return response.data;
+  async getComplianceGaps(
+    params: ComplianceGapListParams = {}
+  ): Promise<ComplianceGapResponse[]> {
+    try {
+      const response = await http.get<ComplianceGapResponse[]>(
+        ENDPOINTS.COMPLIANCE_GAPS,
+        {
+          params: {
+            skip: params.skip || 0,
+            limit: params.limit || 50,
+            ...params,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
-  async getComplianceGapsByUserComplianceDomains(params?: {
-    skip?: number;
-    limit?: number;
-  }): Promise<ComplianceGapResponse[]> {
-    const response = await http.get(`${this.baseUrl}/compliance-domains`, {
-      params,
-    });
-    return response.data;
+  async getComplianceGapsByUserComplianceDomains(
+    params: {
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<ComplianceGapResponse[]> {
+    try {
+      const response = await http.get<ComplianceGapResponse[]>(
+        ENDPOINTS.COMPLIANCE_GAPS_BY_DOMAINS,
+        {
+          params: {
+            skip: params.skip || 0,
+            limit: params.limit || 50,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getComplianceGapById(id: string): Promise<ComplianceGapResponse> {
-    const response = await http.get(`${this.baseUrl}/${id}`);
-    return response.data;
+    try {
+      const response = await http.get<ComplianceGapResponse>(
+        ENDPOINTS.COMPLIANCE_GAPS_BY_ID(id)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getGapsByAuditSession(
-    sessionId: string
+    sessionId: string,
+    skip: number = 0,
+    limit: number = 50
   ): Promise<ComplianceGapResponse[]> {
-    const response = await http.get(
-      `${this.baseVersionUrl}/audit-sessions/${sessionId}/gaps`
-    );
-    return response.data;
+    try {
+      const response = await http.get<ComplianceGapResponse[]>(
+        ENDPOINTS.AUDIT_SESSION_GAPS(sessionId),
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async updateComplianceGap(
     gapId: string,
     updateData: ComplianceGapUpdate
   ): Promise<ComplianceGapResponse> {
-    const response = await http.patch(`${this.baseUrl}/${gapId}`, updateData);
-    return response.data;
+    try {
+      const response = await http.patch<ComplianceGapResponse>(
+        ENDPOINTS.COMPLIANCE_GAPS_BY_ID(gapId),
+        updateData
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async updateComplianceGapStatus(
     gapId: string,
     statusData: ComplianceGapStatusUpdate
   ): Promise<ComplianceGapResponse> {
-    const response = await http.patch(
-      `${this.baseUrl}/${gapId}/status`,
-      statusData
-    );
-    return response.data;
+    try {
+      const response = await http.patch<ComplianceGapResponse>(
+        ENDPOINTS.COMPLIANCE_GAPS_STATUS(gapId),
+        statusData
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async assignComplianceGap(
     gapId: string,
     assignmentData: ComplianceGapAssignment
   ): Promise<ComplianceGapResponse> {
-    const response = await http.patch(
-      `${this.baseUrl}/${gapId}/assign`,
-      assignmentData
-    );
-    return response.data;
+    try {
+      const response = await http.patch<ComplianceGapResponse>(
+        ENDPOINTS.COMPLIANCE_GAPS_ASSIGN(gapId),
+        assignmentData
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async reviewComplianceGap(
     gapId: string,
     reviewData: ComplianceGapReview
   ): Promise<ComplianceGapResponse> {
-    const response = await http.patch(
-      `${this.baseUrl}/${gapId}/review`,
-      reviewData
-    );
-    return response.data;
+    try {
+      const response = await http.patch<ComplianceGapResponse>(
+        ENDPOINTS.COMPLIANCE_GAPS_REVIEW(gapId),
+        reviewData
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
-  // Utility methods for form assistance
+  /**
+   * Utility methods for form assistance
+   */
   analyzeMessageForGapType(message: string): {
     suggestedType: GapType;
     confidence: number;
   } {
-    // Simple keyword-based analysis - in production this would be more sophisticated
     const lowerMessage = message.toLowerCase();
 
     if (
@@ -222,7 +324,6 @@ class ComplianceGapService {
   }
 
   extractSearchTerms(message: string): string[] {
-    // Simple term extraction - remove common words and split
     const commonWords = [
       "the",
       "is",
@@ -239,7 +340,7 @@ class ComplianceGapService {
       .toLowerCase()
       .split(/\s+/)
       .filter((word) => word.length > 2 && !commonWords.includes(word))
-      .slice(0, 10); // Limit to 10 terms
+      .slice(0, 10);
   }
 }
 
