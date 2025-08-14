@@ -61,10 +61,11 @@ export interface ComplianceGapDirectRequest {
   detection_method: DetectionMethod;
   confidence_score: number;
   false_positive_likelihood: number;
-  ip_address?: string;
-  user_agent: string;
   session_context: Record<string, any>;
   iso_control: string | null;
+  assigned_to?: string;
+  due_date?: string;
+  resolution_notes?: string;
 }
 
 export const useComplianceGap = () => {

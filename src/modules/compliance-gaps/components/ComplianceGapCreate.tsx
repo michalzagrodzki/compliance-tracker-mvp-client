@@ -1,15 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, XCircle } from 'lucide-react';
 import { useAuditSessionStore } from '@/modules/audit/store/auditSessionStore';
 import { useAuthStore } from '@/modules/auth/store/authStore'
 import { useComplianceGap, type ComplianceGapDirectRequest } from '../hooks/useComplianceGap';
-// Using shared sections for ISO and gap type
 import { extractIsoControlCode } from '@/lib/utils';
 import RiskAssessmentFields from './form-sections/RiskAssessmentFields';
 import RecommendationTypeChips from './form-sections/RecommendationTypeChips';
@@ -22,24 +20,20 @@ import GapCoreFields from './form-sections/GapCoreFields';
 import AuditSessionSelect from './form-sections/AuditSessionSelect';
 import ComplianceDomainSelect from './form-sections/ComplianceDomainSelect';
 import ContextInfoFields from './form-sections/ContextInfoFields';
-
-// options imported from ../types
+import { AssignmentTimelineFields } from './form-sections/AssignmentTimelineFields';
+import FormHeader from '@/components/shared/FormHeader';
 
 const COMPLIANCE_DOMAINS = [
   { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
 ]
 
-// ISO selection handled via shared component
-
-
 export default function ComplianceGapCreatePage() {
   const navigate = useNavigate();
-  const { createGapDirect, isLoading, error, clearError } = useComplianceGap();
-  const { sessions, isLoading: isLoadingSessions, error: sessionsError, fetchUserSessions } = useAuditSessionStore();
+  const { createGapDirect, isLoading, error } = useComplianceGap();
+  const { sessions, isLoading: isLoadingSessions, error: sessionsError } = useAuditSessionStore();
   const { user } = useAuthStore()
   const [showAboutInfo, setShowAboutInfo] = useState(false);
   const [success, setSuccess] = useState(false);
-  // ISO selection handled within IsoControlSelector
   
   const [formData, setFormData] = useState<ComplianceGapDirectRequest>({
     user_id: user?.id || "",
@@ -69,33 +63,11 @@ export default function ComplianceGapCreatePage() {
     detection_method: 'manual_review',
     confidence_score: 0.80,
     false_positive_likelihood: 0.20,
-    ip_address: '',
-    user_agent: navigator.userAgent,
+    assigned_to: undefined,
+    due_date: undefined,
+    resolution_notes: '',
     session_context: {}
   });
-
-
-  // removed ISO manual search logic
-  
-  useEffect(() => {
-    clearError();
-    
-    // Fetch user's audit sessions
-    if (user?.id) {
-      fetchUserSessions(user.id);
-    }
-    
-    // Get client IP (simplified for demo)
-    fetch('https://api.ipify.org?format=json')
-      .then(response => response.json())
-      .then(data => {
-        setFormData((prev: any) => ({ ...prev, ip_address: data.ip }));
-      })
-      .catch(() => {
-        // Fallback to placeholder
-        setFormData((prev: any) => ({ ...prev, ip_address: '127.0.0.1' }));
-      });
-  }, [clearError, user?.id, fetchUserSessions]);
 
   const handleInputChange = (field: keyof ComplianceGapDirectRequest, value: any) => {
     setFormData((prev: any) => ({
@@ -103,8 +75,6 @@ export default function ComplianceGapCreatePage() {
       [field]: value
     }));
   };
-
-  // selection handled via IsoControlSelector
 
   const handleDomainChange = (field: keyof ComplianceGapDirectRequest, value: any) => {
     setFormData(prev => ({
@@ -157,8 +127,9 @@ export default function ComplianceGapCreatePage() {
         detection_method: formData.detection_method,
         confidence_score: formData.confidence_score,
         false_positive_likelihood: formData.false_positive_likelihood,
-        ip_address: formData.ip_address,
-        user_agent: formData.user_agent,
+        assigned_to: formData.assigned_to,
+        due_date: formData.due_date,
+        resolution_notes: formData.resolution_notes,
         session_context: formData.session_context
       };
       
@@ -273,12 +244,10 @@ export default function ComplianceGapCreatePage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>
-              Core details about the compliance gap including audit context and classification
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Basic Information"
+            description="Core details about the compliance gap including audit context and classification"
+          />
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <AuditSessionSelect
@@ -320,12 +289,10 @@ export default function ComplianceGapCreatePage() {
 
         {/* Context Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Context Information</CardTitle>
-            <CardDescription>
-              Additional context about how this gap was identified and what was expected
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Context Information"
+            description="Additional context about how this gap was identified and what was expected"
+          />
           <CardContent>
             <ContextInfoFields
               originalQuestion={formData.original_question}
@@ -357,13 +324,28 @@ export default function ComplianceGapCreatePage() {
           </CardContent>
         </Card>
 
+        {/* Assignment & Timeline */}
         <Card>
-          <CardHeader>
-            <CardTitle>Recommendations</CardTitle>
-            <CardDescription>
-              Suggested actions and recommendations for addressing this compliance gap
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Assignment & Timeline"
+            description="Assign responsibility and set timeline information for this gap"
+          />
+          <CardContent>
+            <AssignmentTimelineFields
+              assignedTo={formData.assigned_to}
+              dueDate={formData.due_date}
+              resolutionNotes={formData.resolution_notes}
+              onChange={(field, value) => handleInputChange(field as any, value)}
+              disabled={isLoading}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <FormHeader
+            title="Recommendations"
+            description="Suggested actions and recommendations for addressing this compliance gap"
+          />
           <CardContent className="space-y-6">
             <RecommendationTypeChips
               value={formData.recommendation_type}
@@ -391,12 +373,10 @@ export default function ComplianceGapCreatePage() {
 
         {/* Advanced Settings */}
         <Card>
-          <CardHeader>
-            <CardTitle>Advanced Settings</CardTitle>
-            <CardDescription>
-              Technical parameters, confidence scoring, and additional metadata
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Advanced Settings"
+            description="Technical parameters, confidence scoring, and additional metadata"
+          />
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">

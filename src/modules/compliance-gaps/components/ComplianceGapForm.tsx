@@ -17,7 +17,6 @@ import type {
 } from '../types';
 import { useComplianceGap } from '../hooks/useComplianceGap';
 import { stringToInt, extractIsoControlCode, extractWholeNumberFromId } from '@/lib/utils';
-// ISO selector and gap type handled by shared sections
 import RiskAssessmentFields from './form-sections/RiskAssessmentFields';
 import RecommendationTypeChips from './form-sections/RecommendationTypeChips';
 import RecommendationTextArea from './form-sections/RecommendationTextArea';
@@ -25,6 +24,7 @@ import RecommendedActionsList from './form-sections/RecommendedActionsList';
 import ConfidenceFields from './form-sections/ConfidenceFields';
 import GapTypeChips from './form-sections/GapTypeChips';
 import GapCoreFields from './form-sections/GapCoreFields';
+import { AssignmentTimelineFields } from './form-sections/AssignmentTimelineFields';
 
 // Type definitions
 export interface ComplianceGapFormData {
@@ -37,16 +37,15 @@ export interface ComplianceGapFormData {
   business_impact: BusinessImpactLevel;
   regulatory_requirement: boolean;
   potential_fine_amount?: number;
+  assigned_to?: string;
+  due_date?: string;
+  resolution_notes?: string;
   recommendation_type?: RecommendationType;
   recommendation_text: string;
   recommended_actions: string[];
   confidence_score: number;
   false_positive_likelihood: number;
 }
-
-// GAP_TYPE_OPTIONS moved to ../constants
-
-// options moved to ../constants and helpers moved to lib/utils
 
 // Mock service for this example
 const complianceGapService = {
@@ -79,7 +78,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // ISO dropdown handled within shared selector
 
   const { 
       recommendationError,
@@ -88,8 +86,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
       generateRecommendation,
       clearRecommendationError
     } = useComplianceGap();
-
-  // ISO selector handled by shared component
 
   const [formData, setFormData] = useState<ComplianceGapFormData>({
     gap_type: 'missing_policy',
@@ -101,6 +97,9 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
     business_impact: 'medium',
     regulatory_requirement: false,
     potential_fine_amount: undefined,
+    assigned_to: undefined,
+    due_date: undefined,
+    resolution_notes: '',
     recommendation_type: undefined,
     recommendation_text: '',
     recommended_actions: [],
@@ -140,8 +139,6 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
       [field]: value
     }));
   };
-
-  // actions management moved into RecommendedActionsList
 
   const handleGenerateRecommendation = async () => {
     if (!chatHistoryId || !formData.recommendation_type) {
@@ -250,6 +247,16 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
             potentialFineAmount={formData.potential_fine_amount || 0}
             onChange={(field, value) => handleInputChange(field as any, value)}
           />
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Assignment & Timeline</h3>
+            <AssignmentTimelineFields
+              assignedTo={formData.assigned_to}
+              dueDate={formData.due_date}
+              resolutionNotes={formData.resolution_notes}
+              onChange={(field, value) => handleInputChange(field as any, value)}
+            />
+          </div>
 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Recommendations</h3>

@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useComplianceGap } from '@/modules/compliance-gaps';
+import { ComplianceGapModal } from '@/modules/compliance-gaps/components/ComplianceGapModal';
 import type { ChatMessage as ChatMessageType, SourceDocument } from '../types';
 
 interface ChatMessageProps {
@@ -36,17 +38,19 @@ const extractUniqueTitles = (
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap }) => {
   const [showGapIcon, setShowGapIcon] = useState(false);
-  const { createGapFromMessage } = useComplianceGap();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { createGapFromChatHistory } = useComplianceGap();
   
   const handleIdentifyGap = () => {
-    createGapFromMessage(
-      message.id,
-      message.audit_session_id,
-      message.compliance_domain,
-      message.message,
-      extractUniqueTitles(message.sources)
-    );
-    
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleSubmitGap = async (request: any) => {
+    await createGapFromChatHistory(request);
     onIdentifyGap?.(message.id);
   };
 
@@ -299,6 +303,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onIdentifyGap
           </Button>
         )}
       </div>
+
+      <ComplianceGapModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        chatHistoryId={message.id}
+        auditSessionId={message.audit_session_id}
+        complianceDomain={message.compliance_domain}
+        initialMessage={message.message}
+        sources={extractUniqueTitles(message.sources)}
+        onSubmitRequest={handleSubmitGap}
+      />
     </div>
   );
 };

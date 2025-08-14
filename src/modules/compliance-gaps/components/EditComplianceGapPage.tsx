@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 import type {
   RiskLevel,
@@ -23,6 +23,7 @@ import RecommendedActionsList from './form-sections/RecommendedActionsList';
 import RelatedDocumentsList from './form-sections/RelatedDocumentsList';
 import ConfidenceFields from './form-sections/ConfidenceFields';
 import GapCoreFields from './form-sections/GapCoreFields';
+import FormHeader from '@/components/shared/FormHeader';
 
 export default function EditComplianceGapPage() {
   const navigate = useNavigate();
@@ -295,12 +296,10 @@ export default function EditComplianceGapPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>
-              Core details about the compliance gap including title, description and classification
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Basic Information"
+            description="Core details about the compliance gap including title, description and classification"
+          />
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -345,12 +344,10 @@ export default function EditComplianceGapPage() {
 
         {/* Risk Assessment */}
         <Card>
-          <CardHeader>
-            <CardTitle>Risk Assessment</CardTitle>
-            <CardDescription>
-              Update the risk level, business impact, and regulatory implications of this gap
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Risk Assessment"
+            description="Update the risk level, business impact, and regulatory implications of this gap"
+          />
           <CardContent className="space-y-6">
             <RiskAssessmentFields
               riskLevel={formData.risk_level as RiskLevel}
@@ -364,12 +361,10 @@ export default function EditComplianceGapPage() {
 
         {/* Assignment */}
         <Card>
-          <CardHeader>
-            <CardTitle>Assignment & Timeline</CardTitle>
-            <CardDescription>
-              Update assignment and due date information
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Assignment & Timeline"
+            description="Update assignment and due date information"
+          />
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -407,12 +402,10 @@ export default function EditComplianceGapPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Recommendations</CardTitle>
-            <CardDescription>
-              Update suggested actions and recommendations for addressing this compliance gap
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Recommendations"
+            description="Update suggested actions and recommendations for addressing this compliance gap"
+          />
           <CardContent className="space-y-6">
             <RecommendationTypeChips
               value={formData.recommendation_type as RecommendationType}
@@ -451,12 +444,10 @@ export default function EditComplianceGapPage() {
 
         {/* Advanced Settings */}
         <Card>
-          <CardHeader>
-            <CardTitle>Advanced Settings</CardTitle>
-            <CardDescription>
-              Update confidence scoring and additional metadata
-            </CardDescription>
-          </CardHeader>
+          <FormHeader
+            title="Advanced Settings"
+            description="Update confidence scoring and additional metadata"
+          />
           <CardContent className="space-y-6">
             <ConfidenceFields
               confidenceScore={formData.confidence_score || 0}
