@@ -10,7 +10,6 @@ import {
   Calendar,
   Download,
   Shield,
-  User,
   AlertCircle,
   UserPen,
   BookOpen
