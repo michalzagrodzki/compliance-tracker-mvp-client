@@ -1,6 +1,7 @@
 // src/modules/documents/services/documentService.ts
 
 import { http } from "@/modules/api/http";
+import { normalizeError } from "@/lib/error";
 import type {
   PdfIngestion,
   DocumentUploadRequest,
@@ -44,23 +45,31 @@ class DocumentService {
   async getIngestions(
     params: IngestionListParams = {}
   ): Promise<PdfIngestion[]> {
-    const response = await http.get<PdfIngestion[]>(
-      ENDPOINTS.INGESTIONS_BY_DOMAINS,
-      {
-        params: {
-          skip: params.skip || 0,
-          limit: params.limit || 10,
-        },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<PdfIngestion[]>(
+        ENDPOINTS.INGESTIONS_BY_DOMAINS,
+        {
+          params: {
+            skip: params.skip || 0,
+            limit: params.limit || 10,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getIngestionById(ingestionId: string): Promise<PdfIngestion> {
-    const response = await http.get<PdfIngestion>(
-      ENDPOINTS.INGESTION_BY_ID(ingestionId)
-    );
-    return response.data;
+    try {
+      const response = await http.get<PdfIngestion>(
+        ENDPOINTS.INGESTION_BY_ID(ingestionId)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getIngestionsByDomain(
@@ -68,13 +77,17 @@ class DocumentService {
     skip: number = 0,
     limit: number = 50
   ): Promise<PdfIngestion[]> {
-    const response = await http.get<PdfIngestion[]>(
-      ENDPOINTS.INGESTIONS_BY_DOMAIN(domain),
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<PdfIngestion[]>(
+        ENDPOINTS.INGESTIONS_BY_DOMAIN(domain),
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getIngestionsByVersion(
@@ -83,13 +96,17 @@ class DocumentService {
     limit: number = 10,
     exact_match: boolean = false
   ): Promise<PdfIngestion[]> {
-    const response = await http.get<PdfIngestion[]>(
-      ENDPOINTS.INGESTIONS_BY_VERSION(version),
-      {
-        params: { skip, limit, exact_match },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<PdfIngestion[]>(
+        ENDPOINTS.INGESTIONS_BY_VERSION(version),
+        {
+          params: { skip, limit, exact_match },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getIngestionsByUser(
@@ -97,25 +114,33 @@ class DocumentService {
     skip: number = 0,
     limit: number = 50
   ): Promise<PdfIngestion[]> {
-    const response = await http.get<PdfIngestion[]>(
-      ENDPOINTS.INGESTIONS_BY_USER(userId),
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<PdfIngestion[]>(
+        ENDPOINTS.INGESTIONS_BY_USER(userId),
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async searchIngestions(
     searchParams: IngestionListParams
   ): Promise<PdfIngestion[]> {
-    const response = await http.get<PdfIngestion[]>(
-      ENDPOINTS.INGESTIONS_SEARCH,
-      {
-        params: searchParams,
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<PdfIngestion[]>(
+        ENDPOINTS.INGESTIONS_SEARCH,
+        {
+          params: searchParams,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async uploadDocument(
@@ -145,24 +170,28 @@ class DocumentService {
       formData.append("document_author", uploadData.document_author);
     }
 
-    const response = await http.post<DocumentUploadResponse>(
-      ENDPOINTS.INGESTIONS_UPLOAD,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total && onProgress) {
-            const progress = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            onProgress(progress);
-          }
-        },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.post<DocumentUploadResponse>(
+        ENDPOINTS.INGESTIONS_UPLOAD,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total && onProgress) {
+              const progress = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              onProgress(progress);
+            }
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async extractPdfMetadata(file: File): Promise<ExtractedDocumentInfo> {
@@ -178,7 +207,8 @@ class DocumentService {
         filename: file.name,
       };
     } catch (error) {
-      console.warn("Failed to extract PDF metadata:", error);
+      const normalizedError = normalizeError(error);
+      console.warn("Failed to extract PDF metadata:", normalizedError.message);
 
       // Fallback to filename-based title
       return {
@@ -228,11 +258,11 @@ class DocumentService {
 
           resolve(metadata);
         } catch (error) {
-          reject(error);
+          reject(normalizeError(error));
         }
       };
 
-      fileReader.onerror = () => reject(new Error("Failed to read file"));
+      fileReader.onerror = () => reject(normalizeError(new Error("Failed to read file")));
       fileReader.readAsArrayBuffer(file.slice(0, 10000));
     });
   }
@@ -256,20 +286,28 @@ class DocumentService {
   }
 
   async getComplianceDomains(): Promise<ComplianceDomain[]> {
-    const response = await http.get<ComplianceDomain[]>(
-      ENDPOINTS.COMPLIANCE_DOMAINS,
-      {
-        params: { is_active: true, limit: 100 },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<ComplianceDomain[]>(
+        ENDPOINTS.COMPLIANCE_DOMAINS,
+        {
+          params: { is_active: true, limit: 100 },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getTagConstants(): Promise<DocumentTagConstants> {
-    const response = await http.get<DocumentTagConstants>(
-      ENDPOINTS.TAG_CONSTANTS
-    );
-    return response.data;
+    try {
+      const response = await http.get<DocumentTagConstants>(
+        ENDPOINTS.TAG_CONSTANTS
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 }
 

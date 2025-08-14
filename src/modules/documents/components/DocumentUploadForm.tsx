@@ -1,24 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useIngestionStore } from '../store/documentStore'
+import { useIngestion } from '../hooks/useIngestion'
+import { generateDocumentVersion } from '@/lib/documents'
+import ErrorDisplay from './shared/ErrorDisplay'
+import UploadProgressBar from './shared/UploadProgressBar'
+import TagSelector from './shared/TagSelector'
+import MetadataExtractorCard from './shared/MetadataExtractorCard'
 import { 
   Upload, 
-  AlertCircle, 
   CheckCircle, 
-  X, 
   FileText, 
   Info, 
   ChevronUp, 
-  ChevronDown,
-  Sparkles,
-  User,
-  FileEdit,
-  Eye,
-  EyeOff
+  ChevronDown
 } from 'lucide-react'
 
 export default function DocumentUploadForm() {
@@ -48,7 +45,7 @@ export default function DocumentUploadForm() {
     uploadProgress,
     extractedMetadata,
     isExtractingMetadata
-  } = useIngestionStore()
+  } = useIngestion()
   
   const navigate = useNavigate()
 
@@ -188,58 +185,6 @@ export default function DocumentUploadForm() {
     }
   }
 
-  const generateDocumentVersion = () => {
-    const date = new Date()
-    const year = date.getFullYear()
-    const quarter = Math.ceil((date.getMonth() + 1) / 3)
-    return `${year}-Q${quarter}`
-  }
-
-  const renderTagSection = (categoryName: string, tagsData: any) => {
-    let tags: string[] = [];
-    
-    if (Array.isArray(tagsData)) {
-      tags = tagsData;
-    } else if (tagsData && typeof tagsData === 'object') {
-      tags = Object.keys(tagsData);
-    }
-    
-    if (!tags.length) return null;
-    
-    return (
-      <div key={categoryName} className="space-y-2">
-        <h4 className="font-medium text-sm text-muted-foreground capitalize">
-          {categoryName.replace('_', ' ')}
-        </h4>
-        <div className="flex flex-wrap gap-2">
-          {tags.map(tag => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => handleTagToggle(tag)}
-              className={`px-3 py-2 text-xs rounded-lg border transition-colors text-left min-w-[120px] ${
-                selectedTags.includes(tag)
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background hover:bg-muted border-border'
-              }`}
-            >
-              <div className="flex flex-col space-y-0.5">
-                <span className="font-medium leading-tight">
-                  {tag.replace('_', ' ')}
-                </span>
-                {typeof tagsData === 'object' && !Array.isArray(tagsData) && tagsData[tag] && (
-                  <span className="text-xs opacity-75 leading-tight">
-                    {tagsData[tag]}
-                  </span>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="text-center space-y-2">
@@ -254,7 +199,7 @@ export default function DocumentUploadForm() {
           <CardContent className="flex items-center space-x-2 pt-6">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <span className="text-green-700">
-              Document uploaded successfully! The ingestion process has started. Redirecting to ingestions list...
+              Document uploaded successfully! The ingestion process has started. Redirecting to documents list...
             </span>
           </CardContent>
         </Card>
@@ -293,7 +238,7 @@ export default function DocumentUploadForm() {
                 <p>• Documents are automatically split into searchable text chunks</p>
                 <p>• Text is vectorized and stored for semantic search capabilities</p>
                 <p>• Processing typically takes 1-5 minutes depending on document size</p>
-                <p>• You can monitor the ingestion progress in the ingestions list</p>
+                <p>• You can monitor the ingestion progress in the documents list</p>
               </div>
             </div>
           )}
@@ -312,12 +257,7 @@ export default function DocumentUploadForm() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {(formError || error) && (
-              <div className="flex items-center space-x-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                <AlertCircle className="h-4 w-4" />
-                <span>{formError || error}</span>
-              </div>
-            )}
+            {(formError || error) && <ErrorDisplay error={formError || error || ''} />}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
@@ -347,142 +287,28 @@ export default function DocumentUploadForm() {
                     Maximum file size: 50MB. Only PDF files are supported for ingestion.
                   </p>
                 </div>
-                {selectedFile && (
-                  <Card className="bg-muted/30">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Sparkles className="h-4 w-4 text-purple-600" />
-                          <CardTitle className="text-lg">Document Metadata</CardTitle>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowMetadataDetails(!showMetadataDetails)}
-                        >
-                          {showMetadataDetails ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                      {showMetadataDetails && (
-                        <CardDescription>
-                          {isExtractingMetadata ? (
-                            <span className="flex items-center space-x-2">
-                              <div className="animate-spin h-3 w-3 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-                              <span>Extracting metadata from PDF...</span>
-                            </span>
-                          ) : extractedMetadata ? (
-                            extractedMetadata.hasMetadata ? (
-                              <span className="text-green-600">✓ Metadata extracted successfully from PDF</span>
-                            ) : (
-                              <span className="text-amber-600">⚠ No metadata found in PDF, using filename as title</span>
-                            )
-                          ) : null}
-                        </CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label htmlFor="document-title" className="text-sm font-medium flex items-center space-x-2">
-                            <FileEdit className="h-4 w-4" />
-                            <span>Document Title *</span>
-                          </label>
-                          {extractedMetadata?.title && titleOverride && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={resetToExtractedTitle}
-                              className="text-xs"
-                            >
-                              Reset to extracted
-                            </Button>
-                          )}
-                        </div>
-                        <Input
-                          id="document-title"
-                          type="text"
-                          placeholder="Enter document title"
-                          value={documentTitle}
-                          onChange={(e) => handleTitleChange(e.target.value)}
-                          disabled={isLoading}
-                          required
-                          className={titleOverride ? "border-amber-300 bg-amber-50" : ""}
-                        />
-                        {extractedMetadata?.title && (
-                          <p className="text-xs text-muted-foreground">
-                            {titleOverride ? (
-                              <span className="text-amber-600">Modified from extracted: "{extractedMetadata.title}"</span>
-                            ) : (
-                              <span className="text-green-600">Extracted from PDF metadata</span>
-                            )}
-                          </p>
-                        )}
-                      </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label htmlFor="document-author" className="text-sm font-medium flex items-center space-x-2">
-                            <User className="h-4 w-4" />
-                            <span>Document Author</span>
-                          </label>
-                          {extractedMetadata?.author && authorOverride && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={resetToExtractedAuthor}
-                              className="text-xs"
-                            >
-                              Reset to extracted
-                            </Button>
-                          )}
-                        </div>
-                        <Input
-                          id="document-author"
-                          type="text"
-                          placeholder="Enter document author (optional)"
-                          value={documentAuthor}
-                          onChange={(e) => handleAuthorChange(e.target.value)}
-                          disabled={isLoading}
-                          className={authorOverride ? "border-amber-300 bg-amber-50" : ""}
-                        />
-                        {extractedMetadata?.author && (
-                          <p className="text-xs text-muted-foreground">
-                            {authorOverride ? (
-                              <span className="text-amber-600">Modified from extracted: "{extractedMetadata.author}"</span>
-                            ) : (
-                              <span className="text-green-600">Extracted from PDF metadata</span>
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                <MetadataExtractorCard
+                  selectedFile={selectedFile}
+                  extractedMetadata={extractedMetadata}
+                  isExtractingMetadata={isExtractingMetadata}
+                  documentTitle={documentTitle}
+                  documentAuthor={documentAuthor}
+                  titleOverride={titleOverride}
+                  authorOverride={authorOverride}
+                  showMetadataDetails={showMetadataDetails}
+                  isLoading={isLoading}
+                  onTitleChange={handleTitleChange}
+                  onAuthorChange={handleAuthorChange}
+                  onResetToExtractedTitle={resetToExtractedTitle}
+                  onResetToExtractedAuthor={resetToExtractedAuthor}
+                  onToggleMetadataDetails={() => setShowMetadataDetails(!showMetadataDetails)}
+                />
 
-                {isLoading && uploadProgress > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Uploading and processing...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      The document is being uploaded and will be processed automatically.
-                    </p>
-                  </div>
-                )}
+                <UploadProgressBar 
+                  progress={uploadProgress}
+                  isVisible={isLoading && uploadProgress > 0}
+                />
 
                 <div className="space-y-2">
                   <label htmlFor="compliance-domain" className="text-sm font-medium">
@@ -541,43 +367,11 @@ export default function DocumentUploadForm() {
 
               <div className="space-y-4">
                 {tagConstants && (
-                  <>
-                    <div>
-                      <label className="text-sm font-medium">Document Tags</label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Select relevant tags to categorize this document for better discovery and organization
-                      </p>
-                    </div>
-
-                    {selectedTags.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Selected Tags:</h4>
-                        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded border">
-                          {selectedTags.map(tag => (
-                            <span
-                              key={tag}
-                              className="flex items-center space-x-1 px-3 py-1 text-xs rounded-full bg-primary text-primary-foreground"
-                            >
-                              <span>{tag.replace('_', ' ')}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleTagToggle(tag)}
-                                className="hover:bg-primary/80 rounded-full p-0.5"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {Object.entries(tagConstants.tag_categories).map(([category, tagsData]) =>
-                        renderTagSection(category, tagsData)
-                      )}
-                    </div>
-                  </>
+                  <TagSelector
+                    tagConstants={tagConstants}
+                    selectedTags={selectedTags}
+                    onTagToggle={handleTagToggle}
+                  />
                 )}
               </div>
             </div>
@@ -626,7 +420,7 @@ export default function DocumentUploadForm() {
               </li>
               <li className="flex items-start space-x-2">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
-                <span>Processing status can be monitored in real-time from the ingestions list</span>
+                <span>Processing status can be monitored in real-time from the documents list</span>
               </li>
             </ul>
           </div>

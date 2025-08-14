@@ -1,81 +1,34 @@
-import { useEffect, type Key } from 'react'
+import { useEffect } from 'react'
 import { useParams, Link } from 'react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useIngestionStore } from '../store/documentStore'
 import Loading from '@/components/Loading'
+import { useIngestion } from '../hooks/useIngestion'
+import { formatDateDetailed, formatFileSize, getDomainColor } from '@/lib/documents'
+import { getProcessingStatusInfo } from './shared/ProcessingStatusBadge'
+import DocumentTagList from './shared/DocumentTagList'
+import ErrorDisplay from './shared/ErrorDisplay'
+import EmptyState from './shared/EmptyState'
 import { 
   ArrowLeft,
   FileText,
   Calendar,
-  Tag,
   Shield,
   User,
   Download,
   AlertCircle,
-  CheckCircle,
-  Clock,
-  XCircle,
   Database,
   Hash,
   Activity,
   Search,
   FileEdit,
-  UserCheck
+  UserCheck,
+  Clock,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  })
-}
-
-const formatFileSize = (bytes?: number) => {
-  if (!bytes) return 'Unknown size'
-  const mb = bytes / (1024 * 1024)
-  return `${mb.toFixed(2)} MB`
-}
-
-const getProcessingStatusInfo = (status?: string) => {
-  switch (status) {
-    case 'completed':
-      return {
-        icon: CheckCircle,
-        text: 'Completed',
-        className: 'text-green-600 bg-green-50 border-green-200'
-      }
-    case 'processing':
-      return {
-        icon: Activity,
-        text: 'Processing',
-        className: 'text-blue-600 bg-blue-50 border-blue-200'
-      }
-    case 'failed':
-      return {
-        icon: XCircle,
-        text: 'Failed',
-        className: 'text-red-600 bg-red-50 border-red-200'
-      }
-    default:
-      return {
-        icon: FileText,
-        text: 'Unknown',
-        className: 'text-gray-600 bg-gray-50 border-gray-200'
-      }
-  }
-}
-
-const DOMAIN_COLORS = {
-  'ISO27001': 'bg-green-100 text-green-700 border-green-200',
-  'DEFAULT': 'bg-gray-100 text-gray-700 border-gray-200'
-}
-
-export default function IngestionDetail() {
+export default function DocumentDetail() {
   const { documentId } = useParams<{ documentId: string }>()
   const {
     currentIngestion,
@@ -83,7 +36,7 @@ export default function IngestionDetail() {
     error,
     fetchIngestionById,
     clearError
-  } = useIngestionStore()
+  } = useIngestion()
 
   useEffect(() => {
     if (documentId) {
@@ -115,12 +68,7 @@ export default function IngestionDetail() {
             </Link>
           </Button>
         </div>
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="flex items-center space-x-2 pt-6">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <span className="text-destructive">{error}</span>
-          </CardContent>
-        </Card>
+        <ErrorDisplay error={error} />
       </div>
     )
   }
@@ -136,20 +84,19 @@ export default function IngestionDetail() {
             </Link>
           </Button>
         </div>
-        <Card>
-          <CardContent className="text-center py-12">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold">Document not found</h3>
-            <p className="text-muted-foreground">The document you're looking for doesn't exist.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={AlertCircle}
+          title="Document not found"
+          description="The document you're looking for doesn't exist."
+          showAction={false}
+        />
       </div>
     )
   }
 
   const statusInfo = getProcessingStatusInfo(currentIngestion.processing_status)
   const StatusIcon = statusInfo.icon
-  const domainColor = DOMAIN_COLORS[currentIngestion.compliance_domain as keyof typeof DOMAIN_COLORS] || DOMAIN_COLORS.DEFAULT
+  const domainColor = getDomainColor(currentIngestion.compliance_domain)
 
   return (
     <div className="space-y-6">
@@ -264,19 +211,11 @@ export default function IngestionDetail() {
               {currentIngestion.document_tags && currentIngestion.document_tags.length > 0 && (
                 <div className="space-y-2 pt-4 border-t">
                   <h4 className="font-medium text-sm text-muted-foreground">Document Tags</h4>
-                  <div className="flex items-center space-x-2">
-                    <Tag className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex flex-wrap gap-2">
-                      {currentIngestion.document_tags.map((tag: string, index: Key | null | undefined) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 text-xs bg-muted text-muted-foreground rounded border"
-                        >
-                          {tag.replace('_', ' ')}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  <DocumentTagList 
+                    tags={currentIngestion.document_tags} 
+                    maxVisible={20}
+                    className="items-start"
+                  />
                 </div>
               )}
             </CardContent>
@@ -330,8 +269,7 @@ export default function IngestionDetail() {
         </div>
 
         <div className="space-y-6">
-
-        {currentIngestion.processing_status === 'completed' && (
+          {currentIngestion.processing_status === 'completed' && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Actions</CardTitle>
@@ -366,7 +304,7 @@ export default function IngestionDetail() {
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {formatDate(currentIngestion.ingested_at)}
+                    {formatDateDetailed(currentIngestion.ingested_at)}
                   </span>
                 </div>
               </div>
@@ -387,7 +325,7 @@ export default function IngestionDetail() {
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
-                      {formatDate(currentIngestion.processing_completed_at)}
+                      {formatDateDetailed(currentIngestion.processing_completed_at)}
                     </span>
                   </div>
                 </div>
@@ -396,7 +334,7 @@ export default function IngestionDetail() {
               <div className="space-y-2">
                 <h4 className="font-medium text-sm text-muted-foreground">Last Updated</h4>
                 <p className="text-sm text-muted-foreground">
-                  {currentIngestion.updated_at ? formatDate(currentIngestion.updated_at) : 'Not available'}
+                  {currentIngestion.updated_at ? formatDateDetailed(currentIngestion.updated_at) : 'Not available'}
                 </p>
               </div>
             </CardContent>
@@ -455,13 +393,11 @@ export default function IngestionDetail() {
               <div className="space-y-2">
                 <h4 className="font-medium text-sm text-muted-foreground">Created</h4>
                 <p className="text-sm text-muted-foreground">
-                  {currentIngestion.created_at ? formatDate(currentIngestion.created_at) : formatDate(currentIngestion.ingested_at)}
+                  {currentIngestion.created_at ? formatDateDetailed(currentIngestion.created_at) : formatDateDetailed(currentIngestion.ingested_at)}
                 </p>
               </div>
             </CardContent>
           </Card>
-
-          
         </div>
       </div>
     </div>

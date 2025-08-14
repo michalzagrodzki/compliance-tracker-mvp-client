@@ -44,7 +44,7 @@ export const ComplianceGapModal: React.FC<ComplianceGapModalProps> = ({
       setCreatedGapId(`GAP-${Date.now()}`);
       setShowSuccess(true);
     } catch (error) {
-      throw error; // Re-throw for form to handle
+      throw error;
     }
   };
 

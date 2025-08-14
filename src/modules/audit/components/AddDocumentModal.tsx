@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Search, FileText, User, Tag, Shield, Calendar, AlertCircle, CheckCircle } from 'lucide-react'
-import { useIngestionStore } from '../../documents'
+import { useIngestion } from '../../documents/hooks/useIngestion'
+import { formatDate, getProcessingStatusColor } from '@/lib/documents'
 import { useAuditSessionStore } from '../store/auditSessionStore'
 import type { PdfIngestion } from '../../documents/types'
 
@@ -34,7 +35,7 @@ export default function AddDocumentModal({ sessionId, onDocumentAdded }: AddDocu
     fetchIngestions,
     filterIngestions,
     clearError: clearIngestionError
-  } = useIngestionStore()
+  } = useIngestion()
 
   const {
     isAddingDocument,
@@ -79,26 +80,6 @@ export default function AddDocumentModal({ sessionId, onDocumentAdded }: AddDocu
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-600 bg-green-50'
-      case 'processing':
-        return 'text-blue-600 bg-blue-50'
-      case 'failed':
-        return 'text-red-600 bg-red-50'
-      default:
-        return 'text-gray-600 bg-gray-50'
-    }
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -221,7 +202,7 @@ export default function AddDocumentModal({ sessionId, onDocumentAdded }: AddDocu
 
                         <div className="flex items-center space-x-2">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(document.processing_status || 'unknown')}`}
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getProcessingStatusColor(document.processing_status || 'unknown')}`}
                           >
                             {document.processing_status || 'unknown'}
                           </span>
