@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';

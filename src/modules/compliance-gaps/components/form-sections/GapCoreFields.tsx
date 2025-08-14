@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import IsoControlSelector from '@/components/shared/IsoControlSelector';

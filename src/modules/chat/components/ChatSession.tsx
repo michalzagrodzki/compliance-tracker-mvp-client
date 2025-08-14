@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AlertCircle } from 'lucide-react';
-import { useChatStore } from '../store/chatStore';
+import { useChat } from '../hooks/useChat';
 import { useComplianceGap, ComplianceGapModal, type ComplianceGapFromChatHistoryRequest } from '@/modules/compliance-gaps';
 import { ChatNavbar } from './ChatNavbar';
 import { ChatMessages } from './ChatMessages';
@@ -23,23 +23,18 @@ export const ChatSession: React.FC = () => {
     isStreaming,
     error,
     documents,
-    initializeChat,
     sendMessage,
     clearError
-  } = useChatStore();
+  } = useChat(sessionId, chatId);
 
   const {
     isModalOpen,
     modalData,
-    cancelModal,
-    submitGap,
+    createGapFromChatHistory,
+    closeModal,
   } = useComplianceGap();
 
-  useEffect(() => {
-    if (sessionId && chatId) {
-      initializeChat(sessionId, chatId);
-    }
-  }, [sessionId, chatId, initializeChat]);
+  // Initialization is now handled automatically by the useChat hook
 
   // Check if user has already interacted (has messages)
   useEffect(() => {
@@ -69,7 +64,7 @@ export const ChatSession: React.FC = () => {
 
   const handleSubmitComplianceGap = async (request: ComplianceGapFromChatHistoryRequest): Promise<void> => {
     try {
-      const response = await submitGap(request);
+      const response = await createGapFromChatHistory(request);
       console.log('Compliance gap created successfully:', response);
       // The success state will be handled by the modal
     } catch (error) {
@@ -200,7 +195,7 @@ export const ChatSession: React.FC = () => {
 
       <ComplianceGapModal
         isOpen={isModalOpen}
-        onClose={cancelModal}
+        onClose={closeModal}
         onSubmitRequest={handleSubmitComplianceGap}
         chatHistoryId={modalData?.chatHistoryId || ''}
         auditSessionId={modalData?.auditSessionId}

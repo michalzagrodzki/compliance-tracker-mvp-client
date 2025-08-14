@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import React from 'react';
 import type { RecommendationType } from '../../types';
 import { RECOMMENDATION_TYPE_OPTIONS } from '../../types';

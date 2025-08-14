@@ -90,6 +90,50 @@ class AuthService {
     const accessToken = this.getAccessToken();
     return !!accessToken && !this.isTokenExpired();
   }
+
+  /**
+   * Get valid token for streaming operations
+   * Handles refresh automatically if needed
+   */
+  async getValidTokenForStreaming(): Promise<string> {
+    const token = this.getAccessToken();
+    
+    if (!token) {
+      throw new Error('No access token available');
+    }
+    
+    if (this.isTokenExpired()) {
+      const refreshToken = this.getRefreshToken();
+      if (!refreshToken) {
+        this.clearTokens();
+        window.location.href = '/login';
+        throw new Error('Session expired');
+      }
+      
+      try {
+        const tokenResponse = await this.refreshToken({ refresh_token: refreshToken });
+        this.setAuthTokens(tokenResponse);
+        return tokenResponse.access_token;
+      } catch (error) {
+        this.clearTokens();
+        window.location.href = '/login';
+        throw error;
+      }
+    }
+    
+    return token;
+  }
+
+  /**
+   * Create auth headers for fetch requests
+   */
+  async getAuthHeaders(): Promise<Record<string, string>> {
+    const token = await this.getValidTokenForStreaming();
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  }
 }
 
 export const authService = new AuthService();

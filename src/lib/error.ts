@@ -6,6 +6,11 @@ export type ApiError = {
   details?: unknown;
 };
 
+export type StreamError = ApiError & {
+  type: 'STREAM_ERROR';
+  phase: 'connection' | 'reading' | 'parsing' | 'completion';
+};
+
 export function normalizeError(e: unknown): ApiError {
   if (typeof e === "object" && e && "isAxiosError" in e) {
     const ax = e as any;
@@ -20,4 +25,17 @@ export function normalizeError(e: unknown): ApiError {
     status: 0,
     message: e instanceof Error ? e.message : "Unknown error",
   };
+}
+
+export function normalizeStreamError(e: unknown, phase: StreamError['phase']): StreamError {
+  const baseError = normalizeError(e);
+  return {
+    ...baseError,
+    type: 'STREAM_ERROR',
+    phase,
+  };
+}
+
+export function isRetryableError(error: ApiError): boolean {
+  return error.status >= 500 || error.status === 408 || error.status === 429;
 }
