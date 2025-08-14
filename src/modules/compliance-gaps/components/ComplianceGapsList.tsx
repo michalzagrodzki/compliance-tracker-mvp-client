@@ -14,7 +14,6 @@ import SessionHeader from './list/SessionHeader'
 import SessionGapItem from './list/SessionGapItem'
 import type { ComplianceGapResponse, RiskLevel, GapStatus } from '../types'
 
-
 const groupGapsByAuditSession = (gaps: ComplianceGapResponse[]) => {
   const grouped = gaps.reduce((acc, gap) => {
     const sessionId = gap.audit_session_id || 'no-session'
@@ -98,7 +97,6 @@ export default function ComplianceGapsList() {
     loadGaps({ limit: 100 })
   }
 
-  // Filter gaps based on search term
   const filteredGaps = gaps.filter(gap => {
     if (!searchTerm) return true
     const searchLower = searchTerm.toLowerCase()

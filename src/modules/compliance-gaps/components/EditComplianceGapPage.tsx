@@ -13,8 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, XCircle, Save, Loader2 } from 'lucide-react';
 import { useComplianceGap } from '../hooks/useComplianceGap';
-// ISO selector handled by shared GapCoreFields
-// constants now used inside shared sections
 import Loading from '@/components/Loading';
 import RiskAssessmentFields from './form-sections/RiskAssessmentFields';
 import RecommendationTypeChips from './form-sections/RecommendationTypeChips';
@@ -66,10 +64,6 @@ export default function EditComplianceGapPage() {
     session_context: {}
   });
 
-  // local add/remove handlers moved into shared sections
-
-  // ISO control options managed in shared selector
-
   useEffect(() => {
     if (gapId) {
       clearError();
@@ -79,7 +73,6 @@ export default function EditComplianceGapPage() {
 
   useEffect(() => {
     if (currentGap) {
-      // Populate form with current gap data
       setFormData({
         gap_title: currentGap.gap_title,
         gap_description: currentGap.gap_description,
@@ -117,10 +110,6 @@ export default function EditComplianceGapPage() {
       [field]: value
     }));
   };
-
-  // Selection handled in shared selector
-
-  // array management now handled by RecommendedActionsList and RelatedDocumentsList
 
   const handleGenerateRecommendation = async () => {
     if (!currentGap?.chat_history_id || !formData.recommendation_type) {
@@ -487,8 +476,6 @@ export default function EditComplianceGapPage() {
           </Button>
         </div>
       </form>
-
-      {/* ISO dropdown handled internally in shared selector */}
 
       {/* Update Tips */}
       <Card className="bg-muted/50">

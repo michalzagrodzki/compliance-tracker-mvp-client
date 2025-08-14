@@ -100,7 +100,6 @@ export const ComplianceGapModal: React.FC<ComplianceGapModalProps> = ({
             </DialogFooter>
           </>
         ) : (
-          // Form state
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
