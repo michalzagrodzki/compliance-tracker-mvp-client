@@ -49,7 +49,7 @@ export interface ComplianceGapFormData {
 
 // Mock service for this example
 const complianceGapService = {
-  analyzeMessageForGapType: (message: string): { suggestedType: GapType; confidence: number } => ({
+  analyzeMessageForGapType: (_message: string): { suggestedType: GapType; confidence: number } => ({
     suggestedType: 'missing_policy' as GapType,
     confidence: 0.8
   }),

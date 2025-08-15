@@ -2,13 +2,11 @@ import { getBusinessImpactColor } from '@/lib/compliance'
 
 interface BusinessImpactBadgeProps {
   level?: string
-  showIcon?: boolean
   className?: string
 }
 
 export default function BusinessImpactBadge({ 
   level, 
-  showIcon = false, 
   className = '' 
 }: BusinessImpactBadgeProps) {
   if (!level) return null

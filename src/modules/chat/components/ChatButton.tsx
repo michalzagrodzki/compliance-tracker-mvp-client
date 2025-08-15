@@ -5,9 +5,7 @@ import { useNavigate } from 'react-router'
 
 interface ChatButtonProps {
   sessionId: string
-  sessionName: string
-  complianceDomain: string
-  chatId?: string // If provided, continue existing chat
+  chatId?: string
   children?: React.ReactNode
   variant?: 'default' | 'outline' | 'ghost' | 'link' | 'destructive' | 'secondary'
   size?: 'default' | 'sm' | 'lg' | 'icon'
@@ -16,8 +14,6 @@ interface ChatButtonProps {
 
 export function ChatButton({
   sessionId,
-  sessionName,
-  complianceDomain,
   chatId,
   children,
   variant = 'default',

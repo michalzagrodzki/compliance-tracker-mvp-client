@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { type ConfidentialityLevel, CONFIDENTIALITY_LEVEL_OPTIONS } from '../../types';
 
 interface ConfidentialityLevelChipsProps {

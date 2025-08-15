@@ -1,9 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
-import type {
-  AuditSession,
-  DocumentWithRelationship,
-} from "../types";
+import type { AuditSession, DocumentWithRelationship } from "../types";
 
 interface AuditSessionState {
   sessions: AuditSession[];
@@ -25,7 +21,7 @@ interface AuditSessionActions {
   setRemovingDocument: (documentId: string | null) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
-  
+
   // Utility actions
   clearSessionDocuments: () => void;
   reset: () => void;
@@ -48,11 +44,14 @@ export const useAuditSessionStore = create<AuditSessionStore>((set) => ({
 
   // State setters - only for use by hooks
   setSessions: (sessions: AuditSession[]) => set({ sessions }),
-  setCurrentSession: (session: AuditSession | null) => set({ currentSession: session }),
-  setSessionDocuments: (documents: DocumentWithRelationship[]) => set({ sessionDocuments: documents }),
+  setCurrentSession: (session: AuditSession | null) =>
+    set({ currentSession: session }),
+  setSessionDocuments: (documents: DocumentWithRelationship[]) =>
+    set({ sessionDocuments: documents }),
   setLoading: (loading: boolean) => set({ isLoading: loading }),
   setAddingDocument: (adding: boolean) => set({ isAddingDocument: adding }),
-  setRemovingDocument: (documentId: string | null) => set({ isRemovingDocument: documentId }),
+  setRemovingDocument: (documentId: string | null) =>
+    set({ isRemovingDocument: documentId }),
   setError: (error: string | null) => set({ error }),
   clearError: () => set({ error: null }),
 

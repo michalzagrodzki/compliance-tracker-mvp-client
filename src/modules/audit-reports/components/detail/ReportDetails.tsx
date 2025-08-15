@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { AuditReport } from '../../types';
 import { Button } from '@/components/ui/button';
-import { Calendar, Settings, Shield, User } from 'lucide-react';
+import { Settings, User } from 'lucide-react';
 import { formatDate } from '@/lib/documents';
 
 export default function ReportDetails({ report }: { report: AuditReport }) {

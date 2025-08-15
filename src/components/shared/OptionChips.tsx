@@ -1,4 +1,3 @@
-// No React import needed with automatic JSX runtime
 
 type Option<T extends string> = { value: T; label: string; color?: string }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { isoControlService } from "../services/isoControlService";
@@ -10,7 +11,7 @@ import type {
 
 interface IsoControlStore extends IsoControlState, IsoControlActions {}
 
-export const useIsoControlStore = create<IsoControlStore>((set, get) => ({
+export const useIsoControlStore = create<IsoControlStore>((set, _get) => ({
   // State
   controls: [],
   currentControl: null,

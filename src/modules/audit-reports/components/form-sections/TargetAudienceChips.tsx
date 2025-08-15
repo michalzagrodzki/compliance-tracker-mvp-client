@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { type TargetAudience, TARGET_AUDIENCE_OPTIONS } from '../../types';
 
 interface TargetAudienceChipsProps {

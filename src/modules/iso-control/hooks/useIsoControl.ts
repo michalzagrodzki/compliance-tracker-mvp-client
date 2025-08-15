@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -6,13 +7,11 @@ import {
 } from "../store/isoControlStore";
 import type { IsoControlListRequest } from "../types";
 
-// Main hook for accessing ISO controls state and actions
 export const useIsoControls = () => {
   const store = useIsoControlStore();
   return store;
 };
 
-// Hook for fetching controls with automatic loading on mount
 export const useIsoControlsList = (params: IsoControlListRequest = {}) => {
   const { controls, isLoading, error, totalCount, fetchControls, clearError } =
     useIsoControlStore();
@@ -35,7 +34,6 @@ export const useIsoControlsList = (params: IsoControlListRequest = {}) => {
   };
 };
 
-// Hook for fetching a specific control by ID
 export const useIsoControl = (controlId?: string) => {
   const {
     currentControl,
@@ -69,13 +67,11 @@ export const useIsoControl = (controlId?: string) => {
   };
 };
 
-// Hook for searching controls with debouncing
 export const useIsoControlSearch = (debounceMs: number = 300) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const { controls, isLoading, error, clearError } = useIsoControlStore();
 
-  // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -84,12 +80,10 @@ export const useIsoControlSearch = (debounceMs: number = 300) => {
     return () => clearTimeout(timer);
   }, [searchTerm, debounceMs]);
 
-  // Perform search when debounced term changes
   useEffect(() => {
     if (debouncedSearchTerm) {
       isoControlStoreUtils.searchControls(debouncedSearchTerm);
     } else {
-      // Load default controls when search is cleared
       isoControlStoreUtils.fetchControlsSafe();
     }
   }, [debouncedSearchTerm]);
@@ -114,7 +108,6 @@ export const useIsoControlSearch = (debounceMs: number = 300) => {
   };
 };
 
-// Hook for pagination
 export const useIsoControlsPagination = (initialLimit: number = 10) => {
   const [skip, setSkip] = useState(0);
   const [limit, setLimit] = useState(initialLimit);
@@ -178,7 +171,6 @@ export const useIsoControlsPagination = (initialLimit: number = 10) => {
   };
 };
 
-// Hook for control selection (useful for lists with selection)
 export const useIsoControlSelection = () => {
   const [selectedControlIds, setSelectedControlIds] = useState<string[]>([]);
   const { controls } = useIsoControlStore();

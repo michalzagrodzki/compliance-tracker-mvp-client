@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { 
   ArrowLeft, 
   Save,
@@ -15,14 +14,6 @@ import {
   Calendar,
   Shield,
   Clock,
-  Plus,
-  Trash2,
-  MessageSquare,
-  AlertTriangle,
-  Database,
-  ChevronDown,
-  ChevronUp,
-  Info,
 } from 'lucide-react';
 import { useAuditReport } from '../hooks/useAuditReport';
 import { useAuthStore } from '@/modules/auth/store/authStore';
@@ -33,11 +24,8 @@ import {
   type ActionItem,
   type AuditReportCreate,
   type DetailedFinding,
-  COMPLIANCE_RATING_OPTIONS,
   SummaryType,
 } from '../types';
-import ReportTypeChips from './form-sections/ReportTypeChips';
-import ConfidentialityLevelChips from './form-sections/ConfidentialityLevelChips';
 import ReportSummaryFields from './form-sections/ReportSummaryFields';
 import EditBasicInformationFields from './form-sections/EditBasicInformationFields';
 import DataSourcesSection from './form-sections/DataSourcesSection';
@@ -778,15 +766,15 @@ export default function EditAuditReportPage() {
               onToggleDataSourcesDetail={toggleDataSourcesDetail}
               chatHistory={dataSources.chatHistory || []}
               selectedChatIds={formData.chat_history_ids || []}
-              onChatSelectionChange={(chatId, selected) => toggleDataSourceSelection('chat', chatId)}
+              onChatSelectionChange={(chatId, _selected) => toggleDataSourceSelection('chat', chatId)}
               isLoadingChats={false}
               complianceGaps={dataSources.complianceGaps || []}
               selectedGapIds={formData.compliance_gap_ids || []}
-              onGapSelectionChange={(gapId, selected) => toggleDataSourceSelection('gap', gapId)}
+              onGapSelectionChange={(gapId, _selected) => toggleDataSourceSelection('gap', gapId)}
               isLoadingGaps={false}
               documents={dataSources.documents || []}
               selectedDocumentIds={formData.document_ids || []}
-              onDocumentSelectionChange={(docId, selected) => toggleDataSourceSelection('document', docId)}
+              onDocumentSelectionChange={(docId, _selected) => toggleDataSourceSelection('document', docId)}
               isLoadingDocuments={false}
               isLoadingSessionData={loadingStates.isLoadingSessionData}
             />

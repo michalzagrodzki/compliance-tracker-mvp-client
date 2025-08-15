@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,7 +42,6 @@ interface AuditSessionChatsProps {
 
 export default function AuditSessionChats({ 
   sessionId, 
-  sessionName, 
   complianceDomain 
 }: AuditSessionChatsProps) {
   const [chats, setChats] = useState<Chat[]>([])
@@ -207,8 +207,6 @@ export default function AuditSessionChats({
             </Button>
             <ChatButton
               sessionId={sessionId}
-              sessionName={sessionName}
-              complianceDomain={complianceDomain}
               variant="default"
               size="sm"
             >
@@ -243,8 +241,6 @@ export default function AuditSessionChats({
             </p>
             <ChatButton
               sessionId={sessionId}
-              sessionName={sessionName}
-              complianceDomain={complianceDomain}
             >
               <Plus className="h-4 w-4 mr-2" />
               Start First Chat
@@ -350,8 +346,6 @@ export default function AuditSessionChats({
                           <div className="flex items-center space-x-2">
                             <ChatButton
                               sessionId={sessionId}
-                              sessionName={sessionName}
-                              complianceDomain={complianceDomain}
                               chatId={chat.conversation_id}
                               variant="outline"
                               size="sm"

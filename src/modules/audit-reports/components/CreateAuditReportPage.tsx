@@ -37,7 +37,6 @@ import TargetAudienceChips from './form-sections/TargetAudienceChips';
 import ConfidentialityLevelChips from './form-sections/ConfidentialityLevelChips';
 import ReportSummaryFields from './form-sections/ReportSummaryFields';
 import ReportConfigurationFields from './form-sections/ReportConfigurationFields';
-import DataSourcesSection from './form-sections/DataSourcesSection';
 
 const COMPLIANCE_DOMAINS = [
   { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
@@ -142,7 +141,6 @@ export default function CreateAuditReportPage() {
     medium_risk_gaps_count: 0,
     low_risk_gaps_count: 0
   });
-  const [hasChanges, setHasChanges] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   
@@ -175,7 +173,6 @@ export default function CreateAuditReportPage() {
         ...prev,
         threat_intelligence_analysis: threatIntelligence.threat_analysis,
       }));
-      setHasChanges(true);
     }
   }, [threatIntelligence]);
 
@@ -185,7 +182,6 @@ export default function CreateAuditReportPage() {
         ...prev,
         control_risk_prioritization: riskPrioritization.risk_prioritization_analysis,
       }));
-      setHasChanges(true);
     }
   }, [riskPrioritization]);
 
@@ -195,7 +191,6 @@ export default function CreateAuditReportPage() {
         ...prev,
         target_audience_summary: targetAudience.target_audience_summary,
       }));
-      setHasChanges(true);
     }
   }, [targetAudience]);
   useEffect(() => {
@@ -274,7 +269,6 @@ export default function CreateAuditReportPage() {
       ...prev,
       [field]: value
     }));
-    setHasChanges(true);
   };
 
   const handleReportTypeChange = (reportType: ReportType) => {
@@ -542,6 +536,12 @@ export default function CreateAuditReportPage() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to {sessionId ? 'Audit Session' : 'Reports'}
           </Button>
+          {showSuccessMessage && (
+            <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-sm animate-in slide-in-from-top-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium">Report created successfully!</span>
+            </div>
+          )}
         </div>
         <h1 className="text-3xl font-bold text-foreground">Create Audit Report</h1>
         <p className="text-muted-foreground">

@@ -241,8 +241,6 @@ export default function AuditSessionDetail() {
               <div className="flex flex-wrap gap-3">
                 <ChatButton
                   sessionId={currentSession.id}
-                  sessionName={currentSession.session_name}
-                  complianceDomain={currentSession.compliance_domain}
                 />
                 <GenerateAuditReportDialog
                   disabled={isAuditReportEmpty}

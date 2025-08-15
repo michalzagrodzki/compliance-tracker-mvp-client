@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2, Sparkles, Target, TrendingUp, Users, AlertCircle } from 'lucide-react';
 

@@ -34,7 +34,6 @@ interface AuditSessionComplianceGapsProps {
 
 export default function AuditSessionComplianceGaps({ 
   sessionId,
-  complianceDomain 
 }: AuditSessionComplianceGapsProps) {
   const {
     gaps,

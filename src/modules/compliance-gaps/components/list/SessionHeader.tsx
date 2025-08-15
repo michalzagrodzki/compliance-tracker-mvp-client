@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Building, Calendar, DollarSign, Shield } from 'lucide-react'
 import { Link } from 'react-router'
 import { getRelativeTime } from '@/lib/compliance'
-import type { ComplianceGapResponse, RiskLevel, GapStatus } from '../../types'
+import type { ComplianceGapResponse } from '../../types'
 
 interface SessionStats {
   total: number

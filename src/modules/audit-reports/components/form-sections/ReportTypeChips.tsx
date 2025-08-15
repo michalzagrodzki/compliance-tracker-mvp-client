@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { type ReportType, REPORT_TYPE_OPTIONS } from '../../types';
 
 interface ReportTypeChipsProps {
