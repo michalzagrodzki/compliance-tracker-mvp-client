@@ -177,6 +177,17 @@ export const useAuditSession = () => {
     []
   );
 
+  // Silent variant: does not touch global loading/error state
+  const fetchSessionDocumentsSilent = useCallback(
+    async (sessionId: string) => {
+      const documents = await auditSessionService.getSessionDocuments(sessionId);
+      // Update data in store but avoid global loading/error states
+      setSessionDocuments(documents);
+      return documents;
+    },
+    []
+  );
+
   const addDocumentToSession = useCallback(
     async (sessionId: string, documentId: string, notes?: string) => {
       setAddingDocument(true);
@@ -219,6 +230,19 @@ export const useAuditSession = () => {
     [sessionDocuments]
   );
 
+  // Silent variant: does not touch global removing/error states
+  const removeDocumentFromSessionSilent = useCallback(
+    async (sessionId: string, documentId: string) => {
+      await auditSessionService.removeDocumentFromSession(sessionId, documentId);
+      const updatedDocuments = sessionDocuments.filter(
+        (doc: DocumentWithRelationship) => doc.id !== documentId
+      );
+      setSessionDocuments(updatedDocuments);
+      return updatedDocuments;
+    },
+    [sessionDocuments]
+  );
+
   const getAuditSessionHistory = useCallback(
     async (sessionId: string) => {
       setLoading(true);
@@ -232,6 +256,20 @@ export const useAuditSession = () => {
         throw error;
       } finally {
         setLoading(false);
+      }
+    },
+    []
+  );
+
+  // Silent variant: does not touch global loading/error state
+  const getAuditSessionHistorySilent = useCallback(
+    async (sessionId: string) => {
+      try {
+        const history = await auditSessionService.getAuditSessionHistory(sessionId);
+        return history;
+      } catch (error) {
+        // Do not set global error; propagate for local handling
+        throw error;
       }
     },
     []
@@ -302,9 +340,12 @@ export const useAuditSession = () => {
     searchSessions,
     createSession,
     fetchSessionDocuments,
+    fetchSessionDocumentsSilent,
     addDocumentToSession,
     removeDocumentFromSession,
+    removeDocumentFromSessionSilent,
     getAuditSessionHistory,
+    getAuditSessionHistorySilent,
     closeSession,
     reactivateSession,
     clearSessionDocuments,

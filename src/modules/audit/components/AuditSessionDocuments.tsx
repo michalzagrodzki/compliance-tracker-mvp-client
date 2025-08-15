@@ -17,8 +17,6 @@ import {
   Check
 } from 'lucide-react'
 import { useAuditSession } from '../hooks/useAuditSession'
-import { auditSessionService } from '../services/auditSessionService'
-import { useAuditSessionStore } from '../store/auditSessionStore'
 import AddDocumentModal from './AddDocumentModal'
 import { formatDate } from '@/lib/compliance'
 
@@ -29,27 +27,22 @@ interface AuditSessionDocumentsProps {
 export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumentsProps) {
   const [localLoading, setLocalLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  const [removingDocumentId, setRemovingDocumentId] = useState<string | null>(null)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
 
   const { 
     sessionDocuments, 
-    isRemovingDocument, 
-    removeDocumentFromSession,
-    clearError 
+    removeDocumentFromSessionSilent,
+    clearError,
+    fetchSessionDocumentsSilent,
   } = useAuditSession()
-  const { setSessionDocuments } = useAuditSessionStore()
   
   useEffect(() => {
     if (sessionId && sessionId !== currentSessionId) {
       setLocalLoading(true)
       setLocalError(null)
       setCurrentSessionId(sessionId)
-      
-
-      auditSessionService.getSessionDocuments(sessionId)
-        .then((docs) => {
-          setSessionDocuments(docs)
-        })
+      fetchSessionDocumentsSilent(sessionId)
         .catch((error: any) => {
           const errorMessage = error.message || 'Failed to load documents'
           setLocalError(errorMessage)
@@ -62,18 +55,20 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
 
   const handleRemoveDocument = async (documentId: string) => {
     try {
-      await removeDocumentFromSession(sessionId, documentId)
+      setRemovingDocumentId(documentId)
+      await removeDocumentFromSessionSilent(sessionId, documentId)
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to remove document'
       setLocalError(errorMessage)
+    } finally {
+      setRemovingDocumentId(null)
     }
   }
 
   const handleDocumentAdded = () => {
     setLocalLoading(true)
     setLocalError(null)
-    auditSessionService.getSessionDocuments(sessionId)
-      .then((docs) => setSessionDocuments(docs))
+    fetchSessionDocumentsSilent(sessionId)
       .catch((error: any) => {
         const errorMessage = error.message || 'Failed to refresh documents'
         setLocalError(errorMessage)
@@ -86,8 +81,7 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
   const handleRefresh = () => {
     setLocalLoading(true)
     setLocalError(null)
-    auditSessionService.getSessionDocuments(sessionId)
-      .then((docs) => setSessionDocuments(docs))
+    fetchSessionDocumentsSilent(sessionId)
       .catch((error: any) => {
         const errorMessage = error.message || 'Failed to refresh documents'
         setLocalError(errorMessage)
@@ -396,9 +390,9 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
                                         variant="outline"
                                         className="h-8 text-destructive hover:text-destructive"
                                         onClick={() => handleRemoveDocument(document.id)}
-                                        disabled={isRemovingDocument === document.id}
+                                        disabled={removingDocumentId === document.id}
                                       >
-                                        {isRemovingDocument === document.id ? (
+                                        {removingDocumentId === document.id ? (
                                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive" />
                                         ) : (
                                           <Trash2 className="h-3 w-3" />

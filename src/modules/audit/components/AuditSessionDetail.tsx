@@ -297,7 +297,6 @@ export default function AuditSessionDetail() {
             complianceDomain={currentSession.compliance_domain}
           />
           <AuditSessionDocuments sessionId={currentSession.id} />
-          { /*<AuditSessionDocuments sessionId={currentSession.id} />*/ }
         </div>
         
         <div className="space-y-6">

@@ -14,7 +14,7 @@ import {
   FileText,
   Calendar
 } from 'lucide-react'
-import { auditSessionService } from '../services/auditSessionService'
+import { useAuditSession } from '../hooks/useAuditSession'
 import { ChatButton } from '@/modules/chat/components/ChatButton'
 
 interface Chat {
@@ -48,12 +48,14 @@ export default function AuditSessionChats({
   const [localLoading, setLocalLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   
+  const { getAuditSessionHistorySilent } = useAuditSession()
+
   const loadChats = useCallback(async () => {
     setLocalLoading(true)
     setLocalError(null)
 
     try {
-      const chatHistory = await auditSessionService.getAuditSessionHistory(sessionId)
+      const chatHistory = await getAuditSessionHistorySilent(sessionId)
 
       const chatMap = new Map<string, any>()
       
@@ -116,7 +118,7 @@ export default function AuditSessionChats({
     } finally {
       setLocalLoading(false)
     }
-  }, [sessionId, complianceDomain])
+  }, [sessionId, complianceDomain, getAuditSessionHistorySilent])
 
   useEffect(() => {
     if (sessionId && complianceDomain) {
