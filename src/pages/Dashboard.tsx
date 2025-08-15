@@ -5,7 +5,6 @@ import { useAuditReport } from '@/modules/audit-reports/hooks/useAuditReport'
 import { useAuditSession } from '@/modules/audit/hooks/useAuditSession'
 import { useComplianceGap } from '@/modules/compliance-gaps/hooks/useComplianceGap'
 import { 
-  Clock, 
   Plus,
   Shield,
   Upload,
