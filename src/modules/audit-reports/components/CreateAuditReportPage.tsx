@@ -25,7 +25,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { useAuditSessionStore } from '@/modules/audit/store/auditSessionStore';
+import { useAuditSession } from '@/modules/audit/hooks/useAuditSession';
 import { useAuthStore } from '@/modules/auth/store/authStore';
 import { useAuditReportStore, auditReportStoreUtils } from '../store/auditReportStore';
 import {
@@ -49,7 +49,7 @@ export default function CreateAuditReportPage() {
   const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId: string }>();
   const { user } = useAuthStore();
-  const { currentSession, sessions, fetchSessionById, fetchSessionsByDomain } = useAuditSessionStore();
+  const { currentSession, sessions, fetchSessionById, fetchSessionsByDomain } = useAuditSession();
   const {
     loadSessionDataSources,
     updateChatSelection,

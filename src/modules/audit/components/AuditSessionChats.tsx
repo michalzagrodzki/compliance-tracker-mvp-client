@@ -15,7 +15,7 @@ import {
   Calendar
 } from 'lucide-react'
 import { auditSessionService } from '../services/auditSessionService'
-import { ChatButton } from '@/modules/chat'
+import { ChatButton } from '@/modules/chat/components/ChatButton'
 
 interface Chat {
   id: string
@@ -45,18 +45,16 @@ export default function AuditSessionChats({
   complianceDomain 
 }: AuditSessionChatsProps) {
   const [chats, setChats] = useState<Chat[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
+  const [localLoading, setLocalLoading] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+  
   const loadChats = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+    setLocalLoading(true)
+    setLocalError(null)
 
     try {
-      // Get chat history from audit session
       const chatHistory = await auditSessionService.getAuditSessionHistory(sessionId)
-      
-      // Group chat history by conversation_id to create chat summaries
+
       const chatMap = new Map<string, any>()
       
       chatHistory.forEach((item: any) => {
@@ -85,8 +83,7 @@ export default function AuditSessionChats({
         chat.last_activity = item.created_at
         chat.updated_at = item.created_at
         chat.messages.push(item)
-        
-        // Simple heuristic to detect potential compliance gaps
+
         const gapKeywords = [
           'gap', 'missing', 'lacking', 'absent', 'incomplete', 'insufficient',
           'non-compliant', 'violation', 'breach', 'issue', 'problem', 'concern',
@@ -108,31 +105,32 @@ export default function AuditSessionChats({
           ? chat.first_question.substring(0, 100) + '...' 
           : chat.first_question
       }))
-      
-      // Sort by last activity (most recent first)
+
       chatList.sort((a, b) => new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime())
       
       setChats(chatList)
     } catch (error: any) {
       console.error('Error loading chats:', error)
-      setError(error.message || 'Failed to load chat history')
+      setLocalError(error.message || 'Failed to load chat history')
       setChats([])
     } finally {
-      setIsLoading(false)
+      setLocalLoading(false)
     }
   }, [sessionId, complianceDomain])
 
   useEffect(() => {
-    loadChats()
-  }, [loadChats])
+    if (sessionId && complianceDomain) {
+      loadChats()
+    }
+  }, [sessionId, complianceDomain])
 
   const handleRefresh = useCallback(() => {
     loadChats()
-  }, [loadChats])
-
-  const clearError = useCallback(() => {
-    setError(null)
   }, [])
+
+  const clearError = () => {
+    setLocalError(null)
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -161,7 +159,7 @@ export default function AuditSessionChats({
     }
   }
 
-  if (isLoading) {
+  if (localLoading) {
     return (
       <Card>
         <CardHeader>
@@ -201,9 +199,9 @@ export default function AuditSessionChats({
               size="sm"
               variant="outline"
               onClick={handleRefresh}
-              disabled={isLoading}
+              disabled={localLoading}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${localLoading ? 'animate-spin' : ''}`} />
             </Button>
             <ChatButton
               sessionId={sessionId}
@@ -219,10 +217,10 @@ export default function AuditSessionChats({
         </div>
       </CardHeader>
       <CardContent>
-        {error && (
+        {localError && (
           <div className="flex items-center space-x-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md mb-4">
             <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
+            <span>{localError}</span>
             <Button 
               variant="ghost" 
               size="sm" 

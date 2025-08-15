@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, XCircle } from 'lucide-react';
-import { useAuditSessionStore } from '@/modules/audit/store/auditSessionStore';
+import { useAuditSession } from '@/modules/audit/hooks/useAuditSession';
 import { useAuthStore } from '@/modules/auth/store/authStore'
 import { useComplianceGap, type ComplianceGapDirectRequest } from '../hooks/useComplianceGap';
 import { extractIsoControlCode } from '@/lib/utils';
@@ -30,7 +30,7 @@ const COMPLIANCE_DOMAINS = [
 export default function ComplianceGapCreatePage() {
   const navigate = useNavigate();
   const { createGapDirect, isLoading, error } = useComplianceGap();
-  const { sessions, isLoading: isLoadingSessions, error: sessionsError } = useAuditSessionStore();
+  const { sessions, isLoading: isLoadingSessions, error: sessionsError } = useAuditSession();
   const { user } = useAuthStore()
   const [showAboutInfo, setShowAboutInfo] = useState(false);
   const [success, setSuccess] = useState(false);

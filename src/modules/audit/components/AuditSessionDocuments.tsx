@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -15,9 +16,11 @@ import {
   RefreshCw,
   Check
 } from 'lucide-react'
-import { useAuditSessionStore, auditSessionStoreUtils } from '../store/auditSessionStore'
+import { useAuditSession } from '../hooks/useAuditSession'
 import { auditSessionService } from '../services/auditSessionService'
+import { useAuditSessionStore } from '../store/auditSessionStore'
 import AddDocumentModal from './AddDocumentModal'
+import { formatDate } from '@/lib/compliance'
 
 interface AuditSessionDocumentsProps {
   sessionId: string
@@ -26,84 +29,74 @@ interface AuditSessionDocumentsProps {
 export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumentsProps) {
   const [localLoading, setLocalLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
-  const [hasInitialLoad, setHasInitialLoad] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
 
-  const sessionDocuments = useAuditSessionStore(state => state.sessionDocuments)
-  const isRemovingDocument = useAuditSessionStore(state => state.isRemovingDocument)
+  const { 
+    sessionDocuments, 
+    isRemovingDocument, 
+    removeDocumentFromSession,
+    clearError 
+  } = useAuditSession()
+  const { setSessionDocuments } = useAuditSessionStore()
   
-  const loadDocuments = useCallback(async (sessionIdToLoad: string, force = false) => {
-    if (!force && hasInitialLoad && currentSessionId === sessionIdToLoad) {
-      return
-    }
-
-    setLocalLoading(true)
-    setLocalError(null)
-
-    try {
-      const documents = await auditSessionService.getSessionDocuments(sessionIdToLoad)
-      
-      auditSessionStoreUtils.setState({ 
-        sessionDocuments: documents,
-        error: null 
-      })
-
-      setCurrentSessionId(sessionIdToLoad)
-      setHasInitialLoad(true)
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Failed to load documents'
-      setLocalError(errorMessage)
-      
-      // Clear documents on error
-      auditSessionStoreUtils.setState({ 
-        sessionDocuments: [],
-        error: errorMessage 
-      })
-    } finally {
-      setLocalLoading(false)
-    }
-  }, [hasInitialLoad, currentSessionId])
-
   useEffect(() => {
     if (sessionId && sessionId !== currentSessionId) {
-      loadDocuments(sessionId)
-    }
-  }, [sessionId, currentSessionId, loadDocuments])
+      setLocalLoading(true)
+      setLocalError(null)
+      setCurrentSessionId(sessionId)
+      
 
-  const handleRemoveDocument = useCallback(async (documentId: string) => {
-    try {
-      await auditSessionService.removeDocumentFromSession(sessionId, documentId)
-      
-      const currentDocs = auditSessionStoreUtils.getState().sessionDocuments
-      const updatedDocs = currentDocs.filter((doc: any) => doc.id !== documentId)
-      
-      auditSessionStoreUtils.setState({
-        sessionDocuments: updatedDocs,
-        isRemovingDocument: null,
-        error: null
-      })
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || 'Failed to remove document'
-      setLocalError(errorMessage)
-      auditSessionStoreUtils.setState({
-        isRemovingDocument: null,
-        error: errorMessage
-      })
+      auditSessionService.getSessionDocuments(sessionId)
+        .then((docs) => {
+          setSessionDocuments(docs)
+        })
+        .catch((error: any) => {
+          const errorMessage = error.message || 'Failed to load documents'
+          setLocalError(errorMessage)
+        })
+        .finally(() => {
+          setLocalLoading(false)
+        })
     }
   }, [sessionId])
 
-  const handleDocumentAdded = useCallback(() => {
-    loadDocuments(sessionId, true)
-  }, [sessionId, loadDocuments])
+  const handleRemoveDocument = async (documentId: string) => {
+    try {
+      await removeDocumentFromSession(sessionId, documentId)
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to remove document'
+      setLocalError(errorMessage)
+    }
+  }
 
-  const handleRefresh = useCallback(() => {
-    loadDocuments(sessionId, true)
-  }, [sessionId, loadDocuments])
-
-  const clearError = useCallback(() => {
+  const handleDocumentAdded = () => {
+    setLocalLoading(true)
     setLocalError(null)
-    auditSessionStoreUtils.setState({ error: null })
-  }, [])
+    auditSessionService.getSessionDocuments(sessionId)
+      .then((docs) => setSessionDocuments(docs))
+      .catch((error: any) => {
+        const errorMessage = error.message || 'Failed to refresh documents'
+        setLocalError(errorMessage)
+      })
+      .finally(() => {
+        setLocalLoading(false)
+      })
+  }
+
+  const handleRefresh = () => {
+    setLocalLoading(true)
+    setLocalError(null)
+    auditSessionService.getSessionDocuments(sessionId)
+      .then((docs) => setSessionDocuments(docs))
+      .catch((error: any) => {
+        const errorMessage = error.message || 'Failed to refresh documents'
+        setLocalError(errorMessage)
+      })
+      .finally(() => {
+        setLocalLoading(false)
+      })
+  }
+
 
   const getDocumentStatus = (tags: string[]) => {
     if (!tags || tags.length === 0) return null
@@ -119,19 +112,6 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
         iconColor: 'text-green-600'
       }
     }
-    
-    // You can add more status conditions here based on other tags
-    // For example:
-    // if (lowerCaseTags.includes('draft')) {
-    //   return {
-    //     label: 'Draft version',
-    //     icon: Edit,
-    //     bgColor: 'bg-yellow-100',
-    //     textColor: 'text-yellow-800',
-    //     iconColor: 'text-yellow-600'
-    //   }
-    // }
-    
     return null
   }
 
@@ -189,15 +169,7 @@ export default function AuditSessionDocuments({ sessionId }: AuditSessionDocumen
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  // Using shared formatDate from lib/compliance
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return 'Unknown size'

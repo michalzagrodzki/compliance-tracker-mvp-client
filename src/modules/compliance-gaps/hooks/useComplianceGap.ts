@@ -19,7 +19,7 @@ import type {
   DetectionMethod,
 } from "../types";
 import type { ChatMessage } from "@/modules/chat/types";
-import { chatService } from "@/modules/chat";
+import { chatService } from "@/modules/chat/services/chatService";
 
 interface ComplianceGapListParams {
   skip?: number;
@@ -120,7 +120,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, setGaps, setError]
+    []
   );
 
   const loadGapById = useCallback(
@@ -138,7 +138,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, setCurrentGap, setError]
+    []
   );
 
   const loadGapWithChatMessage = useCallback(
@@ -173,7 +173,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, setCurrentGap, setRelatedChatMessage, setError]
+    []
   );
 
   const createGapFromChatHistory = useCallback(
@@ -195,7 +195,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, addGap, setError]
+    []
   );
 
   const createGapDirect = useCallback(
@@ -215,7 +215,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, addGap, setError]
+    []
   );
 
   const updateGap = useCallback(
@@ -237,7 +237,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, updateGapInStore, setError]
+    []
   );
 
   const generateRecommendation = useCallback(
@@ -293,11 +293,7 @@ export const useComplianceGap = () => {
         setIsGeneratingRecommendation(false);
       }
     },
-    [
-      setIsGeneratingRecommendation,
-      setRecommendationError,
-      setLastGeneratedRecommendation,
-    ]
+    []
   );
 
   const updateGapStatus = useCallback(
@@ -319,7 +315,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, updateGapInStore, setError]
+    []
   );
 
   const assignGap = useCallback(
@@ -341,7 +337,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, updateGapInStore, setError]
+    []
   );
 
   const reviewGap = useCallback(
@@ -363,7 +359,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, updateGapInStore, setError]
+    []
   );
 
   const loadGapsByAuditSession = useCallback(
@@ -385,7 +381,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, setGaps, setError]
+    []
   );
 
   const searchGaps = useCallback(
@@ -403,7 +399,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, setGaps, setError]
+    []
   );
 
   return {

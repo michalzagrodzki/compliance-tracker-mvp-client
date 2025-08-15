@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { http } from "@/modules/api/http";
+import { normalizeError } from "@/lib/error";
 import type {
   AddDocumentRequest,
   AuditSession,
@@ -34,13 +35,17 @@ class AuditSessionService {
     skip: number = 0,
     limit: number = 10
   ): Promise<AuditSession[]> {
-    const response = await http.get<AuditSession[]>(
-      AUDIT_SESSION_ENDPOINTS.LIST_ALL,
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditSession[]>(
+        AUDIT_SESSION_ENDPOINTS.LIST_ALL,
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getUserSessions(
@@ -48,20 +53,28 @@ class AuditSessionService {
     skip: number = 0,
     limit: number = 10
   ): Promise<AuditSession[]> {
-    const response = await http.get<AuditSession[]>(
-      AUDIT_SESSION_ENDPOINTS.BY_USER(userId),
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditSession[]>(
+        AUDIT_SESSION_ENDPOINTS.BY_USER(userId),
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getSessionById(sessionId: string): Promise<AuditSession> {
-    const response = await http.get<AuditSession>(
-      AUDIT_SESSION_ENDPOINTS.BY_ID(sessionId)
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditSession>(
+        AUDIT_SESSION_ENDPOINTS.BY_ID(sessionId)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getSessionsByStatus(
@@ -69,13 +82,17 @@ class AuditSessionService {
     skip: number = 0,
     limit: number = 10
   ): Promise<AuditSession[]> {
-    const response = await http.get<AuditSession[]>(
-      AUDIT_SESSION_ENDPOINTS.BY_STATUS(isActive),
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditSession[]>(
+        AUDIT_SESSION_ENDPOINTS.BY_STATUS(isActive),
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getSessionsByDomain(
@@ -83,42 +100,58 @@ class AuditSessionService {
     skip: number = 0,
     limit: number = 10
   ): Promise<AuditSession[]> {
-    const response = await http.get<AuditSession[]>(
-      AUDIT_SESSION_ENDPOINTS.BY_DOMAIN(domain),
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditSession[]>(
+        AUDIT_SESSION_ENDPOINTS.BY_DOMAIN(domain),
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async searchSessions(
     searchData: AuditSessionSearchRequest
   ): Promise<AuditSession[]> {
-    const response = await http.post<AuditSession[]>(
-      AUDIT_SESSION_ENDPOINTS.SEARCH,
-      searchData
-    );
-    return response.data;
+    try {
+      const response = await http.post<AuditSession[]>(
+        AUDIT_SESSION_ENDPOINTS.SEARCH,
+        searchData
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async createSession(sessionData: AuditSessionCreate): Promise<AuditSession> {
-    const response = await http.post<AuditSession>(
-      AUDIT_SESSION_ENDPOINTS.CREATE,
-      {
-        ...sessionData,
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.post<AuditSession>(
+        AUDIT_SESSION_ENDPOINTS.CREATE,
+        {
+          ...sessionData,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getSessionDocuments(
     sessionId: string
   ): Promise<DocumentWithRelationship[]> {
-    const response = await http.get<DocumentWithRelationship[]>(
-      AUDIT_SESSION_ENDPOINTS.SESSION_DOCUMENTS(sessionId)
-    );
-    return response.data;
+    try {
+      const response = await http.get<DocumentWithRelationship[]>(
+        AUDIT_SESSION_ENDPOINTS.SESSION_DOCUMENTS(sessionId)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async addDocumentToSession(
@@ -126,51 +159,71 @@ class AuditSessionService {
     documentId: string,
     notes?: string
   ): Promise<void> {
-    const requestData: AddDocumentRequest = {
-      pdf_ingestion_id: documentId,
-      notes:
-        notes ||
-        `Document added to audit session on ${new Date().toLocaleDateString()}`,
-    };
+    try {
+      const requestData: AddDocumentRequest = {
+        pdf_ingestion_id: documentId,
+        notes:
+          notes ||
+          `Document added to audit session on ${new Date().toLocaleDateString()}`,
+      };
 
-    await http.post(
-      AUDIT_SESSION_ENDPOINTS.ADD_TO_SESSION(sessionId),
-      requestData
-    );
+      await http.post(
+        AUDIT_SESSION_ENDPOINTS.ADD_TO_SESSION(sessionId),
+        requestData
+      );
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async removeDocumentFromSession(
     sessionId: string,
     documentId: string
   ): Promise<void> {
-    await http.delete(
-      AUDIT_SESSION_ENDPOINTS.REMOVE_FROM_SESSION(sessionId, documentId)
-    );
+    try {
+      await http.delete(
+        AUDIT_SESSION_ENDPOINTS.REMOVE_FROM_SESSION(sessionId, documentId)
+      );
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getAuditSessionHistory(sessionId: string): Promise<any[]> {
-    const response = await http.get<any[]>(
-      AUDIT_SESSION_ENDPOINTS.SESSION_HISTORY(sessionId)
-    );
-    return response.data;
+    try {
+      const response = await http.get<any[]>(
+        AUDIT_SESSION_ENDPOINTS.SESSION_HISTORY(sessionId)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async closeAuditSession(
     sessionId: string,
     sessionSummary?: string
   ): Promise<AuditSession> {
-    const response = await http.put<AuditSession>(
-      AUDIT_SESSION_ENDPOINTS.CLOSE_SESSION(sessionId),
-      { session_summary: sessionSummary }
-    );
-    return response.data;
+    try {
+      const response = await http.put<AuditSession>(
+        AUDIT_SESSION_ENDPOINTS.CLOSE_SESSION(sessionId),
+        { session_summary: sessionSummary }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async activateAuditSession(sessionId: string): Promise<AuditSession> {
-    const response = await http.put<AuditSession>(
-      AUDIT_SESSION_ENDPOINTS.ACTIVATE_SESSION(sessionId)
-    );
-    return response.data;
+    try {
+      const response = await http.put<AuditSession>(
+        AUDIT_SESSION_ENDPOINTS.ACTIVATE_SESSION(sessionId)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 }
 

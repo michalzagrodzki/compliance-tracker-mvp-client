@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useComplianceGap } from '@/modules/compliance-gaps';
+import { useComplianceGap } from '@/modules/compliance-gaps/hooks/useComplianceGap';
 import { ComplianceGapModal } from '@/modules/compliance-gaps/components/ComplianceGapModal';
 import { 
   formatMessageContent,

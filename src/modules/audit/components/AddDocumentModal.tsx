@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Search, FileText, User, Tag, Shield, Calendar, AlertCircle, CheckCircle } from 'lucide-react'
 import { useIngestion } from '../../documents/hooks/useIngestion'
 import { formatDate, getProcessingStatusColor } from '@/lib/documents'
-import { useAuditSessionStore } from '../store/auditSessionStore'
+import { useAuditSession } from '../hooks/useAuditSession'
 import type { PdfIngestion } from '../../documents/types'
 
 interface AddDocumentModalProps {
@@ -42,7 +42,7 @@ export default function AddDocumentModal({ sessionId, onDocumentAdded }: AddDocu
     error: sessionError,
     addDocumentToSession,
     clearError: clearSessionError
-  } = useAuditSessionStore()
+  } = useAuditSession()
 
   const filteredDocuments = filterIngestions(searchTerm)
   const error = ingestionError || sessionError
@@ -79,7 +79,6 @@ export default function AddDocumentModal({ sessionId, onDocumentAdded }: AddDocu
       setSelectedDocument(null)
     }
   }
-
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

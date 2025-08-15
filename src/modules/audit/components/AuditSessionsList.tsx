@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useAuditSessionStore } from '../store/auditSessionStore'
+import { useAuditSession } from '../hooks/useAuditSession'
 import { useAuthStore } from '@/modules/auth/store/authStore'
 import Loading from './../../../components/Loading'
 import { 
@@ -66,14 +66,14 @@ const DOMAIN_COLORS = {
 }
 
 export default function AuditSessionsList() {
-  const { sessions, isLoading, error, fetchUserSessions } = useAuditSessionStore()
+  const { sessions, isLoading, error, fetchUserSessions } = useAuditSession()
   const { user } = useAuthStore()
 
   useEffect(() => {
     if (user?.id) {
       fetchUserSessions(user.id)
     }
-  }, [user?.id, fetchUserSessions])
+  }, [user?.id])
 
   if (isLoading) {
     return (

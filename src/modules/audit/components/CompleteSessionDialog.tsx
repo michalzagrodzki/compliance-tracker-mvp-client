@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Square } from 'lucide-react'
-import { useAuditSessionStore } from './../store/auditSessionStore'
+import { useAuditSession } from '../hooks/useAuditSession'
 
 export function CompleteSessionDialog({ sessionId }: { sessionId: string }) {
-  const { closeSession } = useAuditSessionStore()
+  const { closeSession } = useAuditSession()
   const [open, setOpen] = useState(false)
   const [summary, setSummary] = useState('')
   const templates = [

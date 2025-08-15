@@ -3,7 +3,7 @@ import type {
   GapType,
   BusinessImpactLevel,
   RecommendationType,
-} from "@/modules/compliance-gaps";
+} from "@/modules/compliance-gaps/types";
 import type { ComplianceGap } from "@/modules/compliance-gaps/types";
 
 export type ReportType =

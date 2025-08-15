@@ -1,11 +1,12 @@
-import { useEffect } from 'react'
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useAuditSessionStore } from '../store/auditSessionStore'
+import { useAuditSession } from '../hooks/useAuditSession'
 import Loading from './../../../components/Loading'
 import AuditSessionDocuments from './AuditSessionDocuments'
-import { ChatButton } from '@/modules/chat';
+import { ChatButton } from '@/modules/chat/components/ChatButton';
 import AuditSessionChats from './AuditSessionChats'
 import AuditSessionComplianceGaps from './AuditSessionComplianceGaps'
 import { CompleteSessionDialog } from './CompleteSessionDialog'
@@ -25,18 +26,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { GenerateAuditReportDialog } from '@/modules/audit-reports/components/GenerateAuditReportDialog'
-
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  })
-}
+import { formatDate } from '@/lib/compliance'
 
 const getDuration = (startedAt: string, endedAt?: string) => {
   const start = new Date(startedAt)
@@ -60,13 +50,19 @@ const DOMAIN_INFO = {
 
 export default function AuditSessionDetail() {
   const { sessionId } = useParams<{ sessionId: string }>()
-  const { currentSession, isLoading, error, fetchSessionById, reactivateSession } = useAuditSessionStore()
+  const { currentSession, isLoading, error, fetchSessionById, reactivateSession } = useAuditSession()
 
   useEffect(() => {
     if (sessionId) {
       fetchSessionById(sessionId)
     }
-  }, [sessionId, fetchSessionById])
+  }, [sessionId])
+
+  const handleReactivateSession = useCallback(() => {
+    if (currentSession?.id) {
+      reactivateSession(currentSession.id)
+    }
+  }, [currentSession?.id])
 
 
   
@@ -281,7 +277,7 @@ export default function AuditSessionDetail() {
                 ) : (
                   <Button
                     variant="outline"
-                    onClick={() => reactivateSession(currentSession.id)}
+                    onClick={handleReactivateSession}
                     className="flex items-center space-x-2"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -294,13 +290,14 @@ export default function AuditSessionDetail() {
           <AuditSessionComplianceGaps 
             sessionId={currentSession.id}
             complianceDomain={currentSession.compliance_domain}
-          />
+          /> 
           <AuditSessionChats 
             sessionId={currentSession.id}
             sessionName={currentSession.session_name}
             complianceDomain={currentSession.compliance_domain}
           />
           <AuditSessionDocuments sessionId={currentSession.id} />
+          { /*<AuditSessionDocuments sessionId={currentSession.id} />*/ }
         </div>
         
         <div className="space-y-6">

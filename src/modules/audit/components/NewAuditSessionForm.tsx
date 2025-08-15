@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useAuditSessionStore } from '../store/auditSessionStore'
+import { useAuditSession } from '../hooks/useAuditSession'
 import { Plus, AlertCircle } from 'lucide-react'
 
 const COMPLIANCE_DOMAINS = [
@@ -15,7 +15,7 @@ export default function NewAuditSessionForm() {
   const [complianceDomain, setComplianceDomain] = useState('')
   const [formError, setFormError] = useState('')
   
-  const { createSession, isLoading, error } = useAuditSessionStore()
+  const { createSession, isLoading, error } = useAuditSession()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {

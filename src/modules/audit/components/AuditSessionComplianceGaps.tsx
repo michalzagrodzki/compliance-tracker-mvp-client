@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router'
@@ -40,7 +40,7 @@ export default function AuditSessionComplianceGaps({
     gaps,
     isLoading,
     error,
-    loadSessionGaps,
+    loadGapsByAuditSession,
     clearError
   } = useComplianceGap()
 
@@ -60,17 +60,17 @@ export default function AuditSessionComplianceGaps({
     averageConfidenceScore: 0
   });
 
-  const loadGaps = useCallback(async () => {
-    try {
-      await loadSessionGaps(sessionId)
-    } catch (error) {
-      console.error('Error loading compliance gaps:', error)
-    }
-  }, [sessionId, loadSessionGaps])
-
   useEffect(() => {
+    const loadGaps = async () => {
+      try {
+        await loadGapsByAuditSession(sessionId)
+      } catch (error) {
+        console.error('Error loading compliance gaps:', error)
+      }
+    }
+    
     loadGaps()
-  }, [loadGaps])
+  }, [sessionId])
 
   // Calculate statistics when gaps change
   useEffect(() => {
@@ -110,9 +110,13 @@ export default function AuditSessionComplianceGaps({
     setStats(newStats);
   }, [gaps]);
 
-  const handleRefresh = useCallback(() => {
-    loadGaps()
-  }, [loadGaps])
+  const handleRefresh = async () => {
+    try {
+      await loadGapsByAuditSession(sessionId)
+    } catch (error) {
+      console.error('Error loading compliance gaps:', error)
+    }
+  }
 
   const getRiskLevelColor = (level: string) => {
     switch (level) {

@@ -32,46 +32,6 @@ export interface AuditSessionSearchRequest {
   limit?: number;
 }
 
-export interface AuditSessionState {
-  sessions: AuditSession[];
-  currentSession: AuditSession | null;
-  isLoading: boolean;
-  error: string | null;
-  sessionDocuments: any;
-  isAddingDocument: boolean;
-  isRemovingDocument: string | null;
-}
-
-export interface AuditSessionActions {
-  fetchUserSessions: (
-    userId: string,
-    skip?: number,
-    limit?: number
-  ) => Promise<void>;
-  fetchSessionById: (sessionId: string) => Promise<void>;
-  fetchSessionsByDomain: (domain: string) => Promise<void>;
-  createSession: (sessionData: AuditSessionCreate) => Promise<AuditSession>;
-  searchSessions: (searchData: AuditSessionSearchRequest) => Promise<void>;
-  clearError: () => void;
-  setLoading: (loading: boolean) => void;
-  setAddingDocument: (adding: boolean) => void;
-  setRemovingDocument: (documentId: string | null) => void;
-  fetchSessionDocuments: (
-    sessionId: string
-  ) => Promise<DocumentWithRelationship[] | undefined>;
-
-  addDocumentToSession: (
-    sessionId: string,
-    documentId: string,
-    notes?: string
-  ) => Promise<DocumentWithRelationship[]>;
-  removeDocumentFromSession: (
-    sessionId: string,
-    documentId: string
-  ) => Promise<void>;
-  closeSession: (sessionId: string, summary?: string) => Promise<void>;
-  reactivateSession: (sessionId: string) => Promise<void>;
-}
 
 export interface DocumentWithRelationship extends PdfIngestion {
   notes?: string;
