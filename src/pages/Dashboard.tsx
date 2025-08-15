@@ -1,5 +1,9 @@
+import { useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/modules/auth/store/authStore'
+import { useAuditReport } from '@/modules/audit-reports/hooks/useAuditReport'
+import { useAuditSession } from '@/modules/audit/hooks/useAuditSession'
+import { useComplianceGap } from '@/modules/compliance-gaps/hooks/useComplianceGap'
 import { 
   Clock, 
   Plus,
@@ -16,6 +20,15 @@ import DashboardCard from '@/components/DashboardCard'
 
 export default function Dashboard() {
   const { user } = useAuthStore()
+  const { reports, loadReports } = useAuditReport()
+  const { sessions, fetchSessionsByStatus } = useAuditSession()
+  const { gaps, loadGaps } = useComplianceGap()
+
+  useEffect(() => {
+    loadReports()
+    fetchSessionsByStatus(true)
+    loadGaps()
+  }, [])
 
   const actionCards = [
     {
@@ -51,6 +64,28 @@ export default function Dashboard() {
       variant: "default" as const
     },
   ]
+
+  const dashboardStats = useMemo(() => {
+    const auditReportsData = {
+      finalized: reports?.filter(r => r.report_status === 'finalized')?.length || 0,
+      approved: reports?.filter(r => r.report_status === 'approved')?.length || 0,
+      total: reports?.length || 0
+    }
+
+    const activeSessionsCount = sessions?.length || 0
+
+    const complianceGapsData = {
+      active: gaps?.filter(g => ['identified', 'acknowledged', 'in_progress'].includes(g.status))?.length || 0,
+      closed: gaps?.filter(g => ['resolved', 'false_positive', 'accepted_risk'].includes(g.status))?.length || 0,
+      total: gaps?.length || 0
+    }
+
+    return {
+      auditReports: auditReportsData,
+      activeSessions: activeSessionsCount,
+      complianceGaps: complianceGapsData
+    }
+  }, [reports, sessions, gaps])
 
   const browseCards = [
     {
@@ -100,56 +135,45 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6">
+        <Card className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-sm font-medium">Audit Reports</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="text-2xl font-bold">{dashboardStats.auditReports.total}</div>
+            <div className="flex gap-4 text-xs text-muted-foreground mt-2">
+              <span>Finalized: {dashboardStats.auditReports.finalized}</span>
+              <span>Approved: {dashboardStats.auditReports.approved}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
+          <CardContent className="pt-2">
+            <div className="text-2xl font-bold">{dashboardStats.activeSessions}</div>
             <p className="text-xs text-muted-foreground">
-              +1 from last week
+              Currently running
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Documents</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground">
-              Total uploaded
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-sm font-medium">Compliance Gaps</CardTitle>
             <TriangleAlert className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">7</div>
-            <p className="text-xs text-muted-foreground">
-              Need attention
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Activity</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2h ago</div>
-            <p className="text-xs text-muted-foreground">
-              Document uploaded
-            </p>
+          <CardContent className="pt-2">
+            <div className="text-2xl font-bold">{dashboardStats.complianceGaps.total}</div>
+            <div className="flex gap-4 text-xs text-muted-foreground mt-2">
+              <span>Active: {dashboardStats.complianceGaps.active}</span>
+              <span>Closed: {dashboardStats.complianceGaps.closed}</span>
+            </div>
           </CardContent>
         </Card>
       </div>
