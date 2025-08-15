@@ -23,68 +23,35 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Users,
 } from 'lucide-react';
 import { useAuditReport } from '../hooks/useAuditReport';
 import { useAuthStore } from '@/modules/auth/store/authStore';
-import { useAuditReportStore } from '../store/auditReportStore';
 import {
   type AuditReport,
   type ReportStatus,
-  type ReportType,
   type Recommendation,
   type ActionItem,
   type AuditReportCreate,
   type DetailedFinding,
-  REPORT_TYPE_OPTIONS,
   COMPLIANCE_RATING_OPTIONS,
-  CONFIDENTIALITY_LEVEL_OPTIONS,
   SummaryType,
 } from '../types';
+import ReportTypeChips from './form-sections/ReportTypeChips';
+import ConfidentialityLevelChips from './form-sections/ConfidentialityLevelChips';
+import ReportSummaryFields from './form-sections/ReportSummaryFields';
+import EditBasicInformationFields from './form-sections/EditBasicInformationFields';
+import DataSourcesSection from './form-sections/DataSourcesSection';
+import DetailedFindingsSection from './form-sections/DetailedFindingsSection';
+import RecommendationsSection from './form-sections/RecommendationsSection';
+import ActionItemsSection from './form-sections/ActionItemsSection';
+import AuditTrailReferencesFields from './form-sections/AuditTrailReferencesFields';
+import ChangeDescriptionField from './form-sections/ChangeDescriptionField';
 import type { ComplianceGap } from '@/modules/compliance-gaps/types';
 
 export default function EditAuditReportPage() {
   const navigate = useNavigate();
   const { reportId } = useParams<{ reportId: string }>();
   const { user } = useAuthStore();
-  const {
-    dataSources,
-    updateChatSelection,
-    updateGapSelection,
-    updateDocumentSelection,
-    clearDataSources,
-    // Executive Summary
-    isGeneratingSummary,
-    executiveSummary,
-    summaryError,
-    generateExecutiveSummary,
-    clearExecutiveSummary,
-    clearSummaryError,
-    // Threat Intelligence
-    isGeneratingThreatIntelligence,
-    threatIntelligence,
-    threatIntelligenceError,
-    generateThreatIntelligence,
-    clearThreatIntelligence,
-    clearThreatIntelligenceError,
-    // Risk Prioritization
-    isGeneratingRiskPrioritization,
-    riskPrioritization,
-    riskPrioritizationError,
-    generateRiskPrioritization,
-    clearRiskPrioritization,
-    clearRiskPrioritizationError,
-    // Target Audience
-    isGeneratingTargetAudience,
-    targetAudience,
-    targetAudienceError,
-    generateTargetAudience,
-    clearTargetAudience,
-    clearTargetAudienceError,
-  } = useAuditReportStore();
 
   const {
     currentReport,
@@ -96,9 +63,39 @@ export default function EditAuditReportPage() {
     updateReport,
     clearUpdateError,
     loadSessionData,
+    generateExecutiveSummary,
+    generateThreatIntelligence,
+    generateRiskPrioritization,
+    generateTargetAudience,
     canGenerateSummary,
     getSelectedData,
     validateSummaryGeneration,
+    dataSources,
+    updateSelections,
+    // Executive Summary
+    isGeneratingSummary,
+    executiveSummary,
+    summaryError,
+    clearExecutiveSummary,
+    clearSummaryError,
+    // Threat Intelligence
+    isGeneratingThreatIntelligence,
+    threatIntelligence,
+    threatIntelligenceError,
+    clearThreatIntelligence,
+    clearThreatIntelligenceError,
+    // Risk Prioritization
+    isGeneratingRiskPrioritization,
+    riskPrioritization,
+    riskPrioritizationError,
+    clearRiskPrioritization,
+    clearRiskPrioritizationError,
+    // Target Audience
+    isGeneratingTargetAudience,
+    targetAudience,
+    targetAudienceError,
+    clearTargetAudience,
+    clearTargetAudienceError,
   } = useAuditReport();
 
   const [formData, setFormData] = useState<Partial<AuditReport>>({});
@@ -114,9 +111,18 @@ export default function EditAuditReportPage() {
   const [detailedFindings, setDetailedFindings] = useState<DetailedFinding[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
+  const [loadingStates, setLoadingStates] = useState({
+    isLoadingReport: false,
+    isLoadingSessionData: false,
+    isUpdatingReport: false
+  });
+
   useEffect(() => {
     if (reportId) {
-      loadReport(reportId);
+      setLoadingStates(prev => ({ ...prev, isLoadingReport: true }));
+      loadReport(reportId).finally(() => {
+        setLoadingStates(prev => ({ ...prev, isLoadingReport: false }));
+      });
     }
     clearUpdateError();
     clearExecutiveSummary();
@@ -132,7 +138,10 @@ export default function EditAuditReportPage() {
   useEffect(() => {
     if (currentReport) {
       // Load session data sources for this report
-      loadSessionData(currentReport.audit_session_id);
+      setLoadingStates(prev => ({ ...prev, isLoadingSessionData: true }));
+      loadSessionData(currentReport.audit_session_id).finally(() => {
+        setLoadingStates(prev => ({ ...prev, isLoadingSessionData: false }));
+      });
       
       setFormData({
         report_title: currentReport.report_title,
@@ -221,8 +230,7 @@ export default function EditAuditReportPage() {
 
   useEffect(() => {
     return () => {
-      clearDataSources();
-      clearExecutiveSummary();
+        clearExecutiveSummary();
       clearSummaryError();
       clearThreatIntelligence();
       clearThreatIntelligenceError();
@@ -231,7 +239,7 @@ export default function EditAuditReportPage() {
       clearTargetAudience();
       clearTargetAudienceError();
     };
-  }, [clearDataSources, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
+  }, [clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
 
   const handleInputChange = (field: keyof AuditReport, value: any) => {
     setFormData(prev => ({
@@ -510,21 +518,24 @@ export default function EditAuditReportPage() {
 
   const toggleDataSourceSelection = (type: 'chat' | 'gap' | 'document', id: string | number) => {
     if (type === 'chat') {
-      updateChatSelection(id as number, !dataSources.chatHistory.find(c => c.id === id)?.selected);
+      const isSelected = !dataSources.chatHistory.find(c => c.id === id)?.selected;
+      updateSelections('chat', id, isSelected);
       const currentIds = formData.chat_history_ids || [];
       const updatedIds = currentIds.includes(id as number) 
         ? currentIds.filter(existingId => existingId !== id)
         : [...currentIds, id as number];
       handleArrayChange('chat_history_ids', updatedIds);
     } else if (type === 'gap') {
-      updateGapSelection(id as string, !dataSources.complianceGaps.find(g => g.id === id)?.selected);
+      const isSelected = !dataSources.complianceGaps.find(g => g.id === id)?.selected;
+      updateSelections('gap', id, isSelected);
       const currentIds = formData.compliance_gap_ids || [];
       const updatedIds = currentIds.includes(id as string) 
         ? currentIds.filter(existingId => existingId !== id)
         : [...currentIds, id as string];
       handleArrayChange('compliance_gap_ids', updatedIds);
     } else if (type === 'document') {
-      updateDocumentSelection(id as string, !dataSources.documents.find(d => d.id === id)?.selected);
+      const isSelected = !dataSources.documents.find(d => d.id === id)?.selected;
+      updateSelections('document', id, isSelected);
       const currentIds = formData.document_ids || [];
       const updatedIds = currentIds.includes(id as string) 
         ? currentIds.filter(existingId => existingId !== id)
@@ -546,15 +557,22 @@ export default function EditAuditReportPage() {
     if (!reportId || !hasChanges) return;
 
     try {
+      setLoadingStates(prev => ({ ...prev, isUpdatingReport: true }));
       const formattedData = prepareDataForBackend(formData);
 
       await updateReport(reportId, formattedData, changeDescription);
       setHasChanges(false);
       setChangeDescription('');
+      
+      // Show success message and scroll to top
       setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => setShowSuccessMessage(false), 5000);
     } catch (error) {
       // Error handled by store
+      console.error('Error updating report:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, isUpdatingReport: false }));
     }
   };
 
@@ -579,7 +597,7 @@ export default function EditAuditReportPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || loadingStates.isLoadingReport) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex items-center justify-center py-12">
@@ -639,9 +657,9 @@ export default function EditAuditReportPage() {
           </Button>
           
           {showSuccessMessage && (
-            <div className="flex items-center space-x-2 bg-green-50 text-green-800 px-3 py-2 rounded-md">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-sm">Report updated successfully!</span>
+            <div className="flex items-center space-x-2 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-sm animate-in slide-in-from-top-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium">Report updated successfully!</span>
             </div>
           )}
         </div>
@@ -684,451 +702,66 @@ export default function EditAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="report_title" className="text-sm font-medium">Report Title</label>
-                <Input
-                  id="report_title"
-                  value={formData.report_title || ''}
-                  onChange={(e) => handleInputChange('report_title', e.target.value)}
-                  placeholder="Enter report title..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Report Status</label>
-                <select
-                  value={formData.report_status || ''}
-                  onChange={(e) => handleInputChange('report_status', e.target.value as ReportStatus)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="finalized">Finalized</option>
-                  <option value="approved">Approved</option>
-                  <option value="distributed">Distributed</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Report Type</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {REPORT_TYPE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('report_type', option.value as ReportType)}
-                    className={`text-left text-sm p-3 rounded border transition-colors ${
-                      formData.report_type === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Overall Compliance Rating</label>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                {COMPLIANCE_RATING_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('overall_compliance_rating', option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-colors ${
-                      formData.overall_compliance_rating === option.value
-                        ? `border-blue-400 ${option.color}`
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="regulatory_risk_score" className="text-sm font-medium">
-                  Regulatory Risk Score (1-10)
-                </label>
-                <Input
-                  id="regulatory_risk_score"
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={formData.regulatory_risk_score || ''}
-                  onChange={(e) => handleInputChange('regulatory_risk_score', parseInt(e.target.value) || null)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="estimated_remediation_cost" className="text-sm font-medium">
-                  Estimated Remediation Cost ($)
-                </label>
-                <Input
-                  id="estimated_remediation_cost"
-                  type="number"
-                  step="0.01"
-                  value={formData.estimated_remediation_cost || ''}
-                  onChange={(e) => handleInputChange('estimated_remediation_cost', parseFloat(e.target.value) || null)}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="estimated_remediation_time_days" className="text-sm font-medium">
-                  Estimated Remediation Time
-                </label>
-                <Input
-                  id="estimated_remediation_time_days"
-                  type="datetime-local"
-                  value={
-                    formData.estimated_remediation_time_days 
-                      ? new Date(Date.now() + (formData.estimated_remediation_time_days * 24 * 60 * 60 * 1000)).toISOString().slice(0, 16)
-                      : ''
-                  }
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const selectedDate = new Date(e.target.value);
-                      const today = new Date();
-                      const diffTime = selectedDate.getTime() - today.getTime();
-                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                      handleInputChange('estimated_remediation_time_days', diffDays > 0 ? diffDays : null);
-                    } else {
-                      handleInputChange('estimated_remediation_time_days', null);
-                    }
-                  }}
-                />
-                {formData.estimated_remediation_time_days && (
-                  <p className="text-xs text-muted-foreground">
-                    {formData.estimated_remediation_time_days} days from today
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="potential_fine_exposure" className="text-sm font-medium">
-                  Potential Fine Exposure ($)
-                </label>
-                <Input
-                  id="potential_fine_exposure"
-                  type="number"
-                  step="0.01"
-                  value={formData.potential_fine_exposure || ''}
-                  onChange={(e) => handleInputChange('potential_fine_exposure', parseFloat(e.target.value) || null)}
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Confidentiality Level</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                {CONFIDENTIALITY_LEVEL_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleInputChange('confidentiality_level', option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.confidentiality_level === option.value
-                        ? `border-blue-400 ${option.color}`
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <EditBasicInformationFields
+              reportTitle={formData.report_title || ''}
+              onTitleChange={(value) => handleInputChange('report_title', value)}
+              reportStatus={formData.report_status || 'draft'}
+              onStatusChange={(value) => handleInputChange('report_status', value)}
+              reportType={formData.report_type || 'compliance_audit'}
+              onReportTypeChange={(value) => handleInputChange('report_type', value)}
+              overallComplianceRating={formData.overall_compliance_rating || ''}
+              onComplianceRatingChange={(value) => handleInputChange('overall_compliance_rating', value)}
+              regulatoryRiskScore={formData.regulatory_risk_score}
+              onRegulatoryRiskScoreChange={(value) => handleInputChange('regulatory_risk_score', value)}
+              estimatedRemediationCost={formData.estimated_remediation_cost}
+              onRemediationCostChange={(value) => handleInputChange('estimated_remediation_cost', value)}
+              estimatedRemediationTimeDays={formData.estimated_remediation_time_days}
+              onRemediationTimeChange={(value) => handleInputChange('estimated_remediation_time_days', value)}
+              potentialFineExposure={formData.potential_fine_exposure}
+              onFineExposureChange={(value) => handleInputChange('potential_fine_exposure', value)}
+              confidentialityLevel={formData.confidentiality_level || 'internal'}
+              onConfidentialityChange={(value) => handleInputChange('confidentiality_level', value)}
+            />
           </CardContent>
         </Card>
         
-        {/* Executive Summary */}
+        {/* Report Summaries */}
         <Card>
           <CardHeader>
-            <CardTitle>Executive Summary</CardTitle>
+            <CardTitle>Report Summaries</CardTitle>
             <CardDescription>
-              Provide or generate a high-level overview of the audit findings and conclusions
+              Generate AI-powered summaries for different sections of your audit report
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="executive_summary" className="text-sm font-medium">Executive Summary</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateExecutiveSummary}
-                  disabled={!canGenerateSummary() || isGeneratingSummary}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingSummary ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingSummary ? 'Generating...' : 'Generate Executive Summary'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="executive_summary"
-                value={formData.executive_summary || ''}
-                onChange={(e) => handleInputChange('executive_summary', e.target.value)}
-                placeholder="Enter executive summary..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  High-level overview of audit findings for executive stakeholders
-                </p>
-                {!canGenerateSummary() && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable summary generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {executiveSummary && (
-              <div className="bg-green-50 border border-green-200 rounded-md p-3 mt-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">
-                    Executive Summary Generated Successfully
-                  </span>
-                </div>
-                <div className="text-xs text-green-700 space-y-1">
-                  <p>• Total Gaps Analyzed: {executiveSummary.total_gaps}</p>
-                  <p>• High Risk Gaps: {executiveSummary.high_risk_gaps}</p>
-                  <p>• Regulatory Gaps: {executiveSummary.regulatory_gaps}</p>
-                  {executiveSummary.potential_financial_impact && (
-                    <p>• Potential Financial Impact: ${executiveSummary.potential_financial_impact.toLocaleString()}</p>
-                  )}
-                </div>
-              </div>
-            )}
+            <ReportSummaryFields
+              executiveSummary={formData.executive_summary || ''}
+              onExecutiveSummaryChange={(value) => handleInputChange('executive_summary', value)}
+              onGenerateExecutiveSummary={handleGenerateExecutiveSummary}
+              isGeneratingSummary={isGeneratingSummary}
+              executiveSummaryData={executiveSummary}
+              threatIntelligenceAnalysis={formData.threat_intelligence_analysis || ''}
+              onThreatIntelligenceChange={(value) => handleInputChange('threat_intelligence_analysis', value)}
+              onGenerateThreatIntelligence={handleGenerateThreatIntelligence}
+              isGeneratingThreatIntelligence={isGeneratingThreatIntelligence}
+              threatIntelligenceData={threatIntelligence}
+              controlRiskPrioritization={formData.control_risk_prioritization || ''}
+              onRiskPrioritizationChange={(value) => handleInputChange('control_risk_prioritization', value)}
+              onGenerateRiskPrioritization={handleGenerateRiskPrioritization}
+              isGeneratingRiskPrioritization={isGeneratingRiskPrioritization}
+              riskPrioritizationData={riskPrioritization}
+              targetAudienceSummary={formData.target_audience_summary || ''}
+              onTargetAudienceChange={(value) => handleInputChange('target_audience_summary', value)}
+              onGenerateTargetAudience={handleGenerateTargetAudience}
+              isGeneratingTargetAudience={isGeneratingTargetAudience}
+              targetAudienceData={targetAudience}
+              currentTargetAudience={currentReport?.target_audience}
+              selectedAuditSession={currentReport?.audit_session_id || ''}
+              canGenerateSummary={canGenerateSummary()}
+            />
           </CardContent>
         </Card>
 
-        {/* Threat Intelligence Analysis */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Threat Intelligence Analysis</CardTitle>
-            <CardDescription>
-              Generate or provide threat intelligence insights based on compliance gaps and risk factors
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="threat_intelligence_analysis" className="text-sm font-medium">Threat Intelligence Analysis</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateThreatIntelligence}
-                  disabled={!canGenerateSummary() || isGeneratingThreatIntelligence}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingThreatIntelligence ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Target className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingThreatIntelligence ? 'Generating...' : 'Generate Threat Intelligence'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="threat_intelligence_analysis"
-                value={formData.threat_intelligence_analysis || ''}
-                onChange={(e) => handleInputChange('threat_intelligence_analysis', e.target.value)}
-                placeholder="Enter threat intelligence analysis..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Analysis of potential threats and vulnerabilities based on identified gaps
-                </p>
-                {!canGenerateSummary() && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable analysis generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {threatIntelligence && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">
-                    Threat Intelligence Analysis Generated Successfully
-                  </span>
-                </div>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <p>• Total Gaps Analyzed: {threatIntelligence.total_gaps}</p>
-                  <p>• Threat Indicators: {threatIntelligence.threat_indicators}</p>
-                  <p>• Vulnerability Score: {threatIntelligence.vulnerability_score}</p>
-                  <p>• High Risk Gaps: {threatIntelligence.high_risk_gaps}</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Risk Prioritization */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Risk Prioritization</CardTitle>
-            <CardDescription>
-              Generate or provide control risk prioritization based on compliance gaps and business impact
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="control_risk_prioritization" className="text-sm font-medium">Control Risk Prioritization</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateRiskPrioritization}
-                  disabled={!canGenerateSummary() || isGeneratingRiskPrioritization}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingRiskPrioritization ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <TrendingUp className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingRiskPrioritization ? 'Generating...' : 'Generate Risk Prioritization'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="control_risk_prioritization"
-                value={formData.control_risk_prioritization || ''}
-                onChange={(e) => handleInputChange('control_risk_prioritization', e.target.value)}
-                placeholder="Enter control risk prioritization..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Prioritized risk assessment and control recommendations
-                </p>
-                {!canGenerateSummary() && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable prioritization generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {riskPrioritization && (
-              <div className="bg-orange-50 border border-orange-200 rounded-md p-3 mt-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-800">
-                    Risk Prioritization Generated Successfully
-                  </span>
-                </div>
-                <div className="text-xs text-orange-700 space-y-1">
-                  <p>• Total Gaps Analyzed: {riskPrioritization.total_gaps}</p>
-                  <p>• Prioritized Risks: {riskPrioritization.prioritized_risks}</p>
-                  <p>• Risk Score: {riskPrioritization.risk_score}</p>
-                  <p>• High Risk Gaps: {riskPrioritization.high_risk_gaps}</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Target Audience Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Target Audience Summary</CardTitle>
-            <CardDescription>
-              Generate or provide audience-specific summary tailored to the report's target stakeholders
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="target_audience_summary" className="text-sm font-medium">Target Audience Summary</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateTargetAudience}
-                  disabled={!canGenerateSummary() || isGeneratingTargetAudience}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingTargetAudience ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Users className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingTargetAudience ? 'Generating...' : 'Generate Target Audience Summary'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="target_audience_summary"
-                value={formData.target_audience_summary || ''}
-                onChange={(e) => handleInputChange('target_audience_summary', e.target.value)}
-                placeholder="Enter target audience summary..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Summary tailored specifically for the target audience ({currentReport.target_audience})
-                </p>
-                {!canGenerateSummary() && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable summary generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {targetAudience && (
-              <div className="bg-purple-50 border border-purple-200 rounded-md p-3 mt-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-800">
-                    Target Audience Summary Generated Successfully
-                  </span>
-                </div>
-                <div className="text-xs text-purple-700 space-y-1">
-                  <p>• Total Gaps Analyzed: {targetAudience.total_gaps}</p>
-                  <p>• Communication Level: {targetAudience.communication_level}</p>
-                  <p>• Focus Areas: {targetAudience.audience_focus_areas?.join(', ')}</p>
-                  <p>• High Risk Gaps: {targetAudience.high_risk_gaps}</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Data Sources */}
         <Card>
@@ -1139,451 +772,78 @@ export default function EditAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium">Chat History</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({(formData.chat_history_ids || []).length} selected)
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleDataSourcesDetail('chats')}
-                >
-                  {showDataSourcesDetails.chats ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-
-              {showDataSourcesDetails.chats && dataSources.chatHistory && (
-                <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
-                  {dataSources.chatHistory.map((chat) => (
-                    <div key={chat.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                      <input
-                        type="checkbox"
-                        checked={(formData.chat_history_ids || []).includes(chat.id)}
-                        onChange={() => toggleDataSourceSelection('chat', chat.id)}
-                        className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">
-                          {chat.user_message || chat.message}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(chat.timestamp).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  <span className="font-medium">Compliance Gaps</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({(formData.compliance_gap_ids || []).length} selected)
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleDataSourcesDetail('gaps')}
-                >
-                  {showDataSourcesDetails.gaps ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-
-              {showDataSourcesDetails.gaps && dataSources.complianceGaps && (
-                <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
-                  {dataSources.complianceGaps.map((gap) => (
-                    <div key={gap.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                      <input
-                        type="checkbox"
-                        checked={(formData.compliance_gap_ids || []).includes(gap.id)}
-                        onChange={() => toggleDataSourceSelection('gap', gap.id)}
-                        className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900">
-                          {gap.gap_title}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {gap.risk_level} risk • {gap.gap_type}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Database className="h-5 w-5 text-green-600" />
-                  <span className="font-medium">Documents</span>
-                  <span className="text-sm text-muted-foreground">
-                    ({(formData.document_ids || []).length} selected)
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleDataSourcesDetail('documents')}
-                >
-                  {showDataSourcesDetails.documents ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-
-              {showDataSourcesDetails.documents && dataSources.documents && (
-                <div className="max-h-60 overflow-y-auto space-y-2 border rounded-md p-3">
-                  {dataSources.documents.map((doc) => (
-                    <div key={doc.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-                      <input
-                        type="checkbox"
-                        checked={(formData.document_ids || []).includes(doc.id)}
-                        onChange={() => toggleDataSourceSelection('document', doc.id)}
-                        className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900">
-                          {doc.filename}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Uploaded: {new Date(doc.upload_date).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DataSourcesSection
+              selectedAuditSession={currentReport?.audit_session_id || ''}
+              showDataSourcesDetails={showDataSourcesDetails}
+              onToggleDataSourcesDetail={toggleDataSourcesDetail}
+              chatHistory={dataSources.chatHistory || []}
+              selectedChatIds={formData.chat_history_ids || []}
+              onChatSelectionChange={(chatId, selected) => toggleDataSourceSelection('chat', chatId)}
+              isLoadingChats={false}
+              complianceGaps={dataSources.complianceGaps || []}
+              selectedGapIds={formData.compliance_gap_ids || []}
+              onGapSelectionChange={(gapId, selected) => toggleDataSourceSelection('gap', gapId)}
+              isLoadingGaps={false}
+              documents={dataSources.documents || []}
+              selectedDocumentIds={formData.document_ids || []}
+              onDocumentSelectionChange={(docId, selected) => toggleDataSourceSelection('document', docId)}
+              isLoadingDocuments={false}
+              isLoadingSessionData={loadingStates.isLoadingSessionData}
+            />
           </CardContent>
         </Card>
         
         {/* Detailed Findings */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Detailed Findings</span>
-              <Button type="button" onClick={addDetailedFinding} size="sm" variant="outline">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Finding
-              </Button>
-            </CardTitle>
+            <CardTitle>Detailed Findings</CardTitle>
             <CardDescription>
               Specific findings from the audit process
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {detailedFindings.map((finding, index) => (
-              <div key={finding.id} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Finding {index + 1}</h4>
-                  <Button
-                    type="button"
-                    onClick={() => removeDetailedFinding(index)}
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Title</label>
-                    <Input
-                      value={finding.title}
-                      onChange={(e) => updateDetailedFinding(index, 'title', e.target.value)}
-                      placeholder="Finding title"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Severity</label>
-                    <select
-                      value={finding.severity}
-                      onChange={(e) => updateDetailedFinding(index, 'severity', e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    >
-                      <option value="critical">Critical</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Category</label>
-                  <Input
-                    value={finding.category}
-                    onChange={(e) => updateDetailedFinding(index, 'category', e.target.value)}
-                    placeholder="e.g., Access Control, Data Protection"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
-                  <textarea
-                    value={finding.description}
-                    onChange={(e) => updateDetailedFinding(index, 'description', e.target.value)}
-                    placeholder="Detailed description of the finding"
-                    rows={3}
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Recommendation</label>
-                  <textarea
-                    value={finding.recommendation}
-                    onChange={(e) => updateDetailedFinding(index, 'recommendation', e.target.value)}
-                    placeholder="Recommended actions to address this finding"
-                    rows={2}
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </div>
-              </div>
-            ))}
-            
-            {detailedFindings.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Info className="h-8 w-8 mx-auto mb-2" />
-                <p>No detailed findings added yet</p>
-                <p className="text-sm">Click "Add Finding" to create specific audit findings</p>
-              </div>
-            )}
+            <DetailedFindingsSection
+              findings={detailedFindings}
+              onAddFinding={addDetailedFinding}
+              onUpdateFinding={updateDetailedFinding}
+              onRemoveFinding={removeDetailedFinding}
+            />
           </CardContent>
         </Card>
 
         {/* Recommendations */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Recommendations</span>
-              <Button type="button" onClick={addRecommendation} size="sm" variant="outline">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Recommendation
-              </Button>
-            </CardTitle>
+            <CardTitle>Recommendations</CardTitle>
             <CardDescription>
               Strategic recommendations for addressing compliance gaps
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recommendations.map((recommendation, index) => (
-              <div key={recommendation.id} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Recommendation {index + 1}</h4>
-                  <Button
-                    type="button"
-                    onClick={() => removeRecommendation(index)}
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Title</label>
-                    <Input
-                      value={recommendation.title}
-                      onChange={(e) => updateRecommendation(index, 'title', e.target.value)}
-                      placeholder="Recommendation title"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Priority</label>
-                    <select
-                      value={recommendation.priority}
-                      onChange={(e) => updateRecommendation(index, 'priority', e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    >
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Category</label>
-                    <Input
-                      value={recommendation.category}
-                      onChange={(e) => updateRecommendation(index, 'category', e.target.value)}
-                      placeholder="e.g., process_improvement, policy_update"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Estimated Effort</label>
-                    <Input
-                      value={recommendation.estimated_effort}
-                      onChange={(e) => updateRecommendation(index, 'estimated_effort', e.target.value)}
-                      placeholder="e.g., 2-4 weeks, 1 month"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
-                  <textarea
-                    value={recommendation.description}
-                    onChange={(e) => updateRecommendation(index, 'description', e.target.value)}
-                    placeholder="Detailed description of the recommendation"
-                    rows={3}
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </div>
-              </div>
-            ))}
-            
-            {recommendations.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Info className="h-8 w-8 mx-auto mb-2" />
-                <p>No recommendations added yet</p>
-                <p className="text-sm">Click "Add Recommendation" to create strategic recommendations</p>
-              </div>
-            )}
+            <RecommendationsSection
+              recommendations={recommendations}
+              onAddRecommendation={addRecommendation}
+              onUpdateRecommendation={updateRecommendation}
+              onRemoveRecommendation={removeRecommendation}
+            />
           </CardContent>
         </Card>
 
         {/* Action Items */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Action Items</span>
-              <Button type="button" onClick={addActionItem} size="sm" variant="outline">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Action Item
-              </Button>
-            </CardTitle>
+            <CardTitle>Action Items</CardTitle>
             <CardDescription>
               Specific tasks and assignments for addressing compliance gaps
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {actionItems.map((actionItem, index) => (
-              <div key={actionItem.id} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Action Item {index + 1}</h4>
-                  <Button
-                    type="button"
-                    onClick={() => removeActionItem(index)}
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Title</label>
-                    <Input
-                      value={actionItem.title}
-                      onChange={(e) => updateActionItem(index, 'title', e.target.value)}
-                      placeholder="Action item title"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Priority</label>
-                    <select
-                      value={actionItem.priority}
-                      onChange={(e) => updateActionItem(index, 'priority', e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    >
-                      <option value="critical">Critical</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Assigned To</label>
-                    <Input
-                      value={actionItem.assigned_to || ''}
-                      onChange={(e) => updateActionItem(index, 'assigned_to', e.target.value)}
-                      placeholder="Person or team responsible"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Due Date</label>
-                    <Input
-                      type="date"
-                      value={actionItem.due_date || ''}
-                      onChange={(e) => updateActionItem(index, 'due_date', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Status</label>
-                    <select
-                      value={actionItem.status}
-                      onChange={(e) => updateActionItem(index, 'status', e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
-                  <textarea
-                    value={actionItem.description}
-                    onChange={(e) => updateActionItem(index, 'description', e.target.value)}
-                    placeholder="Detailed description of the action item"
-                    rows={3}
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </div>
-              </div>
-            ))}
-            
-            {actionItems.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Info className="h-8 w-8 mx-auto mb-2" />
-                <p>No action items added yet</p>
-                <p className="text-sm">Click "Add Action Item" to create specific tasks</p>
-              </div>
-            )}
+            <ActionItemsSection
+              actionItems={actionItems}
+              onAddActionItem={addActionItem}
+              onUpdateActionItem={updateActionItem}
+              onRemoveActionItem={removeActionItem}
+            />
           </CardContent>
         </Card>
 
@@ -1596,56 +856,16 @@ export default function EditAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="external_audit_reference" className="text-sm font-medium">
-                  External Audit Reference
-                </label>
-                <Input
-                  id="external_audit_reference"
-                  value={formData.external_audit_reference || ''}
-                  onChange={(e) => handleInputChange('external_audit_reference', e.target.value)}
-                  placeholder="External audit reference number"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="scheduled_followup_date" className="text-sm font-medium">
-                  Scheduled Follow-up Date
-                </label>
-                <Input
-                  id="scheduled_followup_date"
-                  type="datetime-local"
-                  value={formData.scheduled_followup_date ? new Date(formData.scheduled_followup_date).toISOString().slice(0, 16) : ''}
-                  onChange={(e) => handleInputChange('scheduled_followup_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="regulatory_submission_date" className="text-sm font-medium">
-                Regulatory Submission Date
-              </label>
-              <Input
-                id="regulatory_submission_date"
-                type="datetime-local"
-                value={formData.regulatory_submission_date ? new Date(formData.regulatory_submission_date).toISOString().slice(0, 16) : ''}
-                onChange={(e) => handleInputChange('regulatory_submission_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="regulatory_response_received"
-                checked={formData.regulatory_response_received || false}
-                onChange={(e) => handleInputChange('regulatory_response_received', e.target.checked)}
-                className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-              />
-              <label htmlFor="regulatory_response_received" className="text-sm font-medium">
-                Regulatory Response Received
-              </label>
-            </div>
+            <AuditTrailReferencesFields
+              externalAuditReference={formData.external_audit_reference || ''}
+              onExternalAuditReferenceChange={(value) => handleInputChange('external_audit_reference', value)}
+              scheduledFollowupDate={formData.scheduled_followup_date}
+              onScheduledFollowupDateChange={(value) => handleInputChange('scheduled_followup_date', value)}
+              regulatorySubmissionDate={formData.regulatory_submission_date}
+              onRegulatorySubmissionDateChange={(value) => handleInputChange('regulatory_submission_date', value)}
+              regulatoryResponseReceived={formData.regulatory_response_received || false}
+              onRegulatoryResponseReceivedChange={(value) => handleInputChange('regulatory_response_received', value)}
+            />
           </CardContent>
         </Card>
 
@@ -1658,22 +878,10 @@ export default function EditAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <label htmlFor="change_description" className="text-sm font-medium">
-                What changes are you making?
-              </label>
-              <textarea
-                id="change_description"
-                value={changeDescription}
-                onChange={(e) => setChangeDescription(e.target.value)}
-                placeholder="Describe the changes made to this report..."
-                rows={3}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <p className="text-xs text-muted-foreground">
-                This will be recorded in the audit trail for compliance purposes
-              </p>
-            </div>
+            <ChangeDescriptionField
+              value={changeDescription}
+              onChange={setChangeDescription}
+            />
           </CardContent>
         </Card>
 
@@ -1682,7 +890,7 @@ export default function EditAuditReportPage() {
             type="button"
             variant="outline"
             onClick={handleCancel}
-            disabled={isUpdating}
+            disabled={isUpdating || loadingStates.isUpdatingReport}
             className="px-8"
           >
             Cancel
@@ -1690,9 +898,9 @@ export default function EditAuditReportPage() {
           <Button
             type="submit"
             className="px-8"
-            disabled={isUpdating || !hasChanges}
+            disabled={isUpdating || loadingStates.isUpdatingReport || !hasChanges}
           >
-            {isUpdating ? (
+            {(isUpdating || loadingStates.isUpdatingReport) ? (
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Updating...</span>

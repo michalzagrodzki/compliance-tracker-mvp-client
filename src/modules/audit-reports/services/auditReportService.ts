@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { http } from "@/modules/api/http";
+import { normalizeError } from "@/lib/error";
 import {
   SummaryType,
   type AuditReport,
@@ -86,13 +87,11 @@ class AuditReportService {
         download_url: auditReport.download_url || undefined,
       };
     } catch (error: any) {
-      // Transform error response to match our expected format
-      const errorMessage =
-        error.response?.data?.detail || "Failed to create audit report";
+      const err = normalizeError(error);
       return {
         success: false,
-        message: errorMessage,
-        error: errorMessage,
+        message: err.message || "Failed to create audit report",
+        error: err.message || "Failed to create audit report",
       };
     }
   }
@@ -115,17 +114,11 @@ class AuditReportService {
         generation_status: data.generation_status || "completed",
       };
     } catch (error: any) {
-      console.error("Failed to generate audit report:", error);
-
-      const errorMessage =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Failed to generate audit report";
-
+      const err = normalizeError(error);
       return {
         success: false,
-        message: errorMessage,
-        error: errorMessage,
+        message: err.message || "Failed to generate audit report",
+        error: err.message || "Failed to generate audit report",
         generation_status: "failed",
       };
     }
@@ -134,27 +127,39 @@ class AuditReportService {
     skip: number = 0,
     limit: number = 10
   ): Promise<AuditReport[]> {
-    const response = await http.get<AuditReport[]>(
-      AUDIT_REPORT_ENDPOINTS.LIST,
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditReport[]>(
+        AUDIT_REPORT_ENDPOINTS.LIST,
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getAllReportsByComplianceDomain(): Promise<AuditReport[]> {
-    const response = await http.get<AuditReport[]>(
-      AUDIT_REPORT_ENDPOINTS.BY_COMPLIANCE_DOMAINS
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditReport[]>(
+        AUDIT_REPORT_ENDPOINTS.BY_COMPLIANCE_DOMAINS
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getReportById(reportId: string): Promise<AuditReport> {
-    const response = await http.get<AuditReport>(
-      AUDIT_REPORT_ENDPOINTS.BY_ID(reportId)
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditReport>(
+        AUDIT_REPORT_ENDPOINTS.BY_ID(reportId)
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getSessionReports(
@@ -162,13 +167,17 @@ class AuditReportService {
     skip: number = 0,
     limit: number = 10
   ): Promise<AuditReport[]> {
-    const response = await http.get<AuditReport[]>(
-      AUDIT_REPORT_ENDPOINTS.BY_SESSION(sessionId),
-      {
-        params: { skip, limit },
-      }
-    );
-    return response.data;
+    try {
+      const response = await http.get<AuditReport[]>(
+        AUDIT_REPORT_ENDPOINTS.BY_SESSION(sessionId),
+        {
+          params: { skip, limit },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async updateReport(
@@ -176,24 +185,35 @@ class AuditReportService {
     updateData: Partial<AuditReport>,
     changeDescription?: string
   ): Promise<AuditReport> {
-    const payload = {
-      update_data: updateData,
-      change_description:
-        changeDescription || "Report updated via web interface",
-    };
+    try {
+      const payload = {
+        update_data: updateData,
+        change_description:
+          changeDescription || "Report updated via web interface",
+      };
 
-    const response = await http.patch<AuditReport>(
-      AUDIT_REPORT_ENDPOINTS.UPDATE(reportId),
-      payload
-    );
-    return response.data;
+      const response = await http.patch<AuditReport>(
+        AUDIT_REPORT_ENDPOINTS.UPDATE(reportId),
+        payload
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async downloadReport(reportId: string): Promise<Blob> {
-    const response = await http.get(AUDIT_REPORT_ENDPOINTS.DOWNLOAD(reportId), {
-      responseType: "blob",
-    });
-    return response.data;
+    try {
+      const response = await http.get(
+        AUDIT_REPORT_ENDPOINTS.DOWNLOAD(reportId),
+        {
+          responseType: "blob",
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 
   async getSessionChatHistory(sessionId: string): Promise<ChatHistoryItem[]> {
@@ -206,9 +226,8 @@ class AuditReportService {
         id: typeof chat.id === "string" ? parseInt(chat.id, 10) : chat.id,
         selected: true,
       }));
-    } catch (error: any) {
-      console.error("Failed to fetch chat history:", error);
-      return [];
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
@@ -221,11 +240,10 @@ class AuditReportService {
       );
       return response.data.map((gap) => ({
         ...gap,
-        selected: true, // Default to selected
+        selected: true,
       }));
-    } catch (error: any) {
-      console.error("Failed to fetch compliance gaps:", error);
-      return [];
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
@@ -236,11 +254,10 @@ class AuditReportService {
       );
       return response.data.map((doc) => ({
         ...doc,
-        selected: true, // Default to selected
+        selected: true,
       }));
-    } catch (error: any) {
-      console.error("Failed to fetch session documents:", error);
-      return [];
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
@@ -262,11 +279,8 @@ class AuditReportService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error("Failed to create executive summary:", error);
-      throw new Error(
-        error.response?.data?.detail || "Failed to create executive summary"
-      );
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
@@ -288,11 +302,8 @@ class AuditReportService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error("Failed to create threat intelligence:", error);
-      throw new Error(
-        error.response?.data?.detail || "Failed to create threat intelligence"
-      );
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
@@ -314,11 +325,8 @@ class AuditReportService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error("Failed to create risk prioritization:", error);
-      throw new Error(
-        error.response?.data?.detail || "Failed to create risk prioritization"
-      );
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
@@ -340,12 +348,8 @@ class AuditReportService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error("Failed to create target audience summary:", error);
-      throw new Error(
-        error.response?.data?.detail ||
-          "Failed to create target audience summary"
-      );
+    } catch (error) {
+      throw normalizeError(error);
     }
   }
 
@@ -355,17 +359,21 @@ class AuditReportService {
     complianceGaps: ComplianceGapItem[];
     documents: DocumentItem[];
   }> {
-    const [chatHistory, complianceGaps, documents] = await Promise.all([
-      this.getSessionChatHistory(sessionId),
-      this.getSessionComplianceGaps(sessionId),
-      this.getSessionDocuments(sessionId),
-    ]);
+    try {
+      const [chatHistory, complianceGaps, documents] = await Promise.all([
+        this.getSessionChatHistory(sessionId),
+        this.getSessionComplianceGaps(sessionId),
+        this.getSessionDocuments(sessionId),
+      ]);
 
-    return {
-      chatHistory,
-      complianceGaps,
-      documents,
-    };
+      return {
+        chatHistory,
+        complianceGaps,
+        documents,
+      };
+    } catch (error) {
+      throw normalizeError(error);
+    }
   }
 }
 

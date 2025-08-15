@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -20,26 +19,25 @@ import {
   Loader2,
   AlertCircle,
   Shield,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Users,
 } from 'lucide-react';
 import { useAuditSession } from '@/modules/audit/hooks/useAuditSession';
 import { useAuthStore } from '@/modules/auth/store/authStore';
-import { useAuditReportStore, auditReportStoreUtils } from '../store/auditReportStore';
 import {
   type AuditReportCreate,
   type ReportType,
   type TargetAudience,
   type ConfidentialityLevel,
-  REPORT_TYPE_OPTIONS,
-  TARGET_AUDIENCE_OPTIONS,
-  CONFIDENTIALITY_LEVEL_OPTIONS,
   SummaryType
 } from '../types';
 import { useAuditReport } from '../hooks/useAuditReport';
 import type { ComplianceGap } from '@/modules/compliance-gaps/types';
+import ReportBasicInfoFields from './form-sections/ReportBasicInfoFields';
+import ReportTypeChips from './form-sections/ReportTypeChips';
+import TargetAudienceChips from './form-sections/TargetAudienceChips';
+import ConfidentialityLevelChips from './form-sections/ConfidentialityLevelChips';
+import ReportSummaryFields from './form-sections/ReportSummaryFields';
+import ReportConfigurationFields from './form-sections/ReportConfigurationFields';
+import DataSourcesSection from './form-sections/DataSourcesSection';
 
 const COMPLIANCE_DOMAINS = [
   { value: 'ISO27001', label: 'ISO 27001 - Information Security Management' },
@@ -50,44 +48,6 @@ export default function CreateAuditReportPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const { user } = useAuthStore();
   const { currentSession, sessions, fetchSessionById, fetchSessionsByDomain } = useAuditSession();
-  const {
-    loadSessionDataSources,
-    updateChatSelection,
-    updateGapSelection,
-    updateDocumentSelection,
-    selectAllChats,
-    selectAllGaps,
-    selectAllDocuments, 
-    clearDataSources,
-    // Executive Summary
-    isGeneratingSummary,
-    executiveSummary,
-    summaryError,
-    generateExecutiveSummary,
-    clearExecutiveSummary,
-    clearSummaryError,
-    // Threat Intelligence
-    isGeneratingThreatIntelligence,
-    threatIntelligence,
-    threatIntelligenceError,
-    generateThreatIntelligence,
-    clearThreatIntelligence,
-    clearThreatIntelligenceError,
-    // Risk Prioritization
-    isGeneratingRiskPrioritization,
-    riskPrioritization,
-    riskPrioritizationError,
-    generateRiskPrioritization,
-    clearRiskPrioritization,
-    clearRiskPrioritizationError,
-    // Target Audience
-    isGeneratingTargetAudience,
-    targetAudience,
-    targetAudienceError,
-    generateTargetAudience,
-    clearTargetAudience,
-    clearTargetAudienceError,
-  } = useAuditReportStore();
 
   const {
     isCreating,
@@ -95,6 +55,10 @@ export default function CreateAuditReportPage() {
     createResponse,
     dataSources,
     createReport,
+    generateExecutiveSummary,
+    generateThreatIntelligence,
+    generateRiskPrioritization,
+    generateTargetAudience,
     clearError,
     clearCreateResponse,
     canGenerateSummary,
@@ -102,6 +66,33 @@ export default function CreateAuditReportPage() {
     prepareReportData,
     validateSummaryGeneration,
     loadSessionData,
+    selectAll,
+    updateSelections,
+    getSelectionCounts,
+    // Executive Summary
+    isGeneratingSummary,
+    executiveSummary,
+    summaryError,
+    clearExecutiveSummary,
+    clearSummaryError,
+    // Threat Intelligence
+    isGeneratingThreatIntelligence,
+    threatIntelligence,
+    threatIntelligenceError,
+    clearThreatIntelligence,
+    clearThreatIntelligenceError,
+    // Risk Prioritization
+    isGeneratingRiskPrioritization,
+    riskPrioritization,
+    riskPrioritizationError,
+    clearRiskPrioritization,
+    clearRiskPrioritizationError,
+    // Target Audience
+    isGeneratingTargetAudience,
+    targetAudience,
+    targetAudienceError,
+    clearTargetAudience,
+    clearTargetAudienceError,
   } = useAuditReport();
 
   const [showAboutInfo, setShowAboutInfo] = useState(false);
@@ -113,6 +104,12 @@ export default function CreateAuditReportPage() {
   const [selectedComplianceDomain, setSelectedComplianceDomain] = useState('');
   const [selectedAuditSession, setSelectedAuditSession] = useState('');
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  
+  // Separate loading states for each operation
+  const [loadingStates, setLoadingStates] = useState({
+    isLoadingSessionData: false,
+    isCreatingReport: false
+  });
 
 
   const [formData, setFormData] = useState<AuditReportCreate>({
@@ -207,11 +204,13 @@ export default function CreateAuditReportPage() {
   
     if (sessionId) {
       fetchSessionById(sessionId);
-      loadSessionData(sessionId);
+      setLoadingStates(prev => ({ ...prev, isLoadingSessionData: true }));
+      loadSessionData(sessionId).finally(() => {
+        setLoadingStates(prev => ({ ...prev, isLoadingSessionData: false }));
+      });
     }
   
     return () => {
-      clearDataSources();
       clearExecutiveSummary();
       clearSummaryError();
       clearThreatIntelligence();
@@ -221,20 +220,19 @@ export default function CreateAuditReportPage() {
       clearTargetAudience();
       clearTargetAudienceError();
     };
-  }, [sessionId, fetchSessionById, loadSessionData, clearError, clearCreateResponse, clearDataSources, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
+  }, [sessionId, fetchSessionById, loadSessionData, clearError, clearCreateResponse, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
   
   const handleComplianceDomainChange = async (domain: string) => {
     setSelectedComplianceDomain(domain);
-    setSelectedAuditSession(''); // Reset audit session selection
+    setSelectedAuditSession('');
     
     setFormData(prev => ({
       ...prev,
       compliance_domain: domain,
-      audit_session_id: '', // Reset audit session in form data
+      audit_session_id: '',
     }));
 
     if (domain && !sessionId) {
-      // Only fetch sessions if not in sessionId flow
       setIsLoadingSessions(true);
       try {
         await fetchSessionsByDomain(domain);
@@ -255,11 +253,12 @@ export default function CreateAuditReportPage() {
     }));
 
     if (sessionId) {
-      // Load session details and data sources
+      setLoadingStates(prev => ({ ...prev, isLoadingSessionData: true }));
       await fetchSessionById(sessionId);
-      await loadSessionDataSources(sessionId);
-      
-      // Find the session and update report title
+      await loadSessionData(sessionId).finally(() => {
+        setLoadingStates(prev => ({ ...prev, isLoadingSessionData: false }));
+      });
+
       const selectedSession = sessions.find(s => s.id === sessionId);
       if (selectedSession) {
         setFormData(prev => ({
@@ -436,15 +435,16 @@ export default function CreateAuditReportPage() {
     if (!isFormValid()) return;
 
     try {
+      setLoadingStates(prev => ({ ...prev, isCreatingReport: true }));
       const reportData = prepareReportData(formData);
       await createReport(reportData);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
       // Error handled by store
+    } finally {
+      setLoadingStates(prev => ({ ...prev, isCreatingReport: false }));
     }
-
-    
   };
 
   const handleCancel = () => {
@@ -455,7 +455,6 @@ export default function CreateAuditReportPage() {
     }
   };
 
-  const getSelectionCounts = () => auditReportStoreUtils.getSelectionCounts();
 
   if (createResponse) {
     return (
@@ -616,155 +615,46 @@ export default function CreateAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="report_title" className="text-sm font-medium">Report Title *</label>
-                <Input
-                  id="report_title"
-                  value={formData.report_title}
-                  onChange={(e) => handleInputChange('report_title', e.target.value)}
-                  placeholder="Enter report title..."
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Descriptive title for the audit report
-                </p>
-              </div>
+            <ReportBasicInfoFields
+              reportTitle={formData.report_title}
+              onTitleChange={(value) => handleInputChange('report_title', value)}
+              selectedComplianceDomain={selectedComplianceDomain}
+              onComplianceDomainChange={handleComplianceDomainChange}
+              complianceDomains={COMPLIANCE_DOMAINS}
+              selectedAuditSession={selectedAuditSession}
+              onAuditSessionChange={handleAuditSessionChange}
+              sessions={sessions}
+              sessionId={sessionId}
+              isLoadingSessions={isLoadingSessions}
+            />
 
-              <div className="space-y-2">
-                <label htmlFor="compliance_domain" className="text-sm font-medium">Compliance Domain *</label>
-                <select
-                  id="compliance_domain"
-                  value={selectedComplianceDomain}
-                  onChange={(e) => handleComplianceDomainChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-                  disabled={!!sessionId}
-                  required
-                >
-                  <option value="">Select a compliance framework...</option>
-                  {COMPLIANCE_DOMAINS.map((domain) => (
-                    <option key={domain.value} value={domain.value}>
-                      {domain.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Compliance framework this report addresses
-                </p>
-              </div>
+            <ReportTypeChips
+              value={formData.report_type}
+              onChange={handleReportTypeChange}
+            />
 
-              <div className="space-y-2">
-                <label htmlFor="audit_session" className="text-sm font-medium">Audit Session *</label>
-                <select
-                  id="audit_session"
-                  value={selectedAuditSession}
-                  onChange={(e) => handleAuditSessionChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!!sessionId || !selectedComplianceDomain || isLoadingSessions}
-                  required
-                >
-                  <option value="">
-                    {!selectedComplianceDomain ? 'Select compliance domain first...' : 
-                     isLoadingSessions ? 'Loading sessions...' : 
-                     'Select an audit session...'}
-                  </option>
-                  {sessions.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {session.session_name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  {isLoadingSessions ? (
-                    <span className="flex items-center space-x-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>Loading available sessions...</span>
-                    </span>
-                  ) : (
-                    'Audit session this report is based on'
-                  )}
-                </p>
-              </div>
-            </div>
+            <TargetAudienceChips
+              value={formData.target_audience}
+              onChange={handleTargetAudienceChange}
+            />
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Report Type *</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {REPORT_TYPE_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleReportTypeChange(option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.report_type === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ConfidentialityLevelChips
+              value={formData.confidentiality_level}
+              onChange={handleConfidentialityChange}
+            />
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Target Audience *</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                {TARGET_AUDIENCE_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleTargetAudienceChange(option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.target_audience === option.value
-                        ? 'border-blue-400 bg-blue-50 text-blue-800'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Confidentiality Level *</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                {CONFIDENTIALITY_LEVEL_OPTIONS.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleConfidentialityChange(option.value)}
-                    className={`text-left text-sm p-3 rounded border transition-all duration-200 ease-in-out transform ${
-                      formData.confidentiality_level === option.value
-                        ? `border-blue-400 ${option.color}`
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="template_used" className="text-sm font-medium">Template Used</label>
-              <Input
-                id="template_used"
-                value={formData.template_used || ''}
-                onChange={(e) => handleInputChange('template_used', e.target.value)}
-                placeholder="Optional: specify template name or version"
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional template reference for report formatting
-              </p>
-            </div>
+            <ReportConfigurationFields
+              templateUsed={formData.template_used || ''}
+              onTemplateChange={(value) => handleInputChange('template_used', value)}
+              includeTechnicalDetails={formData.include_technical_details}
+              onTechnicalDetailsChange={(value) => handleInputChange('include_technical_details', value)}
+              includeSourceCitations={formData.include_source_citations}
+              onSourceCitationsChange={(value) => handleInputChange('include_source_citations', value)}
+              includeConfidenceScores={formData.include_confidence_scores}
+              onConfidenceScoresChange={(value) => handleInputChange('include_confidence_scores', value)}
+              externalAuditorAccess={formData.external_auditor_access}
+              onExternalAuditorAccessChange={(value) => handleInputChange('external_auditor_access', value)}
+            />
           </CardContent>
         </Card>
 
@@ -776,257 +666,31 @@ export default function CreateAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="executive_summary" className="text-sm font-medium">Executive Summary</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateExecutiveSummary}
-                  disabled={!selectedAuditSession || !canGenerateSummary() || isGeneratingSummary}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingSummary ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingSummary ? 'Generating...' : 'Generate Executive Summary'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="executive_summary"
-                value={formData.executive_summary || ''}
-                onChange={(e) => handleInputChange('executive_summary', e.target.value)}
-                placeholder="Executive summary of the audit findings and recommendations..."
-                rows={6}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring resize-y"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  High-level overview of audit findings for executive stakeholders
-                </p>
-                {!canGenerateSummary() && selectedAuditSession && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable summary generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {executiveSummary && (
-              <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">
-                    Executive Summary Generated Successfully
-                  </span>
-                </div>
-                <div className="text-xs text-green-700 space-y-1">
-                  <p>• Total Gaps Analyzed: {executiveSummary.total_gaps}</p>
-                  <p>• High Risk Gaps: {executiveSummary.high_risk_gaps}</p>
-                  <p>• Regulatory Gaps: {executiveSummary.regulatory_gaps}</p>
-                  {executiveSummary.potential_financial_impact && (
-                    <p>• Potential Financial Impact: ${executiveSummary.potential_financial_impact.toLocaleString()}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {!selectedAuditSession && (
-              <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg">
-                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">
-                  Select an audit session to enable summary generation
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="control_risk_prioritization" className="text-sm font-medium">Control Risk Prioritization</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateRiskPrioritization}
-                  disabled={!canGenerateSummary() || isGeneratingRiskPrioritization}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingRiskPrioritization ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <TrendingUp className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingRiskPrioritization ? 'Generating...' : 'Generate Risk Prioritization'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="control_risk_prioritization"
-                value={formData.control_risk_prioritization || ''}
-                onChange={(e) => handleInputChange('control_risk_prioritization', e.target.value)}
-                placeholder="Enter control risk prioritization..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Prioritized risk assessment and control recommendations
-                </p>
-                {!canGenerateSummary() && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable prioritization generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {riskPrioritization && (
-                <div className="bg-orange-50 border border-orange-200 rounded-md p-3 mt-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-orange-600" />
-                    <span className="text-sm font-medium text-orange-800">
-                      Risk Prioritization Generated Successfully
-                    </span>
-                  </div>
-                  <div className="text-xs text-orange-700 space-y-1">
-                    <p>• Total Gaps Analyzed: {riskPrioritization.total_gaps}</p>
-                    <p>• Prioritized Risks: {riskPrioritization.prioritized_risks}</p>
-                    <p>• Risk Score: {riskPrioritization.risk_score}</p>
-                    <p>• High Risk Gaps: {riskPrioritization.high_risk_gaps}</p>
-                  </div>
-                </div>
-              )}
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="threat_intelligence_analysis" className="text-sm font-medium">Threat Intelligence Analysis</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateThreatIntelligence}
-                  disabled={!canGenerateSummary() || isGeneratingThreatIntelligence}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingThreatIntelligence ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Target className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingThreatIntelligence ? 'Generating...' : 'Generate Threat Intelligence'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="threat_intelligence_analysis"
-                value={formData.threat_intelligence_analysis || ''}
-                onChange={(e) => handleInputChange('threat_intelligence_analysis', e.target.value)}
-                placeholder="Enter threat intelligence analysis..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Analysis of potential threats and vulnerabilities based on identified gaps
-                </p>
-                {!canGenerateSummary() && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable analysis generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {threatIntelligence && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">
-                    Threat Intelligence Analysis Generated Successfully
-                  </span>
-                </div>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <p>• Total Gaps Analyzed: {threatIntelligence.total_gaps}</p>
-                  <p>• Threat Indicators: {threatIntelligence.threat_indicators}</p>
-                  <p>• Vulnerability Score: {threatIntelligence.vulnerability_score}</p>
-                  <p>• High Risk Gaps: {threatIntelligence.high_risk_gaps}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="target_audience_summary" className="text-sm font-medium">Target Audience Summary</label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateTargetAudience}
-                  disabled={!canGenerateSummary() || isGeneratingTargetAudience}
-                  className="flex items-center space-x-2"
-                >
-                  {isGeneratingTargetAudience ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Users className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isGeneratingTargetAudience ? 'Generating...' : 'Generate Target Audience Summary'}
-                  </span>
-                </Button>
-              </div>
-              <textarea
-                id="target_audience_summary"
-                value={formData.target_audience_summary || ''}
-                onChange={(e) => handleInputChange('target_audience_summary', e.target.value)}
-                placeholder="Enter target audience summary..."
-                rows={6}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Summary tailored specifically for the target audience ({formData.target_audience})
-                </p>
-                {!canGenerateSummary() && (
-                  <p className="text-xs text-yellow-600">
-                    Select compliance gaps to enable summary generation
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {targetAudience && (
-              <div className="bg-purple-50 border border-purple-200 rounded-md p-3 mt-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-800">
-                    Target Audience Summary Generated Successfully
-                  </span>
-                </div>
-                <div className="text-xs text-purple-700 space-y-1">
-                  <p>• Total Gaps Analyzed: {targetAudience.total_gaps}</p>
-                  <p>• Communication Level: {targetAudience.communication_level}</p>
-                  <p>• Focus Areas: {targetAudience.audience_focus_areas?.join(', ')}</p>
-                  <p>• High Risk Gaps: {targetAudience.high_risk_gaps}</p>
-                </div>
-              </div>
-            )}
-
-            {!selectedAuditSession && (
-              <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg">
-                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">
-                  Select an audit session to enable summary generation
-                </p>
-              </div>
-            )}
+            <ReportSummaryFields
+              executiveSummary={formData.executive_summary || ''}
+              onExecutiveSummaryChange={(value) => handleInputChange('executive_summary', value)}
+              onGenerateExecutiveSummary={handleGenerateExecutiveSummary}
+              isGeneratingSummary={isGeneratingSummary}
+              executiveSummaryData={executiveSummary}
+              threatIntelligenceAnalysis={formData.threat_intelligence_analysis || ''}
+              onThreatIntelligenceChange={(value) => handleInputChange('threat_intelligence_analysis', value)}
+              onGenerateThreatIntelligence={handleGenerateThreatIntelligence}
+              isGeneratingThreatIntelligence={isGeneratingThreatIntelligence}
+              threatIntelligenceData={threatIntelligence}
+              controlRiskPrioritization={formData.control_risk_prioritization || ''}
+              onRiskPrioritizationChange={(value) => handleInputChange('control_risk_prioritization', value)}
+              onGenerateRiskPrioritization={handleGenerateRiskPrioritization}
+              isGeneratingRiskPrioritization={isGeneratingRiskPrioritization}
+              riskPrioritizationData={riskPrioritization}
+              targetAudienceSummary={formData.target_audience_summary || ''}
+              onTargetAudienceChange={(value) => handleInputChange('target_audience_summary', value)}
+              onGenerateTargetAudience={handleGenerateTargetAudience}
+              isGeneratingTargetAudience={isGeneratingTargetAudience}
+              targetAudienceData={targetAudience}
+              currentTargetAudience={formData.target_audience}
+              selectedAuditSession={selectedAuditSession}
+              canGenerateSummary={canGenerateSummary()}
+            />
           </CardContent>
         </Card>
 
@@ -1064,8 +728,8 @@ export default function CreateAuditReportPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => selectAllChats(true)}
-                        disabled={dataSources.isLoadingChats}
+                        onClick={() => selectAll('chats', true)}
+                        disabled={dataSources.isLoadingChats || loadingStates.isLoadingSessionData}
                       >
                         Select All
                       </Button>
@@ -1073,8 +737,8 @@ export default function CreateAuditReportPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => selectAllChats(false)}
-                        disabled={dataSources.isLoadingChats}
+                        onClick={() => selectAll('chats', false)}
+                        disabled={dataSources.isLoadingChats || loadingStates.isLoadingSessionData}
                       >
                         Deselect All
                       </Button>
@@ -1093,7 +757,7 @@ export default function CreateAuditReportPage() {
                     </div>
                   </div>
 
-                  {dataSources.isLoadingChats ? (
+                  {(dataSources.isLoadingChats || loadingStates.isLoadingSessionData) ? (
                     <div className="flex items-center space-x-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Loading chat history...</span>
@@ -1115,7 +779,7 @@ export default function CreateAuditReportPage() {
                               <input
                                 type="checkbox"
                                 checked={chat.selected}
-                                onChange={(e) => updateChatSelection(chat.id, e.target.checked)}
+                                onChange={(e) => updateSelections('chat', chat.id, e.target.checked)}
                                 className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
                               />
                               <div className="flex-1 min-w-0">
@@ -1148,8 +812,8 @@ export default function CreateAuditReportPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => selectAllGaps(true)}
-                        disabled={dataSources.isLoadingGaps}
+                        onClick={() => selectAll('gaps', true)}
+                        disabled={dataSources.isLoadingGaps || loadingStates.isLoadingSessionData}
                       >
                         Select All
                       </Button>
@@ -1157,8 +821,8 @@ export default function CreateAuditReportPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => selectAllGaps(false)}
-                        disabled={dataSources.isLoadingGaps}
+                        onClick={() => selectAll('gaps', false)}
+                        disabled={dataSources.isLoadingGaps || loadingStates.isLoadingSessionData}
                       >
                         Deselect All
                       </Button>
@@ -1177,7 +841,7 @@ export default function CreateAuditReportPage() {
                     </div>
                   </div>
 
-                  {dataSources.isLoadingGaps ? (
+                  {(dataSources.isLoadingGaps || loadingStates.isLoadingSessionData) ? (
                     <div className="flex items-center space-x-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Loading compliance gaps...</span>
@@ -1230,7 +894,7 @@ export default function CreateAuditReportPage() {
                                 <input
                                   type="checkbox"
                                   checked={gap.selected}
-                                  onChange={(e) => updateGapSelection(gap.id, e.target.checked)}
+                                  onChange={(e) => updateSelections('gap', gap.id, e.target.checked)}
                                   className="mt-2 h-4 w-4 text-primary focus:ring-primary border-input rounded"
                                 />
                                 <div className="flex-1 min-w-0 space-y-3">
@@ -1381,8 +1045,8 @@ export default function CreateAuditReportPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => selectAllDocuments(true)}
-                        disabled={dataSources.isLoadingDocuments}
+                        onClick={() => selectAll('documents', true)}
+                        disabled={dataSources.isLoadingDocuments || loadingStates.isLoadingSessionData}
                       >
                         Select All
                       </Button>
@@ -1390,8 +1054,8 @@ export default function CreateAuditReportPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => selectAllDocuments(false)}
-                        disabled={dataSources.isLoadingDocuments}
+                        onClick={() => selectAll('documents', false)}
+                        disabled={dataSources.isLoadingDocuments || loadingStates.isLoadingSessionData}
                       >
                         Deselect All
                       </Button>
@@ -1410,7 +1074,7 @@ export default function CreateAuditReportPage() {
                     </div>
                   </div>
 
-                  {dataSources.isLoadingDocuments ? (
+                  {(dataSources.isLoadingDocuments || loadingStates.isLoadingSessionData) ? (
                     <div className="flex items-center space-x-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Loading documents...</span>
@@ -1432,7 +1096,7 @@ export default function CreateAuditReportPage() {
                               <input
                                 type="checkbox"
                                 checked={doc.selected}
-                                onChange={(e) => updateDocumentSelection(doc.id, e.target.checked)}
+                                onChange={(e) => updateSelections('document', doc.id, e.target.checked)}
                                 className="mt-1 h-4 w-4 text-primary focus:ring-primary border-input rounded"
                               />
                               <div className="flex-1 min-w-0">
@@ -1464,63 +1128,18 @@ export default function CreateAuditReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm">Content Options</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="include_technical_details"
-                    checked={formData.include_technical_details}
-                    onChange={(e) => handleInputChange('include_technical_details', e.target.checked)}
-                    className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                  />
-                  <label htmlFor="include_technical_details" className="text-sm font-medium">
-                    Include Technical Details
-                  </label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="include_source_citations"
-                    checked={formData.include_source_citations}
-                    onChange={(e) => handleInputChange('include_source_citations', e.target.checked)}
-                    className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                  />
-                  <label htmlFor="include_source_citations" className="text-sm font-medium">
-                    Include Source Citations
-                  </label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="include_confidence_scores"
-                    checked={formData.include_confidence_scores}
-                    onChange={(e) => handleInputChange('include_confidence_scores', e.target.checked)}
-                    className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                  />
-                  <label htmlFor="include_confidence_scores" className="text-sm font-medium">
-                    Include Confidence Scores
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2 pt-4 border-t">
-              <input
-                type="checkbox"
-                id="external_auditor_access"
-                checked={formData.external_auditor_access}
-                onChange={(e) => handleInputChange('external_auditor_access', e.target.checked)}
-                className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-              />
-              <label htmlFor="external_auditor_access" className="text-sm font-medium">
-                Allow External Auditor Access
-              </label>
-              <Info className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <ReportConfigurationFields
+              templateUsed={formData.template_used || ''}
+              onTemplateChange={(value) => handleInputChange('template_used', value)}
+              includeTechnicalDetails={formData.include_technical_details}
+              onTechnicalDetailsChange={(value) => handleInputChange('include_technical_details', value)}
+              includeSourceCitations={formData.include_source_citations}
+              onSourceCitationsChange={(value) => handleInputChange('include_source_citations', value)}
+              includeConfidenceScores={formData.include_confidence_scores}
+              onConfidenceScoresChange={(value) => handleInputChange('include_confidence_scores', value)}
+              externalAuditorAccess={formData.external_auditor_access}
+              onExternalAuditorAccessChange={(value) => handleInputChange('external_auditor_access', value)}
+            />
           </CardContent>
         </Card>
 
@@ -1529,7 +1148,7 @@ export default function CreateAuditReportPage() {
             type="button"
             variant="outline"
             onClick={handleCancel}
-            disabled={isCreating}
+            disabled={isCreating || loadingStates.isCreatingReport}
             className="px-8"
           >
             Cancel
@@ -1537,9 +1156,9 @@ export default function CreateAuditReportPage() {
           <Button
             type="submit"
             className="px-8"
-            disabled={isCreating || !isFormValid()}
+            disabled={isCreating || loadingStates.isCreatingReport || !isFormValid()}
           >
-            {isCreating ? (
+            {(isCreating || loadingStates.isCreatingReport) ? (
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Creating Report...</span>

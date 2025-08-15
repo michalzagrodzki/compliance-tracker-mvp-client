@@ -1,47 +1,21 @@
-/* eslint-disable no-useless-catch */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
-import { auditReportService } from "../services/auditReportService";
 import type {
-  AuditReportCreate,
   AuditReportResponse,
   AuditReportState,
-  AuditReportActions,
   ReportDataSources,
   AuditReport,
   ExecutiveSummaryResponse,
   ThreatIntelligenceResponse,
   RiskPrioritizationResponse,
   TargetAudienceResponse,
-  SummaryTypeValue,
-  AuditReportGenerateRequest,
   AuditReportGenerateResponse,
 } from "../types";
-import { SummaryType } from "../types";
-import type { ComplianceGap } from "@/modules/compliance-gaps/types";
 
 interface ExecutiveSummaryState {
   executiveSummary: ExecutiveSummaryResponse | null;
   isGeneratingSummary: boolean;
   summaryError: string | null;
   summaryGenerationHistory: ExecutiveSummaryResponse[];
-}
-
-interface ExecutiveSummaryActions {
-  generateExecutiveSummary: (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType?: SummaryTypeValue,
-    customInstructions?: string
-  ) => Promise<ExecutiveSummaryResponse>;
-  clearExecutiveSummary: () => void;
-  clearSummaryError: () => void;
-  updateExecutiveSummaryInReport: (
-    reportId: string,
-    summary: string
-  ) => Promise<void>;
-  getSummaryHistory: () => ExecutiveSummaryResponse[];
-  clearSummaryHistory: () => void;
 }
 
 interface ThreatIntelligenceState {
@@ -51,43 +25,11 @@ interface ThreatIntelligenceState {
   threatIntelligenceGenerationHistory: ThreatIntelligenceResponse[];
 }
 
-interface ThreatIntelligenceActions {
-  generateThreatIntelligence: (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType?: SummaryTypeValue
-  ) => Promise<ThreatIntelligenceResponse>;
-  clearThreatIntelligence: () => void;
-  clearThreatIntelligenceError: () => void;
-  updateThreatIntelligenceInReport: (
-    reportId: string,
-    analysis: string
-  ) => Promise<void>;
-  getThreatIntelligenceHistory: () => ThreatIntelligenceResponse[];
-  clearThreatIntelligenceHistory: () => void;
-}
-
 interface RiskPrioritizationState {
   riskPrioritization: RiskPrioritizationResponse | null;
   isGeneratingRiskPrioritization: boolean;
   riskPrioritizationError: string | null;
   riskPrioritizationGenerationHistory: RiskPrioritizationResponse[];
-}
-
-interface RiskPrioritizationActions {
-  generateRiskPrioritization: (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType?: SummaryTypeValue
-  ) => Promise<RiskPrioritizationResponse>;
-  clearRiskPrioritization: () => void;
-  clearRiskPrioritizationError: () => void;
-  updateRiskPrioritizationInReport: (
-    reportId: string,
-    prioritization: string
-  ) => Promise<void>;
-  getRiskPrioritizationHistory: () => RiskPrioritizationResponse[];
-  clearRiskPrioritizationHistory: () => void;
 }
 
 interface TargetAudienceState {
@@ -97,37 +39,15 @@ interface TargetAudienceState {
   targetAudienceGenerationHistory: TargetAudienceResponse[];
 }
 
-interface TargetAudienceActions {
-  generateTargetAudience: (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType?: SummaryTypeValue
-  ) => Promise<TargetAudienceResponse>;
-  clearTargetAudience: () => void;
-  clearTargetAudienceError: () => void;
-  updateTargetAudienceInReport: (
-    reportId: string,
-    summary: string
-  ) => Promise<void>;
-  getTargetAudienceHistory: () => TargetAudienceResponse[];
-  clearTargetAudienceHistory: () => void;
-}
-
 interface AuditReportStore
   extends AuditReportState,
-    AuditReportActions,
     ExecutiveSummaryState,
-    ExecutiveSummaryActions,
     ThreatIntelligenceState,
-    ThreatIntelligenceActions,
     RiskPrioritizationState,
-    RiskPrioritizationActions,
-    TargetAudienceState,
-    TargetAudienceActions {
+    TargetAudienceState {
   dataSources: ReportDataSources;
 
-  // Data source actions
-  loadSessionDataSources: (sessionId: string) => Promise<void>;
+  // Selection actions (pure state updates)
   updateChatSelection: (chatId: number, selected: boolean) => void;
   updateGapSelection: (gapId: string, selected: boolean) => void;
   updateDocumentSelection: (docId: string, selected: boolean) => void;
@@ -135,6 +55,68 @@ interface AuditReportStore
   selectAllGaps: (selected: boolean) => void;
   selectAllDocuments: (selected: boolean) => void;
   clearDataSources: () => void;
+
+  // State-only setter interfaces (used by hooks)
+  setLoading: (loading: boolean) => void;
+  clearError: () => void;
+  setError: (error: string | null) => void;
+  setReports: (reports: AuditReport[]) => void;
+  setCurrentReport: (report: AuditReport | null) => void;
+  setIsCreating: (creating: boolean) => void;
+  setCreateResponse: (resp: AuditReportResponse | null) => void;
+  clearCreateResponse: () => void;
+  setIsUpdating: (updating: boolean) => void;
+  setUpdateError: (msg: string | null) => void;
+  clearUpdateError: () => void;
+  setIsGenerating: (generating: boolean) => void;
+  setGenerateError: (msg: string | null) => void;
+  setGenerateResponse: (resp: AuditReportGenerateResponse | null) => void;
+  clearGenerateResponse: () => void;
+  clearGenerateError: () => void;
+  setDataSourcesLoading: (
+    flags: Partial<{
+      isLoadingChats: boolean;
+      isLoadingGaps: boolean;
+      isLoadingDocuments: boolean;
+    }>
+  ) => void;
+  setDataSources: (data: {
+    chatHistory: ReportDataSources["chatHistory"];
+    complianceGaps: ReportDataSources["complianceGaps"];
+    documents: ReportDataSources["documents"];
+  }) => void;
+  setIsGeneratingSummary: (generating: boolean) => void;
+  setExecutiveSummary: (summary: ExecutiveSummaryResponse | null) => void;
+  setSummaryError: (msg: string | null) => void;
+  addSummaryHistory: (item: ExecutiveSummaryResponse) => void;
+  clearExecutiveSummary: () => void;
+  clearSummaryError: () => void;
+  getSummaryHistory: () => ExecutiveSummaryResponse[];
+  clearSummaryHistory: () => void;
+  setIsGeneratingThreatIntelligence: (generating: boolean) => void;
+  setThreatIntelligence: (ti: ThreatIntelligenceResponse | null) => void;
+  setThreatIntelligenceError: (msg: string | null) => void;
+  addThreatIntelligenceHistory: (item: ThreatIntelligenceResponse) => void;
+  clearThreatIntelligence: () => void;
+  clearThreatIntelligenceError: () => void;
+  getThreatIntelligenceHistory: () => ThreatIntelligenceResponse[];
+  clearThreatIntelligenceHistory: () => void;
+  setIsGeneratingRiskPrioritization: (generating: boolean) => void;
+  setRiskPrioritization: (rp: RiskPrioritizationResponse | null) => void;
+  setRiskPrioritizationError: (msg: string | null) => void;
+  addRiskPrioritizationHistory: (item: RiskPrioritizationResponse) => void;
+  clearRiskPrioritization: () => void;
+  clearRiskPrioritizationError: () => void;
+  getRiskPrioritizationHistory: () => RiskPrioritizationResponse[];
+  clearRiskPrioritizationHistory: () => void;
+  setIsGeneratingTargetAudience: (generating: boolean) => void;
+  setTargetAudience: (ta: TargetAudienceResponse | null) => void;
+  setTargetAudienceError: (msg: string | null) => void;
+  addTargetAudienceHistory: (item: TargetAudienceResponse) => void;
+  clearTargetAudience: () => void;
+  clearTargetAudienceError: () => void;
+  getTargetAudienceHistory: () => TargetAudienceResponse[];
+  clearTargetAudienceHistory: () => void;
 }
 
 export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
@@ -186,217 +168,27 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
     isLoadingDocuments: false,
   },
 
-  // Basic actions
   setLoading: (loading: boolean) => set({ isLoading: loading }),
+  setError: (error: string | null) => set({ error }),
   clearError: () => set({ error: null }),
+  setReports: (reports: AuditReport[]) => set({ reports }),
+  setCurrentReport: (report: AuditReport | null) =>
+    set({ currentReport: report }),
   clearCreateResponse: () => set({ createResponse: null }),
   clearUpdateError: () => set({ updateError: null }),
 
   clearGenerateResponse: () => set({ generateResponse: null }),
   clearGenerateError: () => set({ generateError: null }),
 
-  createReport: async (
-    reportData: AuditReportCreate
-  ): Promise<AuditReportResponse> => {
-    set({ isCreating: true, error: null, createResponse: null });
-
-    try {
-      const response = await auditReportService.createReport(reportData);
-
-      set({
-        createResponse: response,
-        isCreating: false,
-        error: response.success
-          ? null
-          : response.error || "Failed to create report",
-      });
-
-      if (response.success && response.report_id) {
-        try {
-          const newReport = await auditReportService.getReportById(
-            response.report_id
-          );
-          const currentReports = get().reports;
-          set({ reports: [newReport, ...currentReports] });
-        } catch {
-          // Don't fail the creation if we can't fetch the created report
-        }
-      }
-
-      return response;
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.detail || "Failed to create audit report";
-      const errorResponse: AuditReportResponse = {
-        success: false,
-        message: errorMessage,
-        error: errorMessage,
-      };
-
-      set({
-        error: errorMessage,
-        isCreating: false,
-        createResponse: errorResponse,
-      });
-
-      return errorResponse;
-    }
-  },
-
-  generateAuditReport: async (
-    generateRequest: AuditReportGenerateRequest
-  ): Promise<AuditReportGenerateResponse> => {
-    set({ isGenerating: true, generateError: null, generateResponse: null });
-
-    try {
-      const response = await auditReportService.generateAuditReport(
-        generateRequest
-      );
-
-      set({
-        generateResponse: response,
-        isGenerating: false,
-        generateError: response.success
-          ? null
-          : response.error || "Failed to generate report",
-      });
-
-      if (response.success) {
-        try {
-          await get().fetchReports();
-        } catch {
-          // Don't fail the generation if we can't refresh the list
-        }
-      }
-
-      return response;
-    } catch (error: any) {
-      const errorMessage = error.message || "Failed to generate audit report";
-      const errorResponse: AuditReportGenerateResponse = {
-        success: false,
-        message: errorMessage,
-        error: errorMessage,
-        generation_status: "failed",
-      };
-
-      set({
-        generateError: errorMessage,
-        isGenerating: false,
-        generateResponse: errorResponse,
-      });
-
-      return errorResponse;
-    }
-  },
-  fetchReports: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const reports =
-        await auditReportService.getAllReportsByComplianceDomain();
-
-      set({ reports, isLoading: false });
-    } catch (error: any) {
-      set({
-        error: error.response?.data?.detail || "Failed to fetch audit reports",
-        isLoading: false,
-      });
-    }
-  },
-
-  fetchReportById: async (reportId: string) => {
-    set({ isLoading: true, error: null });
-
-    try {
-      const report = await auditReportService.getReportById(reportId);
-      set({ currentReport: report, isLoading: false });
-    } catch (error: any) {
-      set({
-        error: error.response?.data?.detail || "Failed to fetch audit report",
-        isLoading: false,
-      });
-    }
-  },
-
-  // Data source actions
-  loadSessionDataSources: async (sessionId: string) => {
-    const currentDataSources = get().dataSources;
-
-    set({
-      dataSources: {
-        ...currentDataSources,
-        isLoadingChats: true,
-        isLoadingGaps: true,
-        isLoadingDocuments: true,
-      },
-      error: null,
-    });
-
-    try {
-      const { chatHistory, complianceGaps, documents } =
-        await auditReportService.getSessionDataSources(sessionId);
-
-      set({
-        dataSources: {
-          chatHistory,
-          complianceGaps,
-          documents,
-          isLoadingChats: false,
-          isLoadingGaps: false,
-          isLoadingDocuments: false,
-        },
-      });
-    } catch (error: any) {
-      set({
-        error: error.response?.data?.detail || "Failed to load session data",
-        dataSources: {
-          chatHistory: [],
-          complianceGaps: [],
-          documents: [],
-          isLoadingChats: false,
-          isLoadingGaps: false,
-          isLoadingDocuments: false,
-        },
-      });
-    }
-  },
-
-  updateReport: async (
-    reportId: string,
-    updateData: Partial<AuditReport>,
-    changeDescription?: string
-  ) => {
-    set({ isUpdating: true, updateError: null });
-
-    try {
-      const updatedReport = await auditReportService.updateReport(
-        reportId,
-        updateData,
-        changeDescription
-      );
-
-      // Update the current report if it's the one being edited
-      const currentReport = get().currentReport;
-      if (currentReport && currentReport.id === reportId) {
-        set({ currentReport: updatedReport });
-      }
-
-      // Update the report in the reports list
-      const reports = get().reports;
-      const updatedReports = reports.map((report) =>
-        report.id === reportId ? updatedReport : report
-      );
-      set({ reports: updatedReports });
-
-      set({ isUpdating: false });
-    } catch (error: any) {
-      set({
-        updateError:
-          error.response?.data?.detail || "Failed to update audit report",
-        isUpdating: false,
-      });
-      throw error;
-    }
-  },
+  setIsCreating: (creating: boolean) => set({ isCreating: creating }),
+  setCreateResponse: (resp: AuditReportResponse | null) =>
+    set({ createResponse: resp }),
+  setIsUpdating: (updating: boolean) => set({ isUpdating: updating }),
+  setUpdateError: (msg: string | null) => set({ updateError: msg }),
+  setIsGenerating: (generating: boolean) => set({ isGenerating: generating }),
+  setGenerateError: (msg: string | null) => set({ generateError: msg }),
+  setGenerateResponse: (resp: AuditReportGenerateResponse | null) =>
+    set({ generateResponse: resp }),
 
   updateChatSelection: (chatId: number, selected: boolean) => {
     const currentDataSources = get().dataSources;
@@ -498,294 +290,93 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
     });
   },
 
-  // Executive Summary actions
-  generateExecutiveSummary: async (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType: SummaryTypeValue = SummaryType.STANDARD
-  ): Promise<ExecutiveSummaryResponse> => {
-    set({ isGeneratingSummary: true, summaryError: null });
-
-    try {
-      const summaryResponse = await auditReportService.createExecutiveSummary(
-        auditReport,
+  setDataSourcesLoading: (flags) =>
+    set({
+      dataSources: { ...get().dataSources, ...flags } as ReportDataSources,
+    }),
+  setDataSources: ({ chatHistory, complianceGaps, documents }) =>
+    set({
+      dataSources: {
+        chatHistory,
         complianceGaps,
-        summaryType
-      );
+        documents,
+        isLoadingChats: false,
+        isLoadingGaps: false,
+        isLoadingDocuments: false,
+      },
+    }),
+  clearExecutiveSummary: () =>
+    set({ executiveSummary: null, summaryError: null }),
+  clearSummaryError: () => set({ summaryError: null }),
+  getSummaryHistory: () => get().summaryGenerationHistory,
+  clearSummaryHistory: () => set({ summaryGenerationHistory: [] }),
 
-      // Add to history
-      const currentHistory = get().summaryGenerationHistory;
-      const updatedHistory = [summaryResponse, ...currentHistory.slice(0, 4)]; // Keep last 5
-
-      set({
-        executiveSummary: summaryResponse,
-        summaryGenerationHistory: updatedHistory,
-        isGeneratingSummary: false,
-      });
-
-      return summaryResponse;
-    } catch (error: any) {
-      const errorMessage =
-        error.message || "Failed to generate executive summary";
-      set({
-        summaryError: errorMessage,
-        isGeneratingSummary: false,
-      });
-      throw error;
-    }
+  setIsGeneratingSummary: (generating: boolean) =>
+    set({ isGeneratingSummary: generating }),
+  setExecutiveSummary: (summary: ExecutiveSummaryResponse | null) =>
+    set({ executiveSummary: summary }),
+  setSummaryError: (msg: string | null) => set({ summaryError: msg }),
+  addSummaryHistory: (item: ExecutiveSummaryResponse) => {
+    const current = get().summaryGenerationHistory;
+    set({ summaryGenerationHistory: [item, ...current.slice(0, 4)] });
   },
 
-  // Threat Intelligence actions
-  generateThreatIntelligence: async (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType: SummaryTypeValue = SummaryType.STANDARD
-  ): Promise<ThreatIntelligenceResponse> => {
+  clearThreatIntelligence: () =>
+    set({ threatIntelligence: null, threatIntelligenceError: null }),
+  clearThreatIntelligenceError: () => set({ threatIntelligenceError: null }),
+  getThreatIntelligenceHistory: () => get().threatIntelligenceGenerationHistory,
+  clearThreatIntelligenceHistory: () =>
+    set({ threatIntelligenceGenerationHistory: [] }),
+
+  setIsGeneratingThreatIntelligence: (generating: boolean) =>
+    set({ isGeneratingThreatIntelligence: generating }),
+  setThreatIntelligence: (ti: ThreatIntelligenceResponse | null) =>
+    set({ threatIntelligence: ti }),
+  setThreatIntelligenceError: (msg: string | null) =>
+    set({ threatIntelligenceError: msg }),
+  addThreatIntelligenceHistory: (item: ThreatIntelligenceResponse) => {
+    const current = get().threatIntelligenceGenerationHistory;
     set({
-      isGeneratingThreatIntelligence: true,
-      threatIntelligenceError: null,
-    });
-
-    try {
-      const threatIntelligenceResponse =
-        await auditReportService.createThreatIntelligence(
-          auditReport,
-          complianceGaps,
-          summaryType
-        );
-
-      // Add to history
-      const currentHistory = get().threatIntelligenceGenerationHistory;
-      const updatedHistory = [
-        threatIntelligenceResponse,
-        ...currentHistory.slice(0, 4),
-      ];
-
-      set({
-        threatIntelligence: threatIntelligenceResponse,
-        threatIntelligenceGenerationHistory: updatedHistory,
-        isGeneratingThreatIntelligence: false,
-      });
-
-      return threatIntelligenceResponse;
-    } catch (error: any) {
-      const errorMessage =
-        error.message || "Failed to generate threat intelligence";
-      set({
-        threatIntelligenceError: errorMessage,
-        isGeneratingThreatIntelligence: false,
-      });
-      throw error;
-    }
-  },
-
-  clearExecutiveSummary: () => {
-    set({
-      executiveSummary: null,
-      summaryError: null,
+      threatIntelligenceGenerationHistory: [item, ...current.slice(0, 4)],
     });
   },
 
-  clearSummaryError: () => {
-    set({ summaryError: null });
-  },
+  clearRiskPrioritization: () =>
+    set({ riskPrioritization: null, riskPrioritizationError: null }),
+  clearRiskPrioritizationError: () => set({ riskPrioritizationError: null }),
+  getRiskPrioritizationHistory: () => get().riskPrioritizationGenerationHistory,
+  clearRiskPrioritizationHistory: () =>
+    set({ riskPrioritizationGenerationHistory: [] }),
 
-  updateExecutiveSummaryInReport: async (
-    reportId: string,
-    summary: string
-  ): Promise<void> => {
-    try {
-      await get().updateReport(reportId, { executive_summary: summary });
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  getSummaryHistory: () => {
-    return get().summaryGenerationHistory;
-  },
-
-  clearSummaryHistory: () => {
-    set({ summaryGenerationHistory: [] });
-  },
-
-  clearThreatIntelligence: () => {
+  setIsGeneratingRiskPrioritization: (generating: boolean) =>
+    set({ isGeneratingRiskPrioritization: generating }),
+  setRiskPrioritization: (rp: RiskPrioritizationResponse | null) =>
+    set({ riskPrioritization: rp }),
+  setRiskPrioritizationError: (msg: string | null) =>
+    set({ riskPrioritizationError: msg }),
+  addRiskPrioritizationHistory: (item: RiskPrioritizationResponse) => {
+    const current = get().riskPrioritizationGenerationHistory;
     set({
-      threatIntelligence: null,
-      threatIntelligenceError: null,
+      riskPrioritizationGenerationHistory: [item, ...current.slice(0, 4)],
     });
   },
 
-  clearThreatIntelligenceError: () => {
-    set({ threatIntelligenceError: null });
-  },
+  clearTargetAudience: () =>
+    set({ targetAudience: null, targetAudienceError: null }),
+  clearTargetAudienceError: () => set({ targetAudienceError: null }),
+  getTargetAudienceHistory: () => get().targetAudienceGenerationHistory,
+  clearTargetAudienceHistory: () =>
+    set({ targetAudienceGenerationHistory: [] }),
 
-  updateThreatIntelligenceInReport: async (
-    reportId: string,
-    analysis: string
-  ): Promise<void> => {
-    try {
-      await get().updateReport(reportId, {
-        threat_intelligence_analysis: analysis,
-      });
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  getThreatIntelligenceHistory: () => {
-    return get().threatIntelligenceGenerationHistory;
-  },
-
-  clearThreatIntelligenceHistory: () => {
-    set({ threatIntelligenceGenerationHistory: [] });
-  },
-
-  // Risk Prioritization actions
-  generateRiskPrioritization: async (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType: SummaryTypeValue = SummaryType.STANDARD
-  ): Promise<RiskPrioritizationResponse> => {
-    set({
-      isGeneratingRiskPrioritization: true,
-      riskPrioritizationError: null,
-    });
-
-    try {
-      const riskPrioritizationResponse =
-        await auditReportService.createRiskPrioritization(
-          auditReport,
-          complianceGaps,
-          summaryType
-        );
-
-      // Add to history
-      const currentHistory = get().riskPrioritizationGenerationHistory;
-      const updatedHistory = [
-        riskPrioritizationResponse,
-        ...currentHistory.slice(0, 4),
-      ]; // Keep last 5
-
-      set({
-        riskPrioritization: riskPrioritizationResponse,
-        riskPrioritizationGenerationHistory: updatedHistory,
-        isGeneratingRiskPrioritization: false,
-      });
-
-      return riskPrioritizationResponse;
-    } catch (error: any) {
-      const errorMessage =
-        error.message || "Failed to generate risk prioritization";
-      set({
-        riskPrioritizationError: errorMessage,
-        isGeneratingRiskPrioritization: false,
-      });
-      throw error;
-    }
-  },
-
-  clearRiskPrioritization: () => {
-    set({
-      riskPrioritization: null,
-      riskPrioritizationError: null,
-    });
-  },
-
-  clearRiskPrioritizationError: () => {
-    set({ riskPrioritizationError: null });
-  },
-
-  updateRiskPrioritizationInReport: async (
-    reportId: string,
-    prioritization: string
-  ): Promise<void> => {
-    try {
-      await get().updateReport(reportId, {
-        control_risk_prioritization: prioritization,
-      });
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  getRiskPrioritizationHistory: () => {
-    return get().riskPrioritizationGenerationHistory;
-  },
-
-  clearRiskPrioritizationHistory: () => {
-    set({ riskPrioritizationGenerationHistory: [] });
-  },
-
-  // Target Audience actions
-  generateTargetAudience: async (
-    auditReport: AuditReportCreate,
-    complianceGaps: ComplianceGap[],
-    summaryType: SummaryTypeValue = SummaryType.STANDARD
-  ): Promise<TargetAudienceResponse> => {
-    set({ isGeneratingTargetAudience: true, targetAudienceError: null });
-
-    try {
-      const targetAudienceResponse =
-        await auditReportService.createTargetAudience(
-          auditReport,
-          complianceGaps,
-          summaryType
-        );
-
-      // Add to history
-      const currentHistory = get().targetAudienceGenerationHistory;
-      const updatedHistory = [
-        targetAudienceResponse,
-        ...currentHistory.slice(0, 4),
-      ]; // Keep last 5
-
-      set({
-        targetAudience: targetAudienceResponse,
-        targetAudienceGenerationHistory: updatedHistory,
-        isGeneratingTargetAudience: false,
-      });
-
-      return targetAudienceResponse;
-    } catch (error: any) {
-      const errorMessage =
-        error.message || "Failed to generate target audience summary";
-      set({
-        targetAudienceError: errorMessage,
-        isGeneratingTargetAudience: false,
-      });
-      throw error;
-    }
-  },
-
-  clearTargetAudience: () => {
-    set({
-      targetAudience: null,
-      targetAudienceError: null,
-    });
-  },
-
-  clearTargetAudienceError: () => {
-    set({ targetAudienceError: null });
-  },
-
-  updateTargetAudienceInReport: async (
-    reportId: string,
-    summary: string
-  ): Promise<void> => {
-    try {
-      await get().updateReport(reportId, { target_audience_summary: summary });
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  getTargetAudienceHistory: () => {
-    return get().targetAudienceGenerationHistory;
-  },
-
-  clearTargetAudienceHistory: () => {
-    set({ targetAudienceGenerationHistory: [] });
+  setIsGeneratingTargetAudience: (generating: boolean) =>
+    set({ isGeneratingTargetAudience: generating }),
+  setTargetAudience: (ta: TargetAudienceResponse | null) =>
+    set({ targetAudience: ta }),
+  setTargetAudienceError: (msg: string | null) =>
+    set({ targetAudienceError: msg }),
+  addTargetAudienceHistory: (item: TargetAudienceResponse) => {
+    const current = get().targetAudienceGenerationHistory;
+    set({ targetAudienceGenerationHistory: [item, ...current.slice(0, 4)] });
   },
 }));
 
@@ -905,7 +496,6 @@ export const auditReportStoreUtils = {
         confidence_score: gap.confidence_score,
         detection_method: gap.detection_method,
         false_positive_likelihood: gap.false_positive_likelihood,
-        // Add required fields for ComplianceGap type
         user_id: "", // Will be populated by backend
         audit_session_id: "", // Will be populated by backend
         compliance_domain: "", // Will be populated by backend

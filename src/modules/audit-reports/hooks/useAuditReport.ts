@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-useless-catch */
 import { useCallback } from "react";
 import {
   useAuditReportStore,
   auditReportStoreUtils,
 } from "../store/auditReportStore";
+import { auditReportService } from "../services/auditReportService";
 import type {
   AuditReport,
   AuditReportCreate,
@@ -27,6 +29,8 @@ export const useAuditReport = () => {
     isCreating,
     error,
     createResponse,
+    setIsCreating,
+    setCreateResponse,
     dataSources,
     isGeneratingSummary,
     executiveSummary,
@@ -44,10 +48,10 @@ export const useAuditReport = () => {
     targetAudience,
     targetAudienceError,
     targetAudienceGenerationHistory,
-    createReport,
-    fetchReports,
-    fetchReportById,
-    loadSessionDataSources,
+    // state setters
+    setError,
+    setReports,
+    setCurrentReport,
     updateChatSelection,
     updateGapSelection,
     updateDocumentSelection,
@@ -60,64 +64,137 @@ export const useAuditReport = () => {
     setLoading,
     isUpdating,
     updateError,
-    updateReport,
+    setIsUpdating,
+    setUpdateError,
     clearUpdateError,
-    generateExecutiveSummary,
+    // generation setters
     clearExecutiveSummary,
     clearSummaryError,
-    updateExecutiveSummaryInReport,
+    setIsGeneratingSummary,
+    setExecutiveSummary,
+    setSummaryError,
+    addSummaryHistory,
     getSummaryHistory,
     clearSummaryHistory,
-    generateThreatIntelligence,
+    setIsGeneratingThreatIntelligence,
     clearThreatIntelligence,
     clearThreatIntelligenceError,
-    updateThreatIntelligenceInReport,
+    setThreatIntelligence,
+    setThreatIntelligenceError,
+    addThreatIntelligenceHistory,
     getThreatIntelligenceHistory,
     clearThreatIntelligenceHistory,
-    generateRiskPrioritization,
+    setIsGeneratingRiskPrioritization,
     clearRiskPrioritization,
     clearRiskPrioritizationError,
-    updateRiskPrioritizationInReport,
+    setRiskPrioritization,
+    setRiskPrioritizationError,
+    addRiskPrioritizationHistory,
     getRiskPrioritizationHistory,
     clearRiskPrioritizationHistory,
-    generateTargetAudience,
+    setIsGeneratingTargetAudience,
     clearTargetAudience,
     clearTargetAudienceError,
-    updateTargetAudienceInReport,
+    setTargetAudience,
+    setTargetAudienceError,
+    addTargetAudienceHistory,
     getTargetAudienceHistory,
     clearTargetAudienceHistory,
     isGenerating,
     generateResponse,
     generateError,
-    generateAuditReport,
+    setIsGenerating,
+    setGenerateError,
+    setGenerateResponse,
     clearGenerateResponse,
     clearGenerateError,
+    setDataSourcesLoading,
+    setDataSources,
   } = useAuditReportStore();
 
   const handleCreateReport = useCallback(
     async (reportData: AuditReportCreate): Promise<AuditReportResponse> => {
+      setIsCreating(true);
+      clearError();
+      clearCreateResponse();
       try {
-        const response = await createReport(reportData);
+        const response = await auditReportService.createReport(reportData);
+        setCreateResponse(response);
+        if (!response.success) {
+          setError(
+            response.error || response.message || "Failed to create report"
+          );
+          return response;
+        }
+        if (response.report_id) {
+          try {
+            const newReport = await auditReportService.getReportById(
+              response.report_id
+            );
+            setReports([newReport, ...reports]);
+          } catch {
+            // ignore fetch failure
+          }
+        }
         return response;
-      } catch (error) {
-        throw error;
+      } catch (e: any) {
+        setError(e.message || "Failed to create audit report");
+        const errResp: AuditReportResponse = {
+          success: false,
+          message: e.message || "Failed to create audit report",
+          error: e.message || "Failed to create audit report",
+        };
+        setCreateResponse(errResp);
+        return errResp;
+      } finally {
+        setIsCreating(false);
       }
     },
-    [createReport]
+    [
+      reports,
+      setIsCreating,
+      clearError,
+      clearCreateResponse,
+      setCreateResponse,
+      setError,
+      setReports,
+    ]
   );
 
   const handleGenerateReport = useCallback(
     async (
       generateRequest: AuditReportGenerateRequest
     ): Promise<AuditReportGenerateResponse> => {
+      setIsGenerating(true);
+      setGenerateError(null);
+      setGenerateResponse(null);
       try {
-        const response = await generateAuditReport(generateRequest);
+        const response = await auditReportService.generateAuditReport(
+          generateRequest
+        );
+        setGenerateResponse(response);
+        if (!response.success) {
+          setGenerateError(
+            response.error || response.message || "Failed to generate report"
+          );
+        }
         return response;
-      } catch (error) {
-        throw error;
+      } catch (e: any) {
+        const msg = e.message || "Failed to generate audit report";
+        setGenerateError(msg);
+        const errorResp: AuditReportGenerateResponse = {
+          success: false,
+          message: msg,
+          error: msg,
+          generation_status: "failed",
+        };
+        setGenerateResponse(errorResp);
+        return errorResp;
+      } finally {
+        setIsGenerating(false);
       }
     },
-    [generateAuditReport]
+    [setIsGenerating, setGenerateError, setGenerateResponse]
   );
 
   const handleUpdateReport = useCallback(
@@ -126,31 +203,87 @@ export const useAuditReport = () => {
       updateData: Partial<AuditReport>,
       changeDescription?: string
     ) => {
+      setIsUpdating(true);
+      setUpdateError(null);
       try {
-        await updateReport(reportId, updateData, changeDescription);
-      } catch (error) {
-        throw error;
+        const updated = await auditReportService.updateReport(
+          reportId,
+          updateData,
+          changeDescription
+        );
+        if (currentReport && currentReport.id === reportId) {
+          setCurrentReport(updated);
+        }
+        const updatedList = reports.map((r) =>
+          r.id === reportId ? updated : r
+        );
+        setReports(updatedList);
+      } catch (e: any) {
+        setUpdateError(e.message || "Failed to update audit report");
+        throw e;
+      } finally {
+        setIsUpdating(false);
       }
     },
-    [updateReport]
+    [
+      reports,
+      currentReport,
+      setIsUpdating,
+      setUpdateError,
+      setCurrentReport,
+      setReports,
+    ]
   );
 
   const handleLoadReports = useCallback(async () => {
-    await fetchReports();
-  }, [fetchReports]);
+    setLoading(true);
+    clearError();
+    try {
+      const list = await auditReportService.getAllReportsByComplianceDomain();
+      setReports(list);
+    } catch (e: any) {
+      setError(e.message || "Failed to fetch audit reports");
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, clearError, setReports, setError]);
 
   const handleLoadReport = useCallback(
     async (reportId: string) => {
-      await fetchReportById(reportId);
+      setLoading(true);
+      clearError();
+      try {
+        const report = await auditReportService.getReportById(reportId);
+        setCurrentReport(report);
+      } catch (e: any) {
+        setError(e.message || "Failed to fetch audit report");
+        throw e;
+      } finally {
+        setLoading(false);
+      }
     },
-    [fetchReportById]
+    [setLoading, clearError, setCurrentReport, setError]
   );
 
   const handleLoadSessionData = useCallback(
     async (sessionId: string) => {
-      await loadSessionDataSources(sessionId);
+      setDataSourcesLoading({
+        isLoadingChats: true,
+        isLoadingGaps: true,
+        isLoadingDocuments: true,
+      });
+      setError(null);
+      try {
+        const { chatHistory, complianceGaps, documents } =
+          await auditReportService.getSessionDataSources(sessionId);
+        setDataSources({ chatHistory, complianceGaps, documents });
+      } catch (e: any) {
+        setError(e.message || "Failed to load session data");
+        setDataSources({ chatHistory: [], complianceGaps: [], documents: [] });
+      }
     },
-    [loadSessionDataSources]
+    [setDataSourcesLoading, setError, setDataSources]
   );
 
   const handleUpdateSelections = useCallback(
@@ -198,28 +331,48 @@ export const useAuditReport = () => {
           throw new Error("No compliance gaps selected for summary generation");
         }
 
-        const response = await generateExecutiveSummary(
+        setIsGeneratingSummary(true);
+        setSummaryError(null);
+        const response = await auditReportService.createExecutiveSummary(
           auditReport,
           gaps,
           summaryType
         );
+        addSummaryHistory(response);
+        setExecutiveSummary(response);
         return response;
       } catch (error) {
+        setSummaryError(
+          (error as any).message || "Failed to generate executive summary"
+        );
         throw error;
+      } finally {
+        setIsGeneratingSummary(false);
       }
     },
-    [generateExecutiveSummary]
+    [
+      setIsGeneratingSummary,
+      setSummaryError,
+      addSummaryHistory,
+      setExecutiveSummary,
+    ]
   );
 
   const handleUpdateExecutiveSummaryInReport = useCallback(
     async (reportId: string, summary: string) => {
       try {
-        await updateExecutiveSummaryInReport(reportId, summary);
+        const updated = await auditReportService.updateReport(reportId, {
+          executive_summary: summary,
+        });
+        if (currentReport && currentReport.id === reportId) {
+          setCurrentReport(updated);
+        }
+        setReports(reports.map((r) => (r.id === reportId ? updated : r)));
       } catch (error) {
         throw error;
       }
     },
-    [updateExecutiveSummaryInReport]
+    [currentReport, reports, setCurrentReport, setReports]
   );
 
   const handleRegenerateSummary = useCallback(
@@ -250,12 +403,12 @@ export const useAuditReport = () => {
           throw new Error("No executive summary available to save");
         }
 
-        await updateExecutiveSummaryInReport(reportId, summaryToUse);
+        await handleUpdateExecutiveSummaryInReport(reportId, summaryToUse);
       } catch (error) {
         throw error;
       }
     },
-    [executiveSummary, updateExecutiveSummaryInReport]
+    [executiveSummary, handleUpdateExecutiveSummaryInReport]
   );
 
   // Threat Intelligence Actions
@@ -274,28 +427,48 @@ export const useAuditReport = () => {
           );
         }
 
-        const response = await generateThreatIntelligence(
+        setIsGeneratingThreatIntelligence(true);
+        setThreatIntelligenceError(null);
+        const response = await auditReportService.createThreatIntelligence(
           auditReport,
           gaps,
           summaryType
         );
+        addThreatIntelligenceHistory(response);
+        setThreatIntelligence(response);
         return response;
       } catch (error) {
+        setThreatIntelligenceError(
+          (error as any).message || "Failed to generate threat intelligence"
+        );
         throw error;
+      } finally {
+        setIsGeneratingThreatIntelligence(false);
       }
     },
-    [generateThreatIntelligence]
+    [
+      setIsGeneratingThreatIntelligence,
+      setThreatIntelligenceError,
+      addThreatIntelligenceHistory,
+      setThreatIntelligence,
+    ]
   );
 
   const handleUpdateThreatIntelligenceInReport = useCallback(
     async (reportId: string, analysis: string) => {
       try {
-        await updateThreatIntelligenceInReport(reportId, analysis);
+        const updated = await auditReportService.updateReport(reportId, {
+          threat_intelligence_analysis: analysis,
+        });
+        if (currentReport && currentReport.id === reportId) {
+          setCurrentReport(updated);
+        }
+        setReports(reports.map((r) => (r.id === reportId ? updated : r)));
       } catch (error) {
         throw error;
       }
     },
-    [updateThreatIntelligenceInReport]
+    [currentReport, reports, setCurrentReport, setReports]
   );
 
   const handleSaveAndUseThreatIntelligence = useCallback(
@@ -307,12 +480,12 @@ export const useAuditReport = () => {
           throw new Error("No threat intelligence analysis available to save");
         }
 
-        await updateThreatIntelligenceInReport(reportId, analysisToUse);
+        await handleUpdateThreatIntelligenceInReport(reportId, analysisToUse);
       } catch (error) {
         throw error;
       }
     },
-    [threatIntelligence, updateThreatIntelligenceInReport]
+    [threatIntelligence, handleUpdateThreatIntelligenceInReport]
   );
 
   // Risk Prioritization Actions
@@ -331,28 +504,48 @@ export const useAuditReport = () => {
           );
         }
 
-        const response = await generateRiskPrioritization(
+        setIsGeneratingRiskPrioritization(true);
+        setRiskPrioritizationError(null);
+        const response = await auditReportService.createRiskPrioritization(
           auditReport,
           gaps,
           summaryType
         );
+        addRiskPrioritizationHistory(response);
+        setRiskPrioritization(response);
         return response;
       } catch (error) {
+        setRiskPrioritizationError(
+          (error as any).message || "Failed to generate risk prioritization"
+        );
         throw error;
+      } finally {
+        setIsGeneratingRiskPrioritization(false);
       }
     },
-    [generateRiskPrioritization]
+    [
+      setIsGeneratingRiskPrioritization,
+      setRiskPrioritizationError,
+      addRiskPrioritizationHistory,
+      setRiskPrioritization,
+    ]
   );
 
   const handleUpdateRiskPrioritizationInReport = useCallback(
     async (reportId: string, prioritization: string) => {
       try {
-        await updateRiskPrioritizationInReport(reportId, prioritization);
+        const updated = await auditReportService.updateReport(reportId, {
+          control_risk_prioritization: prioritization,
+        });
+        if (currentReport && currentReport.id === reportId) {
+          setCurrentReport(updated);
+        }
+        setReports(reports.map((r) => (r.id === reportId ? updated : r)));
       } catch (error) {
         throw error;
       }
     },
-    [updateRiskPrioritizationInReport]
+    [currentReport, reports, setCurrentReport, setReports]
   );
 
   const handleSaveAndUseRiskPrioritization = useCallback(
@@ -365,12 +558,15 @@ export const useAuditReport = () => {
           throw new Error("No risk prioritization available to save");
         }
 
-        await updateRiskPrioritizationInReport(reportId, prioritizationToUse);
+        await handleUpdateRiskPrioritizationInReport(
+          reportId,
+          prioritizationToUse
+        );
       } catch (error) {
         throw error;
       }
     },
-    [riskPrioritization, updateRiskPrioritizationInReport]
+    [riskPrioritization, handleUpdateRiskPrioritizationInReport]
   );
 
   // Target Audience Actions
@@ -389,28 +585,48 @@ export const useAuditReport = () => {
           );
         }
 
-        const response = await generateTargetAudience(
+        setIsGeneratingTargetAudience(true);
+        setTargetAudienceError(null);
+        const response = await auditReportService.createTargetAudience(
           auditReport,
           gaps,
           summaryType
         );
+        addTargetAudienceHistory(response);
+        setTargetAudience(response);
         return response;
       } catch (error) {
+        setTargetAudienceError(
+          (error as any).message || "Failed to generate target audience summary"
+        );
         throw error;
+      } finally {
+        setIsGeneratingTargetAudience(false);
       }
     },
-    [generateTargetAudience]
+    [
+      setIsGeneratingTargetAudience,
+      setTargetAudienceError,
+      addTargetAudienceHistory,
+      setTargetAudience,
+    ]
   );
 
   const handleUpdateTargetAudienceInReport = useCallback(
     async (reportId: string, summary: string) => {
       try {
-        await updateTargetAudienceInReport(reportId, summary);
+        const updated = await auditReportService.updateReport(reportId, {
+          target_audience_summary: summary,
+        });
+        if (currentReport && currentReport.id === reportId) {
+          setCurrentReport(updated);
+        }
+        setReports(reports.map((r) => (r.id === reportId ? updated : r)));
       } catch (error) {
         throw error;
       }
     },
-    [updateTargetAudienceInReport]
+    [currentReport, reports, setCurrentReport, setReports]
   );
 
   const handleSaveAndUseTargetAudience = useCallback(
@@ -422,12 +638,12 @@ export const useAuditReport = () => {
           throw new Error("No target audience summary available to save");
         }
 
-        await updateTargetAudienceInReport(reportId, summaryToUse);
+        await handleUpdateTargetAudienceInReport(reportId, summaryToUse);
       } catch (error) {
         throw error;
       }
     },
-    [targetAudience, updateTargetAudienceInReport]
+    [targetAudience, handleUpdateTargetAudienceInReport]
   );
 
   const getSelectedData = useCallback(() => {
