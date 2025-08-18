@@ -84,7 +84,9 @@ export const useIngestion = () => {
   );
 
   const uploadDocument = useCallback(
-    async (uploadData: DocumentUploadRequest): Promise<DocumentUploadResponse> => {
+    async (
+      uploadData: DocumentUploadRequest
+    ): Promise<DocumentUploadResponse> => {
       setLoading(true);
       clearError();
       setUploadProgress(0);
@@ -114,7 +116,14 @@ export const useIngestion = () => {
         setLoading(false);
       }
     },
-    [setLoading, clearError, setUploadProgress, ingestions, fetchIngestions, setError]
+    [
+      setLoading,
+      clearError,
+      setUploadProgress,
+      ingestions,
+      fetchIngestions,
+      setError,
+    ]
   );
 
   const extractPdfMetadata = useCallback(
@@ -129,7 +138,7 @@ export const useIngestion = () => {
       } catch (error) {
         normalizeError(error);
         setError("Failed to extract PDF metadata");
-        
+
         // Return fallback metadata
         const fallbackInfo: ExtractedDocumentInfo = {
           title: file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " "),
@@ -152,7 +161,10 @@ export const useIngestion = () => {
       setComplianceDomains(domains);
     } catch (error) {
       const normalizedError = normalizeError(error);
-      console.error("Failed to fetch compliance domains:", normalizedError.message);
+      console.error(
+        "Failed to fetch compliance domains:",
+        normalizedError.message
+      );
     }
   }, [setComplianceDomains]);
 

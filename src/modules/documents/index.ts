@@ -6,9 +6,6 @@ export { default as DocumentUploadForm } from "./components/DocumentUploadForm";
 // Services
 export { documentService } from "./services/documentService";
 
-// Store
-export { useIngestionStore } from "./store/documentStore";
-
 // Types
 export type {
   Document,
