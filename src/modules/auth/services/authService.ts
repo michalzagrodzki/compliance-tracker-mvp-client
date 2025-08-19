@@ -19,27 +19,30 @@ const AUTH_ENDPOINTS = {
 
 class AuthService {
   async signup(userData: SignupRequest): Promise<TokenResponse> {
-    const response = await http.post<TokenResponse>(
+    const response = await http.post(
       AUTH_ENDPOINTS.SIGNUP,
       userData
     );
-    return response.data;
+    const payload = response.data as any;
+    return (payload?.data ?? payload) as TokenResponse;
   }
 
   async login(loginData: LoginRequest): Promise<TokenResponse> {
-    const response = await http.post<TokenResponse>(
+    const response = await http.post(
       AUTH_ENDPOINTS.LOGIN,
       loginData
     );
-    return response.data;
+    const payload = response.data as any;
+    return (payload?.data ?? payload) as TokenResponse;
   }
 
   async refreshToken(refreshData: RefreshTokenRequest): Promise<TokenResponse> {
-    const response = await http.post<TokenResponse>(
+    const response = await http.post(
       AUTH_ENDPOINTS.REFRESH,
       refreshData
     );
-    return response.data;
+    const payload = response.data as any;
+    return (payload?.data ?? payload) as TokenResponse;
   }
 
   async logout(): Promise<void> {
@@ -48,7 +51,8 @@ class AuthService {
 
   async getMe(): Promise<any> {
     const response = await http.get(AUTH_ENDPOINTS.ME);
-    return response.data;
+    const payload = response.data as any;
+    return payload?.data ?? payload;
   }
 
   // Token management

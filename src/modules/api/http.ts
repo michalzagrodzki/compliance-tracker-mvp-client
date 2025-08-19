@@ -43,7 +43,8 @@ http.interceptors.response.use(
             throw new Error(`HTTP ${response.status}`);
           }
 
-          const tokenResponse = await response.json();
+          const json = await response.json();
+          const tokenResponse = (json?.data ?? json) as any;
 
           // Persist new tokens
           localStorage.setItem("access_token", tokenResponse.access_token);
