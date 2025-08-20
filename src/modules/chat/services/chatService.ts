@@ -231,14 +231,16 @@ class ChatService {
   // Get chat history for a conversation
   async getChatHistory(conversationId: string): Promise<ChatMessage[]> {
     try {
-      const response = await http.get<any[]>(
-        CHAT_ENDPOINTS.HISTORY(conversationId)
-      );
+      const response = await http.get<any>(CHAT_ENDPOINTS.HISTORY(conversationId));
+      // Support both raw array responses and wrapped `{ data: [...] }` responses
+      const items: any[] = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data ?? []);
 
       const messages: ChatMessage[] = [];
 
       // Convert each API response item to user question + AI answer pair
-      response.data.forEach((item) => {
+      items.forEach((item) => {
         // Add user message (question)
         messages.push(this.formatApiResponseToMessage(item));
 
@@ -262,11 +264,10 @@ class ChatService {
     messageType: "user" | "ai" = "ai"
   ): Promise<ChatMessage> {
     try {
-      const response = await http.get<ChatHistoryResponse>(
-        CHAT_ENDPOINTS.HISTORY_ITEM(messageId)
-      );
-
-      const historyItem = response.data;
+      const response = await http.get<any>(CHAT_ENDPOINTS.HISTORY_ITEM(messageId));
+      // Support both raw object and wrapped `{ data: {...} }` responses
+      const historyItem: ChatHistoryResponse =
+        (response.data?.data ?? response.data) as ChatHistoryResponse;
 
       if (messageType === "user") {
         return this.formatApiResponseToMessage(historyItem);
@@ -283,14 +284,18 @@ class ChatService {
   // Get chat history for an audit session
   async getAuditSessionHistory(auditSessionId: string): Promise<ChatMessage[]> {
     try {
-      const response = await http.get<any[]>(
+      const response = await http.get<any>(
         CHAT_ENDPOINTS.AUDIT_SESSION_HISTORY(auditSessionId)
       );
+      // Support both raw array responses and wrapped `{ data: [...] }` responses
+      const items: any[] = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data ?? []);
 
       const messages: ChatMessage[] = [];
 
       // Convert each API response item to user question + AI answer pair
-      response.data.forEach((item) => {
+      items.forEach((item) => {
         // Add user message (question)
         messages.push(this.formatApiResponseToMessage(item));
 
