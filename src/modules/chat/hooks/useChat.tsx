@@ -78,18 +78,10 @@ export const useChat = (sessionId?: string, chatId?: string) => {
         };
       }
 
-      // Load documents
+      // Load documents (only those attached to the current audit session)
       try {
         const sessionDocuments = await chatService.getSessionDocuments(sessionId);
-
-        let allDocuments = sessionDocuments;
-        if (allDocuments.length === 0) {
-          allDocuments = await chatService.getDocuments({
-            limit: 100,
-          });
-        }
-
-        const categorizedDocs = chatService.categorizeDocuments(allDocuments);
+        const categorizedDocs = chatService.categorizeDocuments(sessionDocuments);
         setDocuments(categorizedDocs);
       } catch (documentError) {
         console.warn("Failed to load documents:", documentError);
@@ -140,6 +132,27 @@ export const useChat = (sessionId?: string, chatId?: string) => {
     setStreaming(true);
     clearError();
 
+    // Derive document filters from current session documents
+    const allSessionDocs = [
+      ...(documents?.reference || []),
+      ...(documents?.implementation || []),
+      ...(documents?.assessment || []),
+    ];
+    console.log("documents:")
+    console.log(allSessionDocs)
+    const derivedDocumentVersions = Array.from(
+      new Set(
+        allSessionDocs
+          .map((d) => d.document_version)
+          .filter((v): v is string => Boolean(v))
+      )
+    );
+    const derivedDocumentTags = Array.from(
+      new Set(
+        allSessionDocs.flatMap((d) => (d.document_tags || []).filter(Boolean))
+      )
+    );
+
     const queryRequest: QueryRequest = {
       question: message,
       conversation_id: currentSession.conversation_id,
@@ -147,6 +160,8 @@ export const useChat = (sessionId?: string, chatId?: string) => {
       compliance_domain: currentSession.compliance_domain,
       match_threshold: 0.75,
       match_count: 5,
+      document_versions: derivedDocumentVersions.length ? derivedDocumentVersions : undefined,
+      document_tags: derivedDocumentTags.length ? derivedDocumentTags : undefined,
     };
 
     const aiMessageId = (Date.now() + 1).toString();
@@ -200,7 +215,8 @@ export const useChat = (sessionId?: string, chatId?: string) => {
     setError,
     updateMessage,
     removeMessage,
-    findMessageById
+    findMessageById,
+    documents,
   ]);
 
   // Load chat history
@@ -236,19 +252,11 @@ export const useChat = (sessionId?: string, chatId?: string) => {
     }
   }, [setLoading, clearError, setError]);
 
-  // Load documents
+  // Load documents (only those attached to the current audit session)
   const loadDocuments = useCallback(async (sessionId: string) => {
     try {
       const sessionDocuments = await chatService.getSessionDocuments(sessionId);
-
-      let allDocuments = sessionDocuments;
-      if (allDocuments.length === 0) {
-        allDocuments = await chatService.getDocuments({
-          limit: 100,
-        });
-      }
-
-      const categorizedDocs = chatService.categorizeDocuments(allDocuments);
+      const categorizedDocs = chatService.categorizeDocuments(sessionDocuments);
       setDocuments(categorizedDocs);
     } catch (error) {
       console.warn("Failed to load documents:", error);

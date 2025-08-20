@@ -93,7 +93,7 @@ export interface QueryRequest {
   match_threshold?: number;
   match_count?: number;
   user_id?: string;
-  document_version?: string;
+  document_versions?: string[];
   document_tags?: string[];
 }
 
