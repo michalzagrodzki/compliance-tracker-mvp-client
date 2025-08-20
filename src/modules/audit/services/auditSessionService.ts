@@ -18,13 +18,13 @@ const AUDIT_SESSION_ENDPOINTS = {
   SEARCH: "/v1/audit-sessions/search",
   CREATE: "/v1/audit-sessions",
   SESSION_DOCUMENTS: (sessionId: string) =>
-    `/v1/audit-sessions/${sessionId}/pdf-ingestions`,
+    `/v1/ingestions/audit-sessions/${sessionId}`,
   ADD_TO_SESSION: (sessionId: string) =>
-    `/v1/audit-sessions/${sessionId}/pdf-ingestions`,
+    `/v1/ingestions/audit-sessions/${sessionId}`,
   REMOVE_FROM_SESSION: (sessionId: string, documentId: string) =>
-    `/v1/audit-sessions/${sessionId}/pdf-ingestions/${documentId}`,
+    `/v1/ingestions/audit-sessions/${sessionId}/pdf-ingestions/${documentId}`,
   SESSION_HISTORY: (sessionId: string) =>
-    `/v1/audit-sessions/${sessionId}/history`,
+    `/v1/history/audit-sessions/${sessionId}`,
   CLOSE_SESSION: (sessionId: string) => `/v1/audit-sessions/${sessionId}/close`,
   ACTIVATE_SESSION: (sessionId: string) =>
     `/v1/audit-sessions/${sessionId}/activate`,
@@ -191,10 +191,17 @@ class AuditSessionService {
 
   async getAuditSessionHistory(sessionId: string): Promise<any[]> {
     try {
-      const response = await http.get<any[]>(
+      const response = await http.get<any>(
         AUDIT_SESSION_ENDPOINTS.SESSION_HISTORY(sessionId)
       );
-      return response.data;
+      const payload = response.data as any;
+      // Handle both plain array responses and envelope { success, data, ... }
+      const items = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+      return items;
     } catch (error) {
       throw normalizeError(error);
     }

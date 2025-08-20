@@ -21,7 +21,7 @@ const CHAT_ENDPOINTS = {
   DOCUMENTS: "/v1/documents",
   AUDIT_SESSION: (sessionId: string) => `/v1/audit-sessions/${sessionId}`,
   SESSION_DOCUMENTS: (sessionId: string) =>
-    `/v1/audit-sessions/${sessionId}/pdf-ingestions`,
+    `/v1/ingestions/audit-sessions/${sessionId}`,
 } as const;
 
 class ChatService {

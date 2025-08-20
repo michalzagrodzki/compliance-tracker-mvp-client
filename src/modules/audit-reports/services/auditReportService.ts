@@ -42,7 +42,7 @@ const AUDIT_REPORT_ENDPOINTS = {
     `/v1/audit-sessions/${sessionId}/history`,
   SESSION_GAPS: (sessionId: string) => `/v1/audit-sessions/${sessionId}/gaps`,
   SESSION_DOCUMENTS: (sessionId: string) =>
-    `/v1/audit-sessions/${sessionId}/pdf-ingestions`,
+    `/v1/ingestions/audit-sessions/${sessionId}`,
 } as const;
 
 class AuditReportService {
