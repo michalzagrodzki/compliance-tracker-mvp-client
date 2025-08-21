@@ -1,3 +1,5 @@
+/* eslint-disable no-empty */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback } from "react";
 import { complianceGapService } from "../services/complianceGapService";
@@ -101,80 +103,71 @@ export const useComplianceGap = () => {
     filterGapsByRiskLevel,
   } = useComplianceGapStore();
 
-  const loadGaps = useCallback(
-    async (params: ComplianceGapListParams = {}) => {
-      setLoading(true);
-      clearError();
+  const loadGaps = useCallback(async (params: ComplianceGapListParams = {}) => {
+    setLoading(true);
+    clearError();
 
-      try {
-        const gaps =
-          await complianceGapService.getComplianceGapsByUserComplianceDomains({
-            skip: params.skip || 0,
-            limit: params.limit || 50,
-          });
-        setGaps(gaps);
-      } catch (error) {
-        const normalizedError = normalizeError(error);
-        setError(normalizedError.message || "Failed to load compliance gaps");
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+    try {
+      const gaps =
+        await complianceGapService.getComplianceGapsByUserComplianceDomains({
+          skip: params.skip || 0,
+          limit: params.limit || 50,
+        });
+      setGaps(gaps);
+    } catch (error) {
+      const normalizedError = normalizeError(error);
+      setError(normalizedError.message || "Failed to load compliance gaps");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const loadGapById = useCallback(
-    async (gapId: string) => {
-      setLoading(true);
-      clearError();
+  const loadGapById = useCallback(async (gapId: string) => {
+    setLoading(true);
+    clearError();
 
-      try {
-        const gap = await complianceGapService.getComplianceGapById(gapId);
-        setCurrentGap(gap);
-      } catch (error) {
-        const normalizedError = normalizeError(error);
-        setError(normalizedError.message || "Failed to load compliance gap");
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+    try {
+      const gap = await complianceGapService.getComplianceGapById(gapId);
+      setCurrentGap(gap);
+    } catch (error) {
+      const normalizedError = normalizeError(error);
+      setError(normalizedError.message || "Failed to load compliance gap");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const loadGapWithChatMessage = useCallback(
-    async (gapId: string) => {
-      setLoading(true);
-      clearError();
-      setRelatedChatMessage(null);
+  const loadGapWithChatMessage = useCallback(async (gapId: string) => {
+    setLoading(true);
+    clearError();
+    setRelatedChatMessage(null);
 
-      try {
-        const gap = await complianceGapService.getComplianceGapById(gapId);
-        setCurrentGap(gap);
+    try {
+      const gap = await complianceGapService.getComplianceGapById(gapId);
+      setCurrentGap(gap);
 
-        let chatMessage: ChatMessage | null = null;
+      let chatMessage: ChatMessage | null = null;
 
-        if (gap.chat_history_id) {
-          try {
-            chatMessage = await chatService.getChatHistoryItem(
-              gap.chat_history_id.toString()
-            );
-            setRelatedChatMessage(chatMessage);
-          } catch (chatError) {
-            console.warn(
-              `Failed to load chat message for ID ${gap.chat_history_id}:`,
-              chatError
-            );
-          }
+      if (gap.chat_history_id) {
+        try {
+          chatMessage = await chatService.getChatHistoryItem(
+            gap.chat_history_id.toString()
+          );
+          setRelatedChatMessage(chatMessage);
+        } catch (chatError) {
+          console.warn(
+            `Failed to load chat message for ID ${gap.chat_history_id}:`,
+            chatError
+          );
         }
-      } catch (error) {
-        const normalizedError = normalizeError(error);
-        setError(normalizedError.message || "Failed to load compliance gap");
-      } finally {
-        setLoading(false);
       }
-    },
-    []
-  );
+    } catch (error) {
+      const normalizedError = normalizeError(error);
+      setError(normalizedError.message || "Failed to load compliance gap");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const createGapFromChatHistory = useCallback(
     async (request: ComplianceGapFromChatHistoryRequest) => {
@@ -182,8 +175,40 @@ export const useComplianceGap = () => {
       clearError();
 
       try {
+        const enrichedRequest = {
+          ...request,
+        } as ComplianceGapFromChatHistoryRequest;
+
+        // Ensure original_question and basic context are present by fetching chat history if needed
+        const needsOriginalQuestion =
+          !enrichedRequest.original_question ||
+          enrichedRequest.original_question.trim().length === 0;
+
+        if (
+          needsOriginalQuestion ||
+          !enrichedRequest.audit_session_id ||
+          !enrichedRequest.compliance_domain
+        ) {
+          try {
+            const history = await complianceGapService.getChatHistoryItem(
+              String(enrichedRequest.chat_history_id)
+            );
+            if (needsOriginalQuestion) {
+              enrichedRequest.original_question = history.question;
+            }
+            if (!enrichedRequest.audit_session_id && history.audit_session_id) {
+              enrichedRequest.audit_session_id = history.audit_session_id;
+            }
+            if (
+              !enrichedRequest.compliance_domain &&
+              history.compliance_domain
+            ) {
+              enrichedRequest.compliance_domain = history.compliance_domain;
+            }
+          } catch (e) {}
+        }
         const response = await complianceGapService.createFromChatHistory(
-          request
+          enrichedRequest
         );
         addGap(response);
         return response;
@@ -362,27 +387,20 @@ export const useComplianceGap = () => {
     []
   );
 
-  const loadGapsByAuditSession = useCallback(
-    async (sessionId: string) => {
-      setLoading(true);
-      clearError();
+  const loadGapsByAuditSession = useCallback(async (sessionId: string) => {
+    setLoading(true);
+    clearError();
 
-      try {
-        const gaps = await complianceGapService.getGapsByAuditSession(
-          sessionId
-        );
-        setGaps(gaps);
-      } catch (error) {
-        const normalizedError = normalizeError(error);
-        setError(
-          normalizedError.message || "Failed to load audit session gaps"
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+    try {
+      const gaps = await complianceGapService.getGapsByAuditSession(sessionId);
+      setGaps(gaps);
+    } catch (error) {
+      const normalizedError = normalizeError(error);
+      setError(normalizedError.message || "Failed to load audit session gaps");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const searchGaps = useCallback(
     async (searchParams: ComplianceGapListParams) => {

@@ -166,6 +166,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
       const request: ComplianceGapFromChatHistoryRequest = {
         creation_method: "from_chat_history",
         chat_history_id: extractWholeNumberFromId(chatHistoryId),
+        original_question: initialMessage || (formData.gap_description ?? ""),
         audit_session_id: auditSessionId,
         compliance_domain: complianceDomain,
         search_terms_used: complianceGapService.extractSearchTerms(initialMessage),

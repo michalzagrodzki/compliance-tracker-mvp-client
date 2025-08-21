@@ -89,6 +89,7 @@ export interface ComplianceGapFromChatHistoryRequest {
   gap_category: string;
   gap_title: string;
   gap_description: string;
+  original_question: string;
 
   audit_session_id?: string;
   compliance_domain?: string;
