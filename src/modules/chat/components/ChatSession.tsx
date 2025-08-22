@@ -57,8 +57,6 @@ export const ChatSession: React.FC = () => {
     try {
       // Mark as interacted to trigger the transition
       setHasInteracted(true);
-      console.log("sending message from chat")
-      console.log(message)
       await sendMessage(message);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -67,9 +65,7 @@ export const ChatSession: React.FC = () => {
 
   const handleSubmitComplianceGap = async (request: ComplianceGapFromChatHistoryRequest): Promise<void> => {
     try {
-      const response = await createGapFromChatHistory(request);
-      console.log('Compliance gap created successfully:', response);
-      // The success state will be handled by the modal
+      await createGapFromChatHistory(request);
     } catch (error) {
       console.error('Failed to create compliance gap:', error);
       // Re-throw the error so the modal can handle it

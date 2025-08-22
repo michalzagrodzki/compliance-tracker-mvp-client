@@ -281,6 +281,12 @@ export const useAuditReport = () => {
       } catch (e: any) {
         setError(e.message || "Failed to load session data");
         setDataSources({ chatHistory: [], complianceGaps: [], documents: [] });
+      } finally {
+        setDataSourcesLoading({
+          isLoadingChats: false,
+          isLoadingGaps: false,
+          isLoadingDocuments: false,
+        });
       }
     },
     [setDataSourcesLoading, setError, setDataSources]

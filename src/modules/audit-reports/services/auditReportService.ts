@@ -39,7 +39,7 @@ const AUDIT_REPORT_ENDPOINTS = {
 
   // Data source endpoints
   SESSION_CHATS: (sessionId: string) =>
-    `/v1/audit-sessions/${sessionId}/history`,
+    `/v1/history/audit-sessions/${sessionId}`,
   SESSION_GAPS: (sessionId: string) => `/v1/audit-sessions/${sessionId}/gaps`,
   SESSION_DOCUMENTS: (sessionId: string) =>
     `/v1/ingestions/audit-sessions/${sessionId}`,
@@ -218,10 +218,14 @@ class AuditReportService {
 
   async getSessionChatHistory(sessionId: string): Promise<ChatHistoryItem[]> {
     try {
-      const response = await http.get<any[]>(
+      const response = await http.get<any>(
         AUDIT_REPORT_ENDPOINTS.SESSION_CHATS(sessionId)
       );
-      return response.data.map((chat) => ({
+      const chatData = response.data?.data || response.data;
+      if (!Array.isArray(chatData)) {
+        return [];
+      }
+      return chatData.map((chat) => ({
         ...chat,
         id: typeof chat.id === "string" ? parseInt(chat.id, 10) : chat.id,
         selected: true,
@@ -235,10 +239,15 @@ class AuditReportService {
     sessionId: string
   ): Promise<ComplianceGapItem[]> {
     try {
-      const response = await http.get<ComplianceGapItem[]>(
+      const response = await http.get<any>(
         AUDIT_REPORT_ENDPOINTS.SESSION_GAPS(sessionId)
       );
-      return response.data.map((gap) => ({
+      // Handle wrapped response format
+      const gapsData = response.data?.data || response.data;
+      if (!Array.isArray(gapsData)) {
+        return [];
+      }
+      return gapsData.map((gap) => ({
         ...gap,
         selected: true,
       }));
@@ -249,10 +258,14 @@ class AuditReportService {
 
   async getSessionDocuments(sessionId: string): Promise<DocumentItem[]> {
     try {
-      const response = await http.get<DocumentItem[]>(
+      const response = await http.get<any>(
         AUDIT_REPORT_ENDPOINTS.SESSION_DOCUMENTS(sessionId)
       );
-      return response.data.map((doc) => ({
+      const documentsData = response.data?.data || response.data;
+      if (!Array.isArray(documentsData)) {
+        return [];
+      }
+      return documentsData.map((doc) => ({
         ...doc,
         selected: true,
       }));
@@ -360,18 +373,37 @@ class AuditReportService {
     documents: DocumentItem[];
   }> {
     try {
-      const [chatHistory, complianceGaps, documents] = await Promise.all([
-        this.getSessionChatHistory(sessionId),
-        this.getSessionComplianceGaps(sessionId),
-        this.getSessionDocuments(sessionId),
-      ]);
+      // Use Promise.allSettled to handle individual failures gracefully
+      const [chatResult, gapsResult, documentsResult] =
+        await Promise.allSettled([
+          this.getSessionChatHistory(sessionId),
+          this.getSessionComplianceGaps(sessionId),
+          this.getSessionDocuments(sessionId),
+        ]);
 
+      const chatHistory =
+        chatResult.status === "fulfilled" ? chatResult.value : [];
+      const complianceGaps =
+        gapsResult.status === "fulfilled" ? gapsResult.value : [];
+      const documents =
+        documentsResult.status === "fulfilled" ? documentsResult.value : [];
+
+      if (chatResult.status === "rejected") {
+        console.error("Failed to fetch chat history:", chatResult.reason);
+      }
+      if (gapsResult.status === "rejected") {
+        console.error("Failed to fetch compliance gaps:", gapsResult.reason);
+      }
+      if (documentsResult.status === "rejected") {
+        console.error("Failed to fetch documents:", documentsResult.reason);
+      }
       return {
         chatHistory,
         complianceGaps,
         documents,
       };
     } catch (error) {
+      console.error("Error in getSessionDataSources:", error);
       throw normalizeError(error);
     }
   }
