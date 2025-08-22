@@ -128,6 +128,7 @@ export interface ChatHistoryItem {
 }
 
 export interface ComplianceRecommendationRequest {
+  gap_id?: string;
   chat_history_item: ChatHistoryItem;
   recommendation_type: string;
   iso_control?: string;

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-empty */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -267,6 +268,7 @@ export const useComplianceGap = () => {
 
   const generateRecommendation = useCallback(
     async (
+      gapId: string,
       chatHistoryId: number,
       recommendationType: string,
       isoControl?: string
@@ -298,6 +300,7 @@ export const useComplianceGap = () => {
         };
 
         const request: ComplianceRecommendationRequest = {
+          gap_id: gapId,
           chat_history_item: chatHistoryItemFormatted,
           recommendation_type: recommendationType,
           iso_control: isoControl || undefined,

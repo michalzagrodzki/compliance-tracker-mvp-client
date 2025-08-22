@@ -117,7 +117,7 @@ export default function EditComplianceGapPage() {
     }
     try {
       clearRecommendationError();
-      await generateRecommendation(currentGap.chat_history_id, formData.recommendation_type, formData.iso_control || undefined);
+      await generateRecommendation(currentGap.id, currentGap.chat_history_id, formData.recommendation_type, formData.iso_control || undefined);
     } catch (error) {
       console.error('Failed to generate recommendation:', error);
     }
