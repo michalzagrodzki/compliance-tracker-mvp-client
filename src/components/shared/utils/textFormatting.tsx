@@ -55,18 +55,29 @@ export const formatBasicContent = (text: string): JSX.Element => {
  * Formats inline content with bold markdown support (for use in other components)
  */
 export const formatInlineContent = (text: string): JSX.Element => {
-  const parts = text.split(/(\*\*[^*]+\*\*)/);
+  const boldPattern = /\*\*([^*]+)\*\*/g;
+  const italicPattern = /\*([^*]+)\*/g;
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/);
+
   return (
     <>
-      {parts.map((part, idx) =>
-        part.startsWith('**') && part.endsWith('**') ? (
-          <span key={idx} className="font-semibold text-gray-900">
-            {part.slice(2, -2)}
-          </span>
-        ) : (
-          <span key={idx}>{part}</span>
-        )
-      )}
+      {parts.map((part, idx) => {
+        if (part.match(boldPattern)) {
+          return (
+            <span key={idx} className="font-semibold text-gray-900">
+              {part.replace(/\*\*/g, '')}
+            </span>
+          );
+        }
+        if (part.match(italicPattern)) {
+          return (
+            <span key={idx} className="italic text-gray-600">
+              {part.replace(/\*/g, '')}
+            </span>
+          );
+        }
+        return <span key={idx}>{part}</span>;
+      })}
     </>
   );
 };
@@ -105,31 +116,122 @@ export const formatNumberedSection = (text: string): JSX.Element => {
  * Formats complete message content with numbered sections
  */
 export const formatMessageContent = (text: string): JSX.Element => {
-  const numberedSections = text.split(/(?=\d+\.\s\*\*)/);
-  
-  if (numberedSections.length <= 1) {
-    return formatBasicContent(text);
+  // Parse markdown-like content similar to audit report formatting
+  const lines = text.split('\n');
+  const elements: JSX.Element[] = [];
+
+  let i = 0;
+  let inCodeBlock = false;
+  let codeBuffer: string[] = [];
+  let codeLang = '';
+
+  const flushCode = (key: number) => {
+    if (codeBuffer.length === 0) return null;
+    const content = codeBuffer.join('\n');
+    codeBuffer = [];
+    const langClass = codeLang ? ` language-${codeLang}` : '';
+    const el = (
+      <pre key={key} className="text-xs md:text-sm bg-gray-900 text-gray-100 rounded-md p-3 overflow-x-auto">
+        <code className={langClass}>{content}</code>
+      </pre>
+    );
+    codeLang = '';
+    return el;
+  };
+
+  while (i < lines.length) {
+    const raw = lines[i];
+    const line = raw.replace(/\r$/, '');
+
+    // Handle code blocks: ```lang ... ```
+    const codeFence = line.match(/^```\s*([a-zA-Z0-9_-]+)?\s*$/);
+    if (codeFence) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeLang = codeFence[1] || '';
+      } else {
+        // Closing fence
+        inCodeBlock = false;
+        const codeEl = flushCode(i);
+        if (codeEl) elements.push(codeEl as unknown as JSX.Element);
+      }
+      i++;
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBuffer.push(line);
+      i++;
+      continue;
+    }
+
+    // Skip extra blank lines but keep paragraph breaks
+    if (line.trim().length === 0) {
+      i++;
+      continue;
+    }
+
+    // Headings
+    if (line.startsWith('# ')) {
+      elements.push(
+        <h1 key={i} className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">
+          {line.substring(2)}
+        </h1>
+      );
+      i++;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      elements.push(
+        <h2 key={i} className="text-base md:text-lg font-semibold text-gray-800 mt-4 mb-2">
+          {line.substring(3)}
+        </h2>
+      );
+      i++;
+      continue;
+    }
+    if (line.startsWith('### ')) {
+      elements.push(
+        <h3 key={i} className="text-sm md:text-base font-semibold text-gray-800 mt-3 mb-1.5">
+          {line.substring(4)}
+        </h3>
+      );
+      i++;
+      continue;
+    }
+
+    // Implementation-style numbered section: "1. **Title**: desc"
+    if (line.match(/^\d+\.\s\*\*/)) {
+      const { element, nextIndex } = formatImplementationStep(lines, i);
+      elements.push(element);
+      i = nextIndex;
+      continue;
+    }
+
+    // Bullet lists
+    if (line.startsWith('- ') || line.startsWith('  -')) {
+      const { element, nextIndex } = formatBulletPoints(lines, i);
+      elements.push(element);
+      i = nextIndex;
+      continue;
+    }
+
+    // Fallback paragraph with inline formatting
+    elements.push(
+      <p key={i} className="text-sm text-gray-800 leading-relaxed mb-2">
+        {formatInlineContent(line)}
+      </p>
+    );
+    i++;
   }
 
-  return (
-    <div className="space-y-4">
-      {numberedSections.map((section, index) => {
-        if (index === 0 && !section.match(/^\d+\.\s/)) {
-          return (
-            <div key={index} className="mb-4">
-              {formatBasicContent(section.trim())}
-            </div>
-          );
-        }
-        
-        return (
-          <div key={index} className="border-l-4 border-blue-200 pl-4 py-2 bg-blue-50/30 rounded-r">
-            {formatNumberedSection(section.trim())}
-          </div>
-        );
-      })}
-    </div>
-  );
+  // If code block left open (malformed), flush what's collected
+  if (inCodeBlock) {
+    const codeEl = flushCode(lines.length + 1);
+    if (codeEl) elements.push(codeEl as unknown as JSX.Element);
+  }
+
+  return <div className="space-y-1.5">{elements}</div>;
 };
 
 /**
