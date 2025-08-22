@@ -146,7 +146,7 @@ export const ComplianceGapForm: React.FC<ComplianceGapFormProps> = ({
     }
     try {
       clearRecommendationError();
-      await generateRecommendation(stringToInt(chatHistoryId), formData.recommendation_type, formData.iso_control || undefined);
+      await generateRecommendation("", stringToInt(chatHistoryId), formData.recommendation_type, formData.iso_control || undefined);
     } catch (error) {
       console.error('Failed to generate recommendation:', error);
     }
