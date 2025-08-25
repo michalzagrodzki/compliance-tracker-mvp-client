@@ -220,7 +220,7 @@ class ComplianceGapService {
     statusData: ComplianceGapStatusUpdate
   ): Promise<ComplianceGapResponse> {
     try {
-      const response = await http.patch<ComplianceGapResponse>(
+      const response = await http.put<ComplianceGapResponse>(
         ENDPOINTS.COMPLIANCE_GAPS_STATUS(gapId),
         statusData
       );
@@ -235,7 +235,7 @@ class ComplianceGapService {
     assignmentData: ComplianceGapAssignment
   ): Promise<ComplianceGapResponse> {
     try {
-      const response = await http.patch<ComplianceGapResponse>(
+      const response = await http.put<ComplianceGapResponse>(
         ENDPOINTS.COMPLIANCE_GAPS_ASSIGN(gapId),
         assignmentData
       );
@@ -250,7 +250,7 @@ class ComplianceGapService {
     reviewData: ComplianceGapReview
   ): Promise<ComplianceGapResponse> {
     try {
-      const response = await http.patch<ComplianceGapResponse>(
+      const response = await http.put<ComplianceGapResponse>(
         ENDPOINTS.COMPLIANCE_GAPS_REVIEW(gapId),
         reviewData
       );
