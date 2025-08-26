@@ -20,7 +20,7 @@ export default function TechnicalDetails({ id, gap_type, confidence_score }: Tec
         </div>
         <div className="space-y-2">
           <h4 className="font-medium text-sm text-muted-foreground">Gap Type</h4>
-          <p className="text-sm">{gap_type.replace('_', ' ')}</p>
+          <p className="text-sm">{gap_type?.replace('_', ' ') || 'Unknown'}</p>
         </div>
         <div className="space-y-2">
           <h4 className="font-medium text-sm text-muted-foreground">Confidence Score</h4>

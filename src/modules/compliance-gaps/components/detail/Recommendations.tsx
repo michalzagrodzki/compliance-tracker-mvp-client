@@ -27,7 +27,7 @@ export default function Recommendations({ recommendation_type, recommendation_te
             <h4 className="font-medium text-sm text-muted-foreground mb-2">Recommendation Type</h4>
             <div className="flex items-center space-x-2">
               <Target className="h-4 w-4 text-muted-foreground" />
-              <span className="capitalize">{recommendation_type.replace('_', ' ')}</span>
+              <span className="capitalize">{recommendation_type?.replace('_', ' ') || 'Unknown'}</span>
             </div>
           </div>
         )}

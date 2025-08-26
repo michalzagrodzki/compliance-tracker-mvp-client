@@ -309,7 +309,7 @@ export default function EditComplianceGapPage() {
                 <label className="text-sm font-medium">Current Gap Type</label>
                 <div className="flex items-center space-x-2 p-3 bg-muted rounded border">
                   <span className="text-sm font-medium capitalize">
-                    {currentGap.gap_type.replace('_', ' ')}
+                    {currentGap.gap_type?.replace('_', ' ') || 'Unknown'}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     (Gap type cannot be changed)

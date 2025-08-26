@@ -94,11 +94,8 @@ export default function IsoControlSelector({ value, onChange, label = 'Related I
                   {selected.frameworkName} • {selected.category}
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+              <div
+                className="shrink-0 h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation()
                   handleClear()
@@ -106,7 +103,7 @@ export default function IsoControlSelector({ value, onChange, label = 'Related I
                 aria-label="Clear ISO control"
               >
                 <X className="h-4 w-4" />
-              </Button>
+              </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </div>
           ) : (

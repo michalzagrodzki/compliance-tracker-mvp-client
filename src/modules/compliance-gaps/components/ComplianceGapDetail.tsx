@@ -150,21 +150,21 @@ export default function ComplianceGapDetail() {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center space-x-2">
               <Shield className="h-6 w-6" />
-              <span>{currentGap.gap_title}</span>
+              <span>{currentGap.gap_title || 'Untitled Gap'}</span>
             </h1>
             <p className="text-muted-foreground">
-              {currentGap.gap_category} • Detected {getRelativeTime(currentGap.detected_at)}
+              {currentGap.gap_category || 'Unknown Category'} • Detected {getRelativeTime(currentGap.detected_at)}
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getRiskLevelColor(currentGap.risk_level)}`}>
             <RiskIcon className="h-4 w-4" />
-            <span className="ml-1">{currentGap.risk_level.toUpperCase()} RISK</span>
+            <span className="ml-1">{currentGap.risk_level?.toUpperCase() || 'UNKNOWN'} RISK</span>
           </span>
           <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusColor(currentGap.status)}`}>
             {statusIcon}
-            <span className="ml-1">{currentGap.status.replace('_', ' ').toUpperCase()}</span>
+            <span className="ml-1">{currentGap.status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}</span>
           </span>
         </div>
       </div>

@@ -255,6 +255,10 @@ export const useComplianceGap = () => {
           updateData
         );
         updateGapInStore(gapId, updatedGap);
+        // Also update currentGap if it matches the updated gap
+        if (currentGap?.id === gapId) {
+          setCurrentGap(updatedGap);
+        }
       } catch (error) {
         const normalizedError = normalizeError(error);
         setError(normalizedError.message || "Failed to update compliance gap");
@@ -263,7 +267,7 @@ export const useComplianceGap = () => {
         setLoading(false);
       }
     },
-    []
+    [currentGap]
   );
 
   const generateRecommendation = useCallback(

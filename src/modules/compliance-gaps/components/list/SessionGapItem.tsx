@@ -58,7 +58,7 @@ export default function SessionGapItem({ gap }: SessionGapItemProps) {
                     {gap.recommendation_type && (
                       <div className="flex items-center space-x-1">
                         <Lightbulb className="h-3 w-3" />
-                        <span>Recommendation type: {gap.recommendation_type.replace('_', ' ')}</span>
+                        <span>Recommendation type: {gap.recommendation_type?.replace('_', ' ') || 'Unknown'}</span>
                       </div>
                     )}
 

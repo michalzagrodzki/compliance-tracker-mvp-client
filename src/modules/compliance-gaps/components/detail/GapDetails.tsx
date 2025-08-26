@@ -24,7 +24,7 @@ export default function GapDetails({ gap }: GapDetailsProps) {
         <div className="space-y-4">
           <div>
             <h4 className="font-medium text-sm text-muted-foreground mb-2">Description</h4>
-            <p className="text-sm leading-relaxed">{gap.gap_description}</p>
+            <p className="text-sm leading-relaxed">{gap.gap_description || 'No description available'}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -32,7 +32,7 @@ export default function GapDetails({ gap }: GapDetailsProps) {
               <h4 className="font-medium text-sm text-muted-foreground mb-2">Gap Type</h4>
               <div className="flex items-center space-x-2">
                 <Target className="h-4 w-4 text-muted-foreground" />
-                <span className="capitalize">{gap.gap_type.replace('_', ' ')}</span>
+                <span className="capitalize">{gap.gap_type?.replace('_', ' ') || 'Unknown'}</span>
               </div>
             </div>
 
@@ -40,7 +40,7 @@ export default function GapDetails({ gap }: GapDetailsProps) {
               <h4 className="font-medium text-sm text-muted-foreground mb-2">Category</h4>
               <div className="flex items-center space-x-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
-                <span>{gap.gap_category}</span>
+                <span>{gap.gap_category || 'Unknown'}</span>
               </div>
             </div>
 
@@ -48,7 +48,7 @@ export default function GapDetails({ gap }: GapDetailsProps) {
               <h4 className="font-medium text-sm text-muted-foreground mb-2">ISO Control:</h4>
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                <span>{gap.iso_control}</span>
+                <span>{gap.iso_control || 'Not specified'}</span>
               </div>
             </div>
 
@@ -56,14 +56,14 @@ export default function GapDetails({ gap }: GapDetailsProps) {
               <h4 className="font-medium text-sm text-muted-foreground mb-2">Risk Level</h4>
               <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskLevelColor(gap.risk_level)}`}>
                 <RiskIcon className="h-4 w-4" />
-                <span className="ml-1">{gap.risk_level.toUpperCase()}</span>
+                <span className="ml-1">{gap.risk_level?.toUpperCase() || 'UNKNOWN'}</span>
               </span>
             </div>
 
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-2">Business Impact</h4>
               <span className={`px-2 py-1 rounded text-xs font-medium ${getBusinessImpactColor(gap.business_impact)}`}>
-                {gap.business_impact.toUpperCase()}
+                {gap.business_impact?.toUpperCase() || 'UNKNOWN'}
               </span>
             </div>
 
@@ -91,7 +91,7 @@ export default function GapDetails({ gap }: GapDetailsProps) {
               <div className="flex items-center space-x-2">
                 <Shield className="h-4 w-4 text-red-600" />
                 <span className="text-sm font-medium text-red-800">
-                  Potential Fine: ${gap.potential_fine_amount.toLocaleString()}
+                  Potential Fine: ${gap.potential_fine_amount?.toLocaleString() || '0'}
                 </span>
               </div>
             </div>
