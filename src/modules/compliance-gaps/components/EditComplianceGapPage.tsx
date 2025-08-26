@@ -12,6 +12,7 @@ import type {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Info, XCircle, Save, Loader2 } from 'lucide-react';
+import { safeReplaceUnderscore } from '@/lib/utils';
 import { useComplianceGap } from '../hooks/useComplianceGap';
 import Loading from '@/components/Loading';
 import RiskAssessmentFields from './form-sections/RiskAssessmentFields';
@@ -309,7 +310,7 @@ export default function EditComplianceGapPage() {
                 <label className="text-sm font-medium">Current Gap Type</label>
                 <div className="flex items-center space-x-2 p-3 bg-muted rounded border">
                   <span className="text-sm font-medium capitalize">
-                    {currentGap.gap_type?.replace('_', ' ') || 'Unknown'}
+                    {safeReplaceUnderscore(currentGap.gap_type)}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     (Gap type cannot be changed)

@@ -12,6 +12,7 @@ import type { ComplianceGapStatusUpdate } from '../types'
 import { getRelativeTime, getRiskLevelColor, getStatusColor } from '@/lib/compliance'
 import { getStatusIcon } from '@/lib/gap-detail'
 import { getRiskIcon as getRiskIconComp } from '@/components/shared/RiskLevelBadge'
+import { safeReplaceUnderscore } from '@/lib/utils'
 import GapActions from './detail/GapActions'
 import GapDetails from './detail/GapDetails'
 import Recommendations from './detail/Recommendations'
@@ -164,7 +165,7 @@ export default function ComplianceGapDetail() {
           </span>
           <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusColor(currentGap.status)}`}>
             {statusIcon}
-            <span className="ml-1">{currentGap.status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}</span>
+            <span className="ml-1">{safeReplaceUnderscore(currentGap.status).toUpperCase()}</span>
           </span>
         </div>
       </div>

@@ -31,6 +31,7 @@ import {
 } from '../types';
 import { useAuditReport } from '../hooks/useAuditReport';
 import type { ComplianceGap } from '@/modules/compliance-gaps/types';
+import { safeReplaceUnderscore } from '@/lib/utils';
 import ReportBasicInfoFields from './form-sections/ReportBasicInfoFields';
 import ReportTypeChips from './form-sections/ReportTypeChips';
 import TargetAudienceChips from './form-sections/TargetAudienceChips';
@@ -926,7 +927,7 @@ export default function CreateAuditReportPage() {
                                       <span>{gap.business_impact.toUpperCase()} IMPACT</span>
                                     </div>
                                     <div className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                                      {gap.gap_type.replace('_', ' ').toUpperCase()}
+                                      {safeReplaceUnderscore(gap.gap_type).toUpperCase()}
                                     </div>
                                   </div>
 
@@ -958,7 +959,7 @@ export default function CreateAuditReportPage() {
                                     <div className="flex items-center space-x-1 text-gray-600">
                                       <Eye className="h-3 w-3 text-green-500" />
                                       <span className="font-medium">Detection:</span>
-                                      <span>{gap.detection_method?.replace('_', ' ') || 'Manual'}</span>
+                                      <span>{safeReplaceUnderscore(gap.detection_method, 'Manual')}</span>
                                     </div>
                                   </div>
 

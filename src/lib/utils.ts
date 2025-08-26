@@ -68,3 +68,14 @@ export function extractIsoControlCode(input: string): string {
   const i = s.indexOf(":")
   return i >= 0 ? s.slice(i + 1).trim() : s
 }
+
+/**
+ * Safely replaces underscores with spaces in a string, handling null/undefined values
+ * @param value - The string value to process (can be null, undefined, or string)
+ * @param fallback - Optional fallback value if input is null/undefined (default: 'Unknown')
+ * @returns The processed string with underscores replaced by spaces, or fallback value
+ */
+export function safeReplaceUnderscore(value: string | null | undefined, fallback: string = 'Unknown'): string {
+  if (value == null) return fallback;
+  return value.replace(/_/g, ' ');
+}

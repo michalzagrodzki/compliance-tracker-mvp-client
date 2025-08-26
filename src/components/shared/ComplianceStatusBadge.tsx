@@ -1,4 +1,5 @@
 import { getStatusColor } from '@/lib/compliance'
+import { safeReplaceUnderscore } from '@/lib/utils'
 
 interface ComplianceStatusBadgeProps {
   status: string
@@ -13,7 +14,7 @@ export default function ComplianceStatusBadge({
 
   return (
     <span className={`px-2 py-1 text-xs font-medium rounded border ${statusColor} flex items-center space-x-1 ${className}`}>
-      <span>{status.replace('_', ' ').toUpperCase()}</span>
+      <span>{safeReplaceUnderscore(status).toUpperCase()}</span>
     </span>
   )
 }

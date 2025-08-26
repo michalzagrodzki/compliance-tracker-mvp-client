@@ -5,6 +5,7 @@ import { FileText, Download, Eye, Calendar, User, Shield, CheckCircle, AlertCirc
 import type { AuditReport, ReportType, TargetAudience, ConfidentialityLevel } from '../../types';
 import { REPORT_TYPE_OPTIONS, TARGET_AUDIENCE_OPTIONS, CONFIDENTIALITY_LEVEL_OPTIONS } from '../../types';
 import { formatDate } from '@/lib/documents';
+import { safeReplaceUnderscore } from '@/lib/utils';
 
 function getReportTypeInfo(reportType: ReportType) {
   return (
@@ -64,7 +65,7 @@ export default function AuditReportCard({ report }: { report: AuditReport }) {
               report.report_status === 'archived' ? 'bg-gray-100 text-gray-800' :
               'bg-gray-100 text-gray-800'
             }`}>
-              {report.report_status.charAt(0).toUpperCase() + report.report_status.slice(1).replace('_', ' ')}
+              {safeReplaceUnderscore(report.report_status).charAt(0).toUpperCase() + safeReplaceUnderscore(report.report_status).slice(1)}
             </span>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { formatTagName } from '@/lib/documents'
+import { safeReplaceUnderscore } from '@/lib/utils'
 import type { DocumentTagConstants } from '../../types'
 
 interface TagSelectorProps {
@@ -27,7 +28,7 @@ export default function TagSelector({
     return (
       <div key={categoryName} className="space-y-2">
         <h4 className="font-medium text-sm text-muted-foreground capitalize">
-          {categoryName.replace('_', ' ')}
+          {safeReplaceUnderscore(categoryName)}
         </h4>
         <div className="flex flex-wrap gap-2">
           {tags.map(tag => (

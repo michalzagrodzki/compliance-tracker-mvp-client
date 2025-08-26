@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, ShieldCheck, Target, FileText, Zap } from 'lucide-react'
 import { getRiskLevelColor, getBusinessImpactColor } from '@/lib/compliance'
 import { getRiskIcon as getRiskIconComp } from '@/components/shared/RiskLevelBadge'
+import { safeReplaceUnderscore } from '@/lib/utils'
 
 interface GapDetailsProps {
   gap: any
@@ -32,7 +33,7 @@ export default function GapDetails({ gap }: GapDetailsProps) {
               <h4 className="font-medium text-sm text-muted-foreground mb-2">Gap Type</h4>
               <div className="flex items-center space-x-2">
                 <Target className="h-4 w-4 text-muted-foreground" />
-                <span className="capitalize">{gap.gap_type?.replace('_', ' ') || 'Unknown'}</span>
+                <span className="capitalize">{safeReplaceUnderscore(gap.gap_type)}</span>
               </div>
             </div>
 

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { useComplianceGap } from '@/modules/compliance-gaps/hooks/useComplianceGap'
 import type { BusinessImpactLevel, GapStatus, RiskLevel } from '@/modules/compliance-gaps/types'
+import { safeReplaceUnderscore } from '@/lib/utils'
 
 
 interface AuditSessionComplianceGapsProps {
@@ -335,7 +336,7 @@ export default function AuditSessionComplianceGaps({
                                   {gap.business_impact.toUpperCase()} IMPACT
                                 </span>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(gap.status)}`}>
-                                  {gap.status.replace('_', ' ').toUpperCase()}
+                                  {safeReplaceUnderscore(gap.status).toUpperCase()}
                                 </span>
                               </div>
                             </div>
@@ -367,7 +368,7 @@ export default function AuditSessionComplianceGaps({
                               
                               <div className="flex items-center space-x-1">
                                 <Target className="h-3 w-3" />
-                                <span>Type: {gap.gap_type.replace('_', ' ')}</span>
+                                <span>Type: {safeReplaceUnderscore(gap.gap_type)}</span>
                               </div>
 
                               <div className="flex items-center space-x-1">
@@ -392,7 +393,7 @@ export default function AuditSessionComplianceGaps({
                             {gap.recommendation_type && (
                               <div className="flex items-center space-x-1">
                                 <Lightbulb className="h-3 w-3" />
-                                <span>Recommendation type: {gap.recommendation_type.replace('_', ' ')}</span>
+                                <span>Recommendation type: {safeReplaceUnderscore(gap.recommendation_type)}</span>
                               </div>
                             )}
 

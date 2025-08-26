@@ -1,4 +1,5 @@
 // Shared constants and utilities for document management
+import { safeReplaceUnderscore } from './utils'
 
 export const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -65,9 +66,9 @@ export const generateDocumentVersion = () => {
 }
 
 export const cleanTagName = (tag: string) => {
-  return tag.replace('_', ' ')
+  return safeReplaceUnderscore(tag)
 }
 
 export const formatTagName = (tag: string) => {
-  return tag.replace(/_/g, ' ')
+  return safeReplaceUnderscore(tag)
 }

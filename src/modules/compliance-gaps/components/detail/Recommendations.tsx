@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, Target } from 'lucide-react'
 import { formatRecommendationContent } from '@/lib/gap-detail'
+import { safeReplaceUnderscore } from '@/lib/utils'
 
 interface RecommendationsProps {
   recommendation_type?: string | null
@@ -27,7 +28,7 @@ export default function Recommendations({ recommendation_type, recommendation_te
             <h4 className="font-medium text-sm text-muted-foreground mb-2">Recommendation Type</h4>
             <div className="flex items-center space-x-2">
               <Target className="h-4 w-4 text-muted-foreground" />
-              <span className="capitalize">{recommendation_type?.replace('_', ' ') || 'Unknown'}</span>
+              <span className="capitalize">{safeReplaceUnderscore(recommendation_type)}</span>
             </div>
           </div>
         )}

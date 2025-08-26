@@ -4,6 +4,7 @@ import BusinessImpactBadge from '@/components/shared/BusinessImpactBadge'
 import ComplianceStatusBadge from '@/components/shared/ComplianceStatusBadge'
 import { formatDate, hasRecommendation } from '@/lib/compliance'
 import { ArrowRight, BookOpen, Calendar, Eye, FileText, Lightbulb, Shield, User } from 'lucide-react'
+import { safeReplaceUnderscore } from '@/lib/utils'
 import type { ComplianceGapResponse } from '../../types'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router'
@@ -58,7 +59,7 @@ export default function SessionGapItem({ gap }: SessionGapItemProps) {
                     {gap.recommendation_type && (
                       <div className="flex items-center space-x-1">
                         <Lightbulb className="h-3 w-3" />
-                        <span>Recommendation type: {gap.recommendation_type?.replace('_', ' ') || 'Unknown'}</span>
+                        <span>Recommendation type: {safeReplaceUnderscore(gap.recommendation_type)}</span>
                       </div>
                     )}
 
