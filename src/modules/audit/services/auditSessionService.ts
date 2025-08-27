@@ -31,6 +31,13 @@ const AUDIT_SESSION_ENDPOINTS = {
 } as const;
 
 class AuditSessionService {
+  private unwrap<T>(payload: any): T {
+    if (payload && typeof payload === "object" && "data" in payload) {
+      return (payload as any).data as T;
+    }
+    return payload as T;
+  }
+
   async getAllSessions(
     skip: number = 0,
     limit: number = 10
@@ -42,7 +49,7 @@ class AuditSessionService {
           params: { skip, limit },
         }
       );
-      return response.data;
+      return this.unwrap<AuditSession[]>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -60,7 +67,7 @@ class AuditSessionService {
           params: { skip, limit },
         }
       );
-      return response.data;
+      return this.unwrap<AuditSession[]>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -71,7 +78,7 @@ class AuditSessionService {
       const response = await http.get<AuditSession>(
         AUDIT_SESSION_ENDPOINTS.BY_ID(sessionId)
       );
-      return response.data;
+      return this.unwrap<AuditSession>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -89,7 +96,7 @@ class AuditSessionService {
           params: { skip, limit },
         }
       );
-      return response.data;
+      return this.unwrap<AuditSession[]>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -107,7 +114,7 @@ class AuditSessionService {
           params: { skip, limit },
         }
       );
-      return response.data;
+      return this.unwrap<AuditSession[]>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -121,7 +128,7 @@ class AuditSessionService {
         AUDIT_SESSION_ENDPOINTS.SEARCH,
         searchData
       );
-      return response.data;
+      return this.unwrap<AuditSession[]>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -135,7 +142,7 @@ class AuditSessionService {
           ...sessionData,
         }
       );
-      return response.data;
+      return this.unwrap<AuditSession>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -148,7 +155,7 @@ class AuditSessionService {
       const response = await http.get<DocumentWithRelationship[]>(
         AUDIT_SESSION_ENDPOINTS.SESSION_DOCUMENTS(sessionId)
       );
-      return response.data;
+      return this.unwrap<DocumentWithRelationship[]>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -216,7 +223,7 @@ class AuditSessionService {
         AUDIT_SESSION_ENDPOINTS.CLOSE_SESSION(sessionId),
         { session_summary: sessionSummary }
       );
-      return response.data;
+      return this.unwrap<AuditSession>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -227,7 +234,7 @@ class AuditSessionService {
       const response = await http.put<AuditSession>(
         AUDIT_SESSION_ENDPOINTS.ACTIVATE_SESSION(sessionId)
       );
-      return response.data;
+      return this.unwrap<AuditSession>(response.data);
     } catch (error) {
       throw normalizeError(error);
     }
