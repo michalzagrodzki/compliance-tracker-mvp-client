@@ -25,7 +25,6 @@ import {
   Square,
   RefreshCw
 } from 'lucide-react'
-import { GenerateAuditReportDialog } from '@/modules/audit-reports/components/GenerateAuditReportDialog'
 import { formatDate } from '@/lib/compliance'
 
 const getDuration = (startedAt: string, endedAt?: string) => {
@@ -242,13 +241,6 @@ export default function AuditSessionDetail() {
                 <ChatButton
                   sessionId={currentSession.id}
                 />
-                <GenerateAuditReportDialog
-                  disabled={isAuditReportEmpty}
-                  sessionId={currentSession.id}
-                  sessionName={currentSession.session_name}
-                  complianceDomain={currentSession.compliance_domain}
-                  startedAt={currentSession.started_at}
-                />
                 {isAuditReportEmpty ? (
                   <Button
                     variant="outline"
@@ -256,7 +248,7 @@ export default function AuditSessionDetail() {
                     disabled
                   >
                     <Download className="h-4 w-4" />
-                    <span>Create Manually Audit Report</span>
+                    <span>Create Audit Report</span>
                   </Button>
                 ) : (
                   <Button
@@ -266,7 +258,7 @@ export default function AuditSessionDetail() {
                   >
                     <Link to={`/audit-sessions/${currentSession.id}/create-report`}>
                       <Download className="h-4 w-4" />
-                      <span>Create Manually Audit Report</span>
+                      <span>Create Audit Report</span>
                     </Link>
                   </Button>
                 )}
