@@ -127,8 +127,8 @@ export interface AuditReport {
   threat_intelligence_analysis: string | null;
   target_audience_summary: string | null;
   detailed_findings: DetailedFinding[] | Record<string, any>;
-  recommendations: Recommendation[];
-  action_items: ActionItem[];
+  recommendations: string | null;
+  action_items: string | null;
   appendices: Record<string, any> | null;
   template_used: string | null;
   include_technical_details: boolean;

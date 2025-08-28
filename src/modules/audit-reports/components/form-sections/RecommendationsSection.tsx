@@ -95,14 +95,14 @@ export default function RecommendationsSection({
         <div className="text-center py-8 text-muted-foreground">
           <Info className="h-8 w-8 mx-auto mb-2" />
           <p>No recommendations added yet</p>
-          <p className="text-sm">Click "Add Recommendation" to create strategic recommendations</p>
+          <p className="text-sm">Click "Generate Recommendations" to generate strategic recommendations</p>
         </div>
       )}
 
       <div className="flex justify-center pt-4">
         <Button type="button" onClick={onAddRecommendation} size="sm" variant="outline">
           <Plus className="h-4 w-4 mr-1" />
-          Add Recommendation
+          Generate Recommendations
         </Button>
       </div>
     </div>

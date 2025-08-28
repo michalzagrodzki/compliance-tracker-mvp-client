@@ -23,6 +23,29 @@ import {
 } from "../types";
 import type { ComplianceGap } from "@/modules/compliance-gaps/types";
 
+export interface AuditReportRecommendation {
+  message: string;
+  audit_session_id: string;
+  recommendations: string;
+  generated_at: string;
+  generated_by: string;
+  gaps_analyzed: number;
+  chat_sessions_analyzed: number;
+  high_risk_gaps: number;
+}
+
+export interface AuditReportActionItem {
+  message: string;
+  audit_session_id: string;
+  action_items: string;
+  generated_at: string;
+  generated_by: string;
+  gaps_analyzed: number;
+  chat_sessions_analyzed: number;
+  regulatory_gaps: number;
+  critical_high_risk_gaps: number;
+}
+
 const AUDIT_REPORT_ENDPOINTS = {
   CREATE: "/v1/audit-reports",
   UPDATE: (reportId: string) => `/v1/audit-reports/${reportId}`,
@@ -35,6 +58,10 @@ const AUDIT_REPORT_ENDPOINTS = {
   THREAT_INTELLIGENCE: "/v1/audit-reports/threat-intelligence",
   RISK_PRIORITIZATION: "/v1/audit-reports/risk-prioritization",
   TARGET_AUDIENCE: "/v1/audit-reports/target-audience",
+  RECOMMENDATIONS: (sessionId: string) =>
+    `/v1/audit-reports/recommendation/${sessionId}`,
+  ACTION_ITEMS: (sessionId: string) =>
+    `/v1/audit-reports/action-items/${sessionId}`,
   GENERATE: "/v1/audit-reports/generate",
 
   // Data source endpoints
@@ -358,6 +385,32 @@ class AuditReportService {
       const response = await http.post<TargetAudienceResponse>(
         AUDIT_REPORT_ENDPOINTS.TARGET_AUDIENCE,
         requestData
+      );
+
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  }
+
+  async createRecommendation(
+    sessionId: string
+  ): Promise<AuditReportRecommendation> {
+    try {
+      const response = await http.post<AuditReportRecommendation>(
+        AUDIT_REPORT_ENDPOINTS.RECOMMENDATIONS(sessionId)
+      );
+
+      return response.data;
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  }
+
+  async createActionItem(sessionId: string): Promise<AuditReportActionItem> {
+    try {
+      const response = await http.post<AuditReportActionItem>(
+        AUDIT_REPORT_ENDPOINTS.ACTION_ITEMS(sessionId)
       );
 
       return response.data;

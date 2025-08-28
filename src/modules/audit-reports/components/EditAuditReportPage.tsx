@@ -29,7 +29,6 @@ import {
 import ReportSummaryFields from './form-sections/ReportSummaryFields';
 import EditBasicInformationFields from './form-sections/EditBasicInformationFields';
 import DataSourcesSection from './form-sections/DataSourcesSection';
-import DetailedFindingsSection from './form-sections/DetailedFindingsSection';
 import RecommendationsSection from './form-sections/RecommendationsSection';
 import ActionItemsSection from './form-sections/ActionItemsSection';
 import AuditTrailReferencesFields from './form-sections/AuditTrailReferencesFields';
@@ -169,9 +168,21 @@ export default function EditAuditReportPage() {
       ? currentReport.detailed_findings 
         : [];
       
-      setRecommendations(Array.isArray(currentReport.recommendations) ? currentReport.recommendations : []);
+      // Handle recommendations and action_items as strings now
+      const parsedRecommendations = currentReport.recommendations 
+        ? (typeof currentReport.recommendations === 'string' 
+           ? JSON.parse(currentReport.recommendations) 
+           : currentReport.recommendations)
+        : [];
+      const parsedActionItems = currentReport.action_items 
+        ? (typeof currentReport.action_items === 'string' 
+           ? JSON.parse(currentReport.action_items) 
+           : currentReport.action_items)
+        : [];
+      
+      setRecommendations(Array.isArray(parsedRecommendations) ? parsedRecommendations : []);
       setDetailedFindings(convertedDetailedFindings);
-      setActionItems(Array.isArray(currentReport.action_items) ? currentReport.action_items : []);
+      setActionItems(Array.isArray(parsedActionItems) ? parsedActionItems : []);
       setHasChanges(false);
     }
   }, [currentReport, loadSessionData]);
@@ -257,23 +268,28 @@ export default function EditAuditReportPage() {
       recommendation: finding.recommendation || '',
       source_references: finding.source_references || []
     }));
-    cleanedData.recommendations = recommendations.map(rec => ({
-      id: rec.id,
-      title: rec.title || '',
-      description: rec.description || '',
-      priority: rec.priority || 'medium',
-      estimated_effort: rec.estimated_effort || '',
-      category: rec.category || ''
-    }));
-    cleanedData.action_items = actionItems.map(item => ({
-      id: item.id,
-      title: item.title || '',
-      description: item.description || '',
-      assigned_to: item.assigned_to || '',
-      due_date: item.due_date || '',
-      priority: item.priority || 'medium',
-      status: item.status || 'pending'
-    }));
+    // Convert arrays to JSON strings for backend
+    cleanedData.recommendations = recommendations.length > 0 
+      ? JSON.stringify(recommendations.map(rec => ({
+          id: rec.id,
+          title: rec.title || '',
+          description: rec.description || '',
+          priority: rec.priority || 'medium',
+          estimated_effort: rec.estimated_effort || '',
+          category: rec.category || ''
+        })))
+      : null;
+    cleanedData.action_items = actionItems.length > 0 
+      ? JSON.stringify(actionItems.map(item => ({
+          id: item.id,
+          title: item.title || '',
+          description: item.description || '',
+          assigned_to: item.assigned_to || '',
+          due_date: item.due_date || '',
+          priority: item.priority || 'medium',
+          status: item.status || 'pending'
+        })))
+      : null;
     
     if (!cleanedData.appendices || (typeof cleanedData.appendices === 'object' && Object.keys(cleanedData.appendices).length === 0)) {
       cleanedData.appendices = null;
@@ -444,35 +460,6 @@ export default function EditAuditReportPage() {
     const updatedRecommendations = recommendations.filter((_, i) => i !== index);
     setRecommendations(updatedRecommendations);
     handleArrayChange('recommendations', updatedRecommendations);
-  };
-
-  const addDetailedFinding = () => {
-    const newFinding: DetailedFinding = {
-      id: Date.now().toString(),
-      title: '',
-      description: '',
-      severity: 'medium',
-      category: '',
-      recommendation: '',
-      source_references: []
-    };
-    const updatedFindings = [...detailedFindings, newFinding];
-    setDetailedFindings(updatedFindings);
-    setHasChanges(true);
-  };
-  
-  const updateDetailedFinding = (index: number, field: keyof DetailedFinding, value: any) => {
-    const updatedFindings = detailedFindings.map((finding, i) => 
-      i === index ? { ...finding, [field]: value } : finding
-    );
-    setDetailedFindings(updatedFindings);
-    setHasChanges(true);
-  };
-  
-  const removeDetailedFinding = (index: number) => {
-    const updatedFindings = detailedFindings.filter((_, i) => i !== index);
-    setDetailedFindings(updatedFindings);
-    setHasChanges(true);
   };
 
   const addActionItem = () => {
@@ -781,24 +768,6 @@ export default function EditAuditReportPage() {
           </CardContent>
         </Card>
         
-        {/* Detailed Findings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Detailed Findings</CardTitle>
-            <CardDescription>
-              Specific findings from the audit process
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <DetailedFindingsSection
-              findings={detailedFindings}
-              onAddFinding={addDetailedFinding}
-              onUpdateFinding={updateDetailedFinding}
-              onRemoveFinding={removeDetailedFinding}
-            />
-          </CardContent>
-        </Card>
-
         {/* Recommendations */}
         <Card>
           <CardHeader>
