@@ -215,6 +215,29 @@ export interface AuditReportResponse {
   error?: string;
 }
 
+export interface AuditReportRecommendation {
+  message: string;
+  audit_session_id: string;
+  recommendations: string;
+  generated_at: string;
+  generated_by: string;
+  gaps_analyzed: number;
+  chat_sessions_analyzed: number;
+  high_risk_gaps: number;
+}
+
+export interface AuditReportActionItem {
+  message: string;
+  audit_session_id: string;
+  action_items: string;
+  generated_at: string;
+  generated_by: string;
+  gaps_analyzed: number;
+  chat_sessions_analyzed: number;
+  regulatory_gaps: number;
+  critical_high_risk_gaps: number;
+}
+
 export interface AuditReportState {
   reports: AuditReport[];
   currentReport: AuditReport | null;
@@ -228,6 +251,12 @@ export interface AuditReportState {
   isGenerating: boolean;
   generateResponse: AuditReportGenerateResponse | null;
   generateError: string | null;
+  isGeneratingRecommendations: boolean;
+  recommendations: AuditReportRecommendation | null;
+  recommendationsError: string | null;
+  isGeneratingActionItems: boolean;
+  actionItems: AuditReportActionItem | null;
+  actionItemsError: string | null;
 }
 
 export interface AuditReportActions {
@@ -249,6 +278,14 @@ export interface AuditReportActions {
   ) => Promise<AuditReportGenerateResponse>;
   clearGenerateResponse: () => void;
   clearGenerateError: () => void;
+  
+  generateRecommendations: (sessionId: string) => Promise<AuditReportRecommendation>;
+  clearRecommendations: () => void;
+  clearRecommendationsError: () => void;
+  
+  generateActionItems: (sessionId: string) => Promise<AuditReportActionItem>;
+  clearActionItems: () => void;
+  clearActionItemsError: () => void;
 }
 
 // Available options for form dropdowns

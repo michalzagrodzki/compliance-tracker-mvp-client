@@ -17,6 +17,8 @@ import type {
   RiskPrioritizationResponse,
   TargetAudienceResponse,
   SummaryTypeValue,
+  AuditReportRecommendation,
+  AuditReportActionItem,
 } from "../types";
 import { SummaryType } from "../types";
 import type { ComplianceGap } from "@/modules/compliance-gaps/types";
@@ -48,6 +50,12 @@ export const useAuditReport = () => {
     targetAudience,
     targetAudienceError,
     targetAudienceGenerationHistory,
+    isGeneratingRecommendations,
+    recommendations,
+    recommendationsError,
+    isGeneratingActionItems,
+    actionItems,
+    actionItemsError,
     // state setters
     setError,
     setReports,
@@ -100,6 +108,16 @@ export const useAuditReport = () => {
     addTargetAudienceHistory,
     getTargetAudienceHistory,
     clearTargetAudienceHistory,
+    setIsGeneratingRecommendations,
+    clearRecommendations,
+    clearRecommendationsError,
+    setRecommendations,
+    setRecommendationsError,
+    setIsGeneratingActionItems,
+    clearActionItems,
+    clearActionItemsError,
+    setActionItems,
+    setActionItemsError,
     isGenerating,
     generateResponse,
     generateError,
@@ -652,6 +670,126 @@ export const useAuditReport = () => {
     [targetAudience, handleUpdateTargetAudienceInReport]
   );
 
+  // Recommendations Actions
+  const handleGenerateRecommendations = useCallback(
+    async (sessionId: string): Promise<AuditReportRecommendation> => {
+      try {
+        setIsGeneratingRecommendations(true);
+        setRecommendationsError(null);
+        const response = await auditReportService.createRecommendation(
+          sessionId
+        );
+        setRecommendations(response);
+        return response;
+      } catch (error) {
+        setRecommendationsError(
+          (error as any).message || "Failed to generate recommendations"
+        );
+        throw error;
+      } finally {
+        setIsGeneratingRecommendations(false);
+      }
+    },
+    [
+      setIsGeneratingRecommendations,
+      setRecommendationsError,
+      setRecommendations,
+    ]
+  );
+
+  const handleUpdateRecommendationsInReport = useCallback(
+    async (reportId: string, recommendationsText: string) => {
+      try {
+        const updated = await auditReportService.updateReport(reportId, {
+          recommendations: recommendationsText,
+        });
+        if (currentReport && currentReport.id === reportId) {
+          setCurrentReport(updated);
+        }
+        setReports(reports.map((r) => (r.id === reportId ? updated : r)));
+      } catch (error) {
+        throw error;
+      }
+    },
+    [currentReport, reports, setCurrentReport, setReports]
+  );
+
+  const handleSaveAndUseRecommendations = useCallback(
+    async (reportId: string, recommendationsText?: string): Promise<void> => {
+      try {
+        const recommendationsToUse =
+          recommendationsText || recommendations?.recommendations;
+
+        if (!recommendationsToUse) {
+          throw new Error("No recommendations available to save");
+        }
+
+        await handleUpdateRecommendationsInReport(
+          reportId,
+          recommendationsToUse
+        );
+      } catch (error) {
+        throw error;
+      }
+    },
+    [recommendations, handleUpdateRecommendationsInReport]
+  );
+
+  // Action Items Actions
+  const handleGenerateActionItems = useCallback(
+    async (sessionId: string): Promise<AuditReportActionItem> => {
+      try {
+        setIsGeneratingActionItems(true);
+        setActionItemsError(null);
+        const response = await auditReportService.createActionItem(sessionId);
+        setActionItems(response);
+        return response;
+      } catch (error) {
+        setActionItemsError(
+          (error as any).message || "Failed to generate action items"
+        );
+        throw error;
+      } finally {
+        setIsGeneratingActionItems(false);
+      }
+    },
+    [setIsGeneratingActionItems, setActionItemsError, setActionItems]
+  );
+
+  const handleUpdateActionItemsInReport = useCallback(
+    async (reportId: string, actionItemsText: string) => {
+      try {
+        const updated = await auditReportService.updateReport(reportId, {
+          action_items: actionItemsText,
+        });
+        if (currentReport && currentReport.id === reportId) {
+          setCurrentReport(updated);
+        }
+        setReports(reports.map((r) => (r.id === reportId ? updated : r)));
+      } catch (error) {
+        throw error;
+      }
+    },
+    [currentReport, reports, setCurrentReport, setReports]
+  );
+
+  const handleSaveAndUseActionItems = useCallback(
+    async (reportId: string, actionItemsText?: string): Promise<void> => {
+      try {
+        const actionItemsToUse = actionItemsText || actionItems?.action_items;
+
+        if (!actionItemsToUse) {
+          throw new Error("No action items available to save");
+        }
+
+        await handleUpdateActionItemsInReport(reportId, actionItemsToUse);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [actionItems, handleUpdateActionItemsInReport]
+  );
+
   const getSelectedData = useCallback(() => {
     return auditReportStoreUtils.getSelectedData();
   }, []);
@@ -791,6 +929,10 @@ export const useAuditReport = () => {
     clearRiskPrioritizationError();
     clearTargetAudience();
     clearTargetAudienceError();
+    clearRecommendations();
+    clearRecommendationsError();
+    clearActionItems();
+    clearActionItemsError();
   }, [
     clearError,
     clearCreateResponse,
@@ -803,6 +945,10 @@ export const useAuditReport = () => {
     clearRiskPrioritizationError,
     clearTargetAudience,
     clearTargetAudienceError,
+    clearRecommendations,
+    clearRecommendationsError,
+    clearActionItems,
+    clearActionItemsError,
   ]);
 
   const resetSummaryState = useCallback(() => {
@@ -829,6 +975,16 @@ export const useAuditReport = () => {
     clearGenerateError();
     clearGenerateResponse();
   }, [clearGenerateError, clearGenerateResponse]);
+
+  const resetRecommendationsState = useCallback(() => {
+    clearRecommendations();
+    clearRecommendationsError();
+  }, [clearRecommendations, clearRecommendationsError]);
+
+  const resetActionItemsState = useCallback(() => {
+    clearActionItems();
+    clearActionItemsError();
+  }, [clearActionItems, clearActionItemsError]);
 
   // Executive Summary utilities
   const hasExecutiveSummary = useCallback(() => {
@@ -970,6 +1126,16 @@ export const useAuditReport = () => {
     targetAudienceError,
     targetAudienceGenerationHistory,
 
+    // Recommendations state
+    isGeneratingRecommendations,
+    recommendations,
+    recommendationsError,
+
+    // Action Items state
+    isGeneratingActionItems,
+    actionItems,
+    actionItemsError,
+
     isGenerating,
     generateResponse,
     generateError,
@@ -1004,6 +1170,16 @@ export const useAuditReport = () => {
     updateTargetAudienceInReport: handleUpdateTargetAudienceInReport,
     saveAndUseTargetAudience: handleSaveAndUseTargetAudience,
 
+    // Recommendations actions
+    generateRecommendations: handleGenerateRecommendations,
+    updateRecommendationsInReport: handleUpdateRecommendationsInReport,
+    saveAndUseRecommendations: handleSaveAndUseRecommendations,
+
+    // Action Items actions
+    generateActionItems: handleGenerateActionItems,
+    updateActionItemsInReport: handleUpdateActionItemsInReport,
+    saveAndUseActionItems: handleSaveAndUseActionItems,
+
     generateReport: handleGenerateReport,
     validateGenerateRequest,
     resetGenerationState,
@@ -1021,6 +1197,8 @@ export const useAuditReport = () => {
     resetThreatIntelligenceState,
     resetRiskPrioritizationState,
     resetTargetAudienceState,
+    resetRecommendationsState,
+    resetActionItemsState,
     hasExecutiveSummary,
     getExecutiveSummaryPreview,
     hasThreatIntelligence,
@@ -1053,6 +1231,10 @@ export const useAuditReport = () => {
     clearRiskPrioritizationError,
     clearTargetAudience,
     clearTargetAudienceError,
+    clearRecommendations,
+    clearRecommendationsError,
+    clearActionItems,
+    clearActionItemsError,
     setLoading,
   };
 };

@@ -9,6 +9,8 @@ import type {
   RiskPrioritizationResponse,
   TargetAudienceResponse,
   AuditReportGenerateResponse,
+  AuditReportRecommendation,
+  AuditReportActionItem,
 } from "../types";
 
 interface ExecutiveSummaryState {
@@ -39,12 +41,26 @@ interface TargetAudienceState {
   targetAudienceGenerationHistory: TargetAudienceResponse[];
 }
 
+interface RecommendationsState {
+  recommendations: AuditReportRecommendation | null;
+  isGeneratingRecommendations: boolean;
+  recommendationsError: string | null;
+}
+
+interface ActionItemsState {
+  actionItems: AuditReportActionItem | null;
+  isGeneratingActionItems: boolean;
+  actionItemsError: string | null;
+}
+
 interface AuditReportStore
   extends AuditReportState,
     ExecutiveSummaryState,
     ThreatIntelligenceState,
     RiskPrioritizationState,
-    TargetAudienceState {
+    TargetAudienceState,
+    RecommendationsState,
+    ActionItemsState {
   dataSources: ReportDataSources;
 
   // Selection actions (pure state updates)
@@ -117,6 +133,16 @@ interface AuditReportStore
   clearTargetAudienceError: () => void;
   getTargetAudienceHistory: () => TargetAudienceResponse[];
   clearTargetAudienceHistory: () => void;
+  setIsGeneratingRecommendations: (generating: boolean) => void;
+  setRecommendations: (recommendations: AuditReportRecommendation | null) => void;
+  setRecommendationsError: (msg: string | null) => void;
+  clearRecommendations: () => void;
+  clearRecommendationsError: () => void;
+  setIsGeneratingActionItems: (generating: boolean) => void;
+  setActionItems: (actionItems: AuditReportActionItem | null) => void;
+  setActionItemsError: (msg: string | null) => void;
+  clearActionItems: () => void;
+  clearActionItemsError: () => void;
 }
 
 export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
@@ -157,6 +183,16 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
   isGeneratingTargetAudience: false,
   targetAudienceError: null,
   targetAudienceGenerationHistory: [],
+
+  // Recommendations state
+  recommendations: null,
+  isGeneratingRecommendations: false,
+  recommendationsError: null,
+
+  // Action Items state
+  actionItems: null,
+  isGeneratingActionItems: false,
+  actionItemsError: null,
 
   // Data sources state
   dataSources: {
@@ -378,6 +414,28 @@ export const useAuditReportStore = create<AuditReportStore>((set, get) => ({
     const current = get().targetAudienceGenerationHistory;
     set({ targetAudienceGenerationHistory: [item, ...current.slice(0, 4)] });
   },
+
+  // Recommendations actions
+  setIsGeneratingRecommendations: (generating: boolean) =>
+    set({ isGeneratingRecommendations: generating }),
+  setRecommendations: (recommendations: AuditReportRecommendation | null) =>
+    set({ recommendations }),
+  setRecommendationsError: (msg: string | null) =>
+    set({ recommendationsError: msg }),
+  clearRecommendations: () =>
+    set({ recommendations: null, recommendationsError: null }),
+  clearRecommendationsError: () => set({ recommendationsError: null }),
+
+  // Action Items actions
+  setIsGeneratingActionItems: (generating: boolean) =>
+    set({ isGeneratingActionItems: generating }),
+  setActionItems: (actionItems: AuditReportActionItem | null) =>
+    set({ actionItems }),
+  setActionItemsError: (msg: string | null) =>
+    set({ actionItemsError: msg }),
+  clearActionItems: () =>
+    set({ actionItems: null, actionItemsError: null }),
+  clearActionItemsError: () => set({ actionItemsError: null }),
 }));
 
 export const auditReportStoreUtils = {
@@ -475,6 +533,38 @@ export const auditReportStoreUtils = {
     return summary.length > maxLength
       ? summary.substring(0, maxLength) + "..."
       : summary;
+  },
+
+  // Recommendations utilities
+  hasRecommendations: () => {
+    const { recommendations } = useAuditReportStore.getState();
+    return recommendations !== null;
+  },
+
+  getRecommendationsPreview: (maxLength: number = 200) => {
+    const { recommendations } = useAuditReportStore.getState();
+    if (!recommendations?.recommendations) return null;
+
+    const recs = recommendations.recommendations;
+    return recs.length > maxLength
+      ? recs.substring(0, maxLength) + "..."
+      : recs;
+  },
+
+  // Action Items utilities
+  hasActionItems: () => {
+    const { actionItems } = useAuditReportStore.getState();
+    return actionItems !== null;
+  },
+
+  getActionItemsPreview: (maxLength: number = 200) => {
+    const { actionItems } = useAuditReportStore.getState();
+    if (!actionItems?.action_items) return null;
+
+    const items = actionItems.action_items;
+    return items.length > maxLength
+      ? items.substring(0, maxLength) + "..."
+      : items;
   },
 
   getComplianceGapsForSummary: () => {

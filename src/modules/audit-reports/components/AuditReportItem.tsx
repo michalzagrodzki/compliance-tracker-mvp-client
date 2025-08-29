@@ -33,6 +33,8 @@ import ReportStatus from './detail/ReportStatus';
 import ReportDetails from './detail/ReportDetails';
 import ReportNotes from './detail/ReportNotes';
 import AuditSessionComplianceGaps from '@/modules/audit/components/AuditSessionComplianceGaps';
+import RecommendationsSection from './form-sections/RecommendationsSection';
+import ActionItemsSection from './form-sections/ActionItemsSection';
 
 const getReportTypeInfo = (reportType: string) => {
   const types = {
@@ -231,6 +233,18 @@ export default function AuditReportItem() {
           {currentReport.target_audience_summary && (
             <ReportTextSection title="Target Audience Summary" icon={Users} content={currentReport.target_audience_summary} />
           )}
+
+          <RecommendationsSection 
+            sessionId={currentReport.audit_session_id}
+            reportId={currentReport.id}
+            currentRecommendations={currentReport.recommendations}
+          />
+
+          <ActionItemsSection 
+            sessionId={currentReport.audit_session_id}
+            reportId={currentReport.id}
+            currentActionItems={currentReport.action_items}
+          />
 
           <ReportConfiguration report={currentReport} />
 

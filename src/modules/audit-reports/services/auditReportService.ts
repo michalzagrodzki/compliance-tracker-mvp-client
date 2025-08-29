@@ -20,31 +20,10 @@ import {
   type TargetAudienceRequest,
   type TargetAudienceResponse,
   type SummaryTypeValue,
+  type AuditReportActionItem,
+  type AuditReportRecommendation,
 } from "../types";
 import type { ComplianceGap } from "@/modules/compliance-gaps/types";
-
-export interface AuditReportRecommendation {
-  message: string;
-  audit_session_id: string;
-  recommendations: string;
-  generated_at: string;
-  generated_by: string;
-  gaps_analyzed: number;
-  chat_sessions_analyzed: number;
-  high_risk_gaps: number;
-}
-
-export interface AuditReportActionItem {
-  message: string;
-  audit_session_id: string;
-  action_items: string;
-  generated_at: string;
-  generated_by: string;
-  gaps_analyzed: number;
-  chat_sessions_analyzed: number;
-  regulatory_gaps: number;
-  critical_high_risk_gaps: number;
-}
 
 const AUDIT_REPORT_ENDPOINTS = {
   CREATE: "/v1/audit-reports",

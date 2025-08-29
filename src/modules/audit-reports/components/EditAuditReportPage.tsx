@@ -20,8 +20,6 @@ import { useAuthStore } from '@/modules/auth/store/authStore';
 import {
   type AuditReport,
   type ReportStatus,
-  type Recommendation,
-  type ActionItem,
   type AuditReportCreate,
   type DetailedFinding,
   SummaryType,
@@ -94,9 +92,7 @@ export default function EditAuditReportPage() {
     gaps: false,
     documents: false
   });
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [detailedFindings, setDetailedFindings] = useState<DetailedFinding[]>([]);
-  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
   const [loadingStates, setLoadingStates] = useState({
     isLoadingReport: false,
@@ -168,21 +164,7 @@ export default function EditAuditReportPage() {
       ? currentReport.detailed_findings 
         : [];
       
-      // Handle recommendations and action_items as strings now
-      const parsedRecommendations = currentReport.recommendations 
-        ? (typeof currentReport.recommendations === 'string' 
-           ? JSON.parse(currentReport.recommendations) 
-           : currentReport.recommendations)
-        : [];
-      const parsedActionItems = currentReport.action_items 
-        ? (typeof currentReport.action_items === 'string' 
-           ? JSON.parse(currentReport.action_items) 
-           : currentReport.action_items)
-        : [];
-      
-      setRecommendations(Array.isArray(parsedRecommendations) ? parsedRecommendations : []);
       setDetailedFindings(convertedDetailedFindings);
-      setActionItems(Array.isArray(parsedActionItems) ? parsedActionItems : []);
       setHasChanges(false);
     }
   }, [currentReport, loadSessionData]);
@@ -268,28 +250,7 @@ export default function EditAuditReportPage() {
       recommendation: finding.recommendation || '',
       source_references: finding.source_references || []
     }));
-    // Convert arrays to JSON strings for backend
-    cleanedData.recommendations = recommendations.length > 0 
-      ? JSON.stringify(recommendations.map(rec => ({
-          id: rec.id,
-          title: rec.title || '',
-          description: rec.description || '',
-          priority: rec.priority || 'medium',
-          estimated_effort: rec.estimated_effort || '',
-          category: rec.category || ''
-        })))
-      : null;
-    cleanedData.action_items = actionItems.length > 0 
-      ? JSON.stringify(actionItems.map(item => ({
-          id: item.id,
-          title: item.title || '',
-          description: item.description || '',
-          assigned_to: item.assigned_to || '',
-          due_date: item.due_date || '',
-          priority: item.priority || 'medium',
-          status: item.status || 'pending'
-        })))
-      : null;
+    // Recommendations and action_items are now managed by the service-based components
     
     if (!cleanedData.appendices || (typeof cleanedData.appendices === 'object' && Object.keys(cleanedData.appendices).length === 0)) {
       cleanedData.appendices = null;
@@ -434,62 +395,7 @@ export default function EditAuditReportPage() {
     }
   };
 
-  const addRecommendation = () => {
-    const newRecommendation: Recommendation = {
-      id: Date.now().toString(),
-      title: '',
-      description: '',
-      priority: 'medium',
-      estimated_effort: '',
-      category: 'process_improvement'
-    };
-    const updatedRecommendations = [...recommendations, newRecommendation];
-    setRecommendations(updatedRecommendations);
-    handleArrayChange('recommendations', updatedRecommendations);
-  };
-
-  const updateRecommendation = (index: number, field: keyof Recommendation, value: any) => {
-    const updatedRecommendations = recommendations.map((rec, i) => 
-      i === index ? { ...rec, [field]: value } : rec
-    );
-    setRecommendations(updatedRecommendations);
-    handleArrayChange('recommendations', updatedRecommendations);
-  };
-
-  const removeRecommendation = (index: number) => {
-    const updatedRecommendations = recommendations.filter((_, i) => i !== index);
-    setRecommendations(updatedRecommendations);
-    handleArrayChange('recommendations', updatedRecommendations);
-  };
-
-  const addActionItem = () => {
-    const newActionItem: ActionItem = {
-      id: Date.now().toString(),
-      title: '',
-      description: '',
-      assigned_to: '',
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      priority: 'medium',
-      status: 'pending'
-    };
-    const updatedActionItems = [...actionItems, newActionItem];
-    setActionItems(updatedActionItems);
-    handleArrayChange('action_items', updatedActionItems);
-  };
-
-  const updateActionItem = (index: number, field: keyof ActionItem, value: any) => {
-    const updatedActionItems = actionItems.map((item, i) => 
-      i === index ? { ...item, [field]: value } : item
-    );
-    setActionItems(updatedActionItems);
-    handleArrayChange('action_items', updatedActionItems);
-  };
-
-  const removeActionItem = (index: number) => {
-    const updatedActionItems = actionItems.filter((_, i) => i !== index);
-    setActionItems(updatedActionItems);
-    handleArrayChange('action_items', updatedActionItems);
-  };
+  // Recommendations and Action Items are now handled by service-based components
 
   const toggleDataSourceSelection = (type: 'chat' | 'gap' | 'document', id: string | number) => {
     if (type === 'chat') {
@@ -778,10 +684,9 @@ export default function EditAuditReportPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <RecommendationsSection
-              recommendations={recommendations}
-              onAddRecommendation={addRecommendation}
-              onUpdateRecommendation={updateRecommendation}
-              onRemoveRecommendation={removeRecommendation}
+              sessionId={currentReport.audit_session_id}
+              reportId={currentReport.id}
+              currentRecommendations={currentReport.recommendations}
             />
           </CardContent>
         </Card>
@@ -796,10 +701,9 @@ export default function EditAuditReportPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <ActionItemsSection
-              actionItems={actionItems}
-              onAddActionItem={addActionItem}
-              onUpdateActionItem={updateActionItem}
-              onRemoveActionItem={removeActionItem}
+              sessionId={currentReport.audit_session_id}
+              reportId={currentReport.id}
+              currentActionItems={currentReport.action_items}
             />
           </CardContent>
         </Card>

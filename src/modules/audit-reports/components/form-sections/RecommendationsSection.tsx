@@ -1,110 +1,184 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Info } from 'lucide-react';
-import { type Recommendation } from '../../types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, CheckCircle, AlertCircle, FileText, Save, Eye } from 'lucide-react';
+import { useAuditReport } from '../../hooks/useAuditReport';
+import { formatRecommendationContent } from './formatting';
 
 interface RecommendationsSectionProps {
-  recommendations: Recommendation[];
-  onAddRecommendation: () => void;
-  onUpdateRecommendation: (index: number, field: keyof Recommendation, value: any) => void;
-  onRemoveRecommendation: (index: number) => void;
+  sessionId: string;
+  reportId?: string;
+  currentRecommendations?: string | null;
 }
 
 export default function RecommendationsSection({
-  recommendations,
-  onAddRecommendation,
-  onUpdateRecommendation,
-  onRemoveRecommendation
+  sessionId,
+  reportId,
+  currentRecommendations
 }: RecommendationsSectionProps) {
+  const [showPreview, setShowPreview] = useState(false);
+  const {
+    recommendations,
+    isGeneratingRecommendations,
+    recommendationsError,
+    generateRecommendations,
+    saveAndUseRecommendations,
+    clearRecommendationsError,
+  } = useAuditReport();
+
+  const handleGenerateRecommendations = async () => {
+    try {
+      clearRecommendationsError();
+      await generateRecommendations(sessionId);
+    } catch (error) {
+      console.error('Failed to generate recommendations:', error);
+    }
+  };
+
+  const handleSaveRecommendations = async () => {
+    if (!reportId || !recommendations?.recommendations) return;
+    
+    try {
+      await saveAndUseRecommendations(reportId);
+    } catch (error) {
+      console.error('Failed to save recommendations:', error);
+    }
+  };
+
+  const recommendationsToShow = recommendations?.recommendations || currentRecommendations;
   return (
-    <div className="space-y-4">
-      {recommendations.map((recommendation, index) => (
-        <div key={recommendation.id || `recommendation-${index}`} className="border rounded-lg p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">Recommendation {index + 1}</h4>
-            <Button
-              type="button"
-              onClick={() => onRemoveRecommendation(index)}
-              size="sm"
-              variant="ghost"
-              className="text-red-600 hover:text-red-700"
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <FileText className="h-5 w-5" />
+          <span>Recommendations</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {recommendationsError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <p className="text-sm text-red-800">{recommendationsError}</p>
+            </div>
+          </div>
+        )}
+
+        {!recommendationsToShow && !isGeneratingRecommendations && (
+          <div className="text-center py-8 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-medium mb-2">No recommendations generated yet</h3>
+            <p className="text-sm mb-4">
+              Generate strategic recommendations based on your audit session data and identified compliance gaps.
+            </p>
+            <Button 
+              onClick={handleGenerateRecommendations}
+              disabled={isGeneratingRecommendations}
             >
-              <Trash2 className="h-4 w-4" />
+              {isGeneratingRecommendations ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Recommendations
+                </>
+              )}
             </Button>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Title</label>
-              <Input
-                value={recommendation.title}
-                onChange={(e) => onUpdateRecommendation(index, 'title', e.target.value)}
-                placeholder="Recommendation title"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Priority</label>
-              <select
-                value={recommendation.priority}
-                onChange={(e) => onUpdateRecommendation(index, 'priority', e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-              >
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Input
-                value={recommendation.category}
-                onChange={(e) => onUpdateRecommendation(index, 'category', e.target.value)}
-                placeholder="e.g., process_improvement, policy_update"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Estimated Effort</label>
-              <Input
-                value={recommendation.estimated_effort}
-                onChange={(e) => onUpdateRecommendation(index, 'estimated_effort', e.target.value)}
-                placeholder="e.g., 2-4 weeks, 1 month"
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <textarea
-              value={recommendation.description}
-              onChange={(e) => onUpdateRecommendation(index, 'description', e.target.value)}
-              placeholder="Detailed description of the recommendation"
-              rows={3}
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
-        </div>
-      ))}
-      
-      {recommendations.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <Info className="h-8 w-8 mx-auto mb-2" />
-          <p>No recommendations added yet</p>
-          <p className="text-sm">Click "Generate Recommendations" to generate strategic recommendations</p>
-        </div>
-      )}
+        )}
 
-      <div className="flex justify-center pt-4">
-        <Button type="button" onClick={onAddRecommendation} size="sm" variant="outline">
-          <Plus className="h-4 w-4 mr-1" />
-          Generate Recommendations
-        </Button>
-      </div>
-    </div>
+        {isGeneratingRecommendations && (
+          <div className="flex items-center justify-center py-8 space-x-3">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium">Generating strategic recommendations...</p>
+              <p>Analyzing compliance gaps and audit data to create actionable recommendations.</p>
+            </div>
+          </div>
+        )}
+
+        {recommendationsToShow && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-800">
+                  Recommendations generated successfully
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowPreview(!showPreview)}
+                >
+                  <Eye className="mr-1 h-3 w-3" />
+                  {showPreview ? 'Hide' : 'Preview'}
+                </Button>
+                {reportId && (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveRecommendations}
+                    disabled={!recommendations?.recommendations}
+                  >
+                    <Save className="mr-1 h-3 w-3" />
+                    Save to Report
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGenerateRecommendations}
+                  disabled={isGeneratingRecommendations}
+                >
+                  {isGeneratingRecommendations ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <FileText className="mr-1 h-3 w-3" />
+                  )}
+                  Regenerate
+                </Button>
+              </div>
+            </div>
+
+            {showPreview && (
+              <div className="bg-gray-50 border rounded-lg p-4">
+                <div 
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: formatRecommendationContent(recommendationsToShow) }}
+                />
+              </div>
+            )}
+
+            {recommendations && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg text-sm">
+                <div className="text-center">
+                  <div className="font-semibold text-blue-900">{recommendations.gaps_analyzed}</div>
+                  <div className="text-blue-700">Gaps Analyzed</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-blue-900">{recommendations.chat_sessions_analyzed}</div>
+                  <div className="text-blue-700">Sessions Analyzed</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-blue-900">{recommendations.high_risk_gaps}</div>
+                  <div className="text-blue-700">High Risk Gaps</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-blue-900">
+                    {new Date(recommendations.generated_at).toLocaleDateString()}
+                  </div>
+                  <div className="text-blue-700">Generated</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
