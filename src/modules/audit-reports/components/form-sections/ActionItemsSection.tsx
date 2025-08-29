@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle, AlertCircle, CheckSquare, Save, Eye } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, CheckSquare, Save } from 'lucide-react';
 import { useAuditReport } from '../../hooks/useAuditReport';
 import { formatRecommendationContent } from './formatting';
 
@@ -17,7 +15,6 @@ export default function ActionItemsSection({
   reportId,
   currentActionItems
 }: ActionItemsSectionProps) {
-  const [showPreview, setShowPreview] = useState(false);
   const {
     actionItems,
     isGeneratingActionItems,
@@ -111,14 +108,7 @@ export default function ActionItemsSection({
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowPreview(!showPreview)}
-                >
-                  <Eye className="mr-1 h-3 w-3" />
-                  {showPreview ? 'Hide' : 'Preview'}
-                </Button>
+                {/* Content is always visible now */}
                 {reportId && (
                   <Button
                     size="sm"
@@ -145,14 +135,11 @@ export default function ActionItemsSection({
               </div>
             </div>
 
-            {showPreview && (
-              <div className="bg-gray-50 border rounded-lg p-4">
-                <div 
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: formatRecommendationContent(actionItemsToShow) }}
-                />
+            <div className="bg-gray-50 border rounded-lg p-4">
+              <div className="prose prose-sm max-w-none">
+                {formatRecommendationContent(actionItemsToShow)}
               </div>
-            )}
+            </div>
 
             {actionItems && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-green-50 rounded-lg text-sm">

@@ -17,7 +17,8 @@ import {
   Printer,
   Building,
   FileCheck,
-  UserCheck
+  UserCheck,
+  CheckSquare
 } from 'lucide-react';
 import ReportLoading from './detail/ReportLoading';
 import ReportError from './detail/ReportError';
@@ -33,8 +34,6 @@ import ReportStatus from './detail/ReportStatus';
 import ReportDetails from './detail/ReportDetails';
 import ReportNotes from './detail/ReportNotes';
 import AuditSessionComplianceGaps from '@/modules/audit/components/AuditSessionComplianceGaps';
-import RecommendationsSection from './form-sections/RecommendationsSection';
-import ActionItemsSection from './form-sections/ActionItemsSection';
 
 const getReportTypeInfo = (reportType: string) => {
   const types = {
@@ -234,17 +233,13 @@ export default function AuditReportItem() {
             <ReportTextSection title="Target Audience Summary" icon={Users} content={currentReport.target_audience_summary} />
           )}
 
-          <RecommendationsSection 
-            sessionId={currentReport.audit_session_id}
-            reportId={currentReport.id}
-            currentRecommendations={currentReport.recommendations}
-          />
+          {currentReport.recommendations && (
+            <ReportTextSection title="Recommendations" icon={FileText} content={currentReport.recommendations} />
+          )}
 
-          <ActionItemsSection 
-            sessionId={currentReport.audit_session_id}
-            reportId={currentReport.id}
-            currentActionItems={currentReport.action_items}
-          />
+          {currentReport.action_items && (
+            <ReportTextSection title="Action Items" icon={CheckSquare} content={currentReport.action_items} />
+          )}
 
           <ReportConfiguration report={currentReport} />
 

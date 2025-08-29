@@ -81,6 +81,14 @@ export default function EditAuditReportPage() {
     targetAudienceError,
     clearTargetAudience,
     clearTargetAudienceError,
+    // Recommendations
+    recommendations,
+    clearRecommendations,
+    clearRecommendationsError,
+    // Action Items
+    actionItems,
+    clearActionItems,
+    clearActionItemsError,
   } = useAuditReport();
 
   const [formData, setFormData] = useState<Partial<AuditReport>>({});
@@ -116,7 +124,11 @@ export default function EditAuditReportPage() {
     clearRiskPrioritizationError();
     clearTargetAudience();
     clearTargetAudienceError();
-  }, [reportId, loadReport, clearUpdateError, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
+    clearRecommendations();
+    clearRecommendationsError();
+    clearActionItems();
+    clearActionItemsError();
+  }, [reportId, loadReport, clearUpdateError, clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError, clearRecommendations, clearRecommendationsError, clearActionItems, clearActionItemsError]);
 
   useEffect(() => {
     if (currentReport) {
@@ -210,8 +222,28 @@ export default function EditAuditReportPage() {
   }, [targetAudience]);
 
   useEffect(() => {
+    if (recommendations?.recommendations) {
+      setFormData(prev => ({
+        ...prev,
+        recommendations: recommendations.recommendations,
+      }));
+      setHasChanges(true);
+    }
+  }, [recommendations]);
+
+  useEffect(() => {
+    if (actionItems?.action_items) {
+      setFormData(prev => ({
+        ...prev,
+        action_items: actionItems.action_items,
+      }));
+      setHasChanges(true);
+    }
+  }, [actionItems]);
+
+  useEffect(() => {
     return () => {
-        clearExecutiveSummary();
+      clearExecutiveSummary();
       clearSummaryError();
       clearThreatIntelligence();
       clearThreatIntelligenceError();
@@ -219,8 +251,12 @@ export default function EditAuditReportPage() {
       clearRiskPrioritizationError();
       clearTargetAudience();
       clearTargetAudienceError();
+      clearRecommendations();
+      clearRecommendationsError();
+      clearActionItems();
+      clearActionItemsError();
     };
-  }, [clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError]);
+  }, [clearExecutiveSummary, clearSummaryError, clearThreatIntelligence, clearThreatIntelligenceError, clearRiskPrioritization, clearRiskPrioritizationError, clearTargetAudience, clearTargetAudienceError, clearRecommendations, clearRecommendationsError, clearActionItems, clearActionItemsError]);
 
   const handleInputChange = (field: keyof AuditReport, value: any) => {
     setFormData(prev => ({
